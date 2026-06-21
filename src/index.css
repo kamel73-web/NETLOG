@@ -1,0 +1,324 @@
+@import "tailwindcss";
+
+@theme {
+  --color-vert-principal: #1D9E75;
+  --color-vert-fonce: #085041;
+  --color-vert-clair: #E1F5EE;
+  --color-gris-fond: #F7F8FA;
+  --color-gris-carte: #FFFFFF;
+  --color-gris-bord: #E5E7EB;
+  --color-texte-principal: #1A1A2E;
+  --color-texte-secondaire: #6B7280;
+  --color-orange-alerte: #D85A30;
+  --color-bleu-info: #378ADD;
+}
+
+@layer base {
+  body {
+    background-color: #F7F8FA;
+    color: #1A1A2E;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* Titles specifications */
+  h1, h2, h3, h4, .title-bold {
+    font-size: 18px;
+    font-weight: 700;
+    color: #085041; /* vert-fonce */
+  }
+
+  /* Label specifications: 12px, uppercase, letter-spacing 0.5px */
+  label, .label-spec {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6B7280; /* texte-secondaire */
+    font-weight: 600;
+  }
+}
+
+/* Reusable custom classes from design specifications */
+.btn-primary {
+  background-color: #1D9E75;
+  color: #FFFFFF;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  border: none;
+}
+.btn-primary:hover {
+  background-color: #085041;
+}
+
+.btn-secondary {
+  background-color: #FFFFFF;
+  border: 1px solid #1D9E75;
+  color: #1D9E75;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.btn-secondary:hover {
+  background-color: #E1F5EE;
+}
+
+.btn-danger {
+  background-color: #D85A30;
+  color: #FFFFFF;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  border: none;
+}
+.btn-danger:hover {
+  background-color: #bf4d26;
+}
+
+.card {
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.badge-vert {
+  background-color: #E1F5EE;
+  color: #085041;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge-orange {
+  background-color: #FAECE7;
+  color: #993C1D;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge-bleu {
+  background-color: #E6F1FB;
+  color: #0C447C;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge-rouge {
+  background-color: #FEE2E2;
+  color: #991B1B;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.input-field {
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 12px;
+  background-color: #FFFFFF;
+  color: #1A1A2E;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+.input-field:focus {
+  outline: none;
+  border-color: #1D9E75;
+  box-shadow: 0 0 0 1px #1D9E75;
+}
+
+/* Ensure inputs, selects, and textareas are always perfectly visible in all themes (anti-invisible-text) */
+input, select, textarea {
+  background-color: #FFFFFF !important;
+  color: #1A1A2E !important;
+  border-color: #E5E7EB !important;
+}
+
+/* If the parent is dark modal/background, style them properly as dark inputs */
+.dark input, 
+.dark select, 
+.dark textarea,
+.dark .input-field {
+  background-color: #0f172a !important;
+  color: #f1f5f9 !important;
+  border-color: #334155 !important;
+}
+
+/* Ensure placeholder texts remain elegantly visible */
+input::placeholder,
+textarea::placeholder,
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+
+/* High-fidelity Leaflet Popup styles (anti-invisible map bubble text) */
+.leaflet-popup-content-wrapper {
+  background-color: #FFFFFF !important;
+  color: #1A1A2E !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+}
+.leaflet-popup-tip {
+  background-color: #FFFFFF !important;
+}
+
+/* Ensure all text inside leaflet popup is dark and visible in light mode */
+.leaflet-popup-content,
+.leaflet-popup-content * {
+  color: #1A1A2E !important;
+}
+
+/* If dark mode is active, make the leaflet popups elegantly dark */
+.dark .leaflet-popup-content-wrapper {
+  background-color: #0f172a !important;
+  color: #f1f5f9 !important;
+  border: 1px solid #334155 !important;
+}
+.dark .leaflet-popup-tip {
+  background-color: #0f172a !important;
+}
+.dark .leaflet-popup-content,
+.dark .leaflet-popup-content * {
+  color: #f1f5f9 !important;
+}
+
+/* Keep accent colors visible map popup buttons and badges */
+.dark .leaflet-popup-content .text-emerald-700,
+.leaflet-popup-content .text-emerald-700 {
+  color: #047857 !important;
+}
+.dark .leaflet-popup-content .text-blue-700,
+.leaflet-popup-content .text-blue-700 {
+  color: #2563eb !important;
+}
+.dark .leaflet-popup-content button,
+.leaflet-popup-content button {
+  color: #ffffff !important;
+}
+
+/* Tooltip on charts forcing visible styling */
+.group-hover\:opacity-100 {
+  background-color: #020617 !important;
+  color: #ffffff !important;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-box {
+  background-color: #FFFFFF;
+  border-radius: 16px;
+  max-width: 420px;
+  width: 100%;
+  padding: 24px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+/* HIGH FIDELITY PRINT STYLES FOR NETLOG DOCUMENTS (LDV & FACTURE) */
+@media print {
+  /* Set background to white & text to black */
+  body {
+    background: white !important;
+    background-color: white !important;
+    color: #000000 !important;
+    font-size: 11px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  /* Hide all generic elements including headers, footers, sidebars, navigation bars and buttons */
+  header, footer, nav, aside, button, .no-print, [id^="nav-tab-"] {
+    display: none !important;
+  }
+
+  /* Unset absolute/fixed positioning for active modals so they fit page stream correctly */
+  .fixed, .modal-overlay, .relative {
+    position: static !important;
+    overflow: visible !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Force printable container of size A4 */
+  #printable-area {
+    display: block !important;
+    visibility: visible !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 21cm !important;
+    min-height: 29.7cm !important;
+    padding: 1.5cm !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    box-sizing: border-box !important;
+    color: black !important;
+  }
+
+  /* Standard table formatting for high density layout on print */
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+  th, td {
+    border: 1px solid #CCCCCC !important;
+    padding: 8px !important;
+  }
+}
+
