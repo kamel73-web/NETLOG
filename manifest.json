@@ -1,0 +1,21 @@
+{
+  "short_name": "NETLOG",
+  "name": "NETLOG – Bourse de Fret Algérie",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/color/192/truck.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://img.icons8.com/color/512/truck.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#1D9E75",
+  "theme_color": "#1D9E75",
+  "display": "standalone",
+  "orientation": "portrait"
+}

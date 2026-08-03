@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>NETLOG – Bourse de Fret Algérie</title>
+    
+    <!-- PWA configuration and themes -->
+    <link rel="manifest" href="/NETLOG/manifest.json" />
+    <meta name="theme-color" content="#1D9E75" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="https://img.icons8.com/color/192/truck.png" />
+
+    <!-- Leaflet.js Interactive Maps CDNs -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <style>
+      /* Ensure default styling prevents scroll bounce on mobile, enhancing PWA stance */
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+    <script type="module" crossorigin src="/NETLOG/assets/index-_mz3fUZw.js"></script>
+    <link rel="stylesheet" crossorigin href="/NETLOG/assets/index-BKpMkUpg.css">
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <!-- PWA Service Worker script -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('SW enregistré avec succès:', reg.scope))
+            .catch(err => console.log('SW erreur d\'enregistrement:', err));
+        });
+      }
+    </script>
+  </body>
+</html>
