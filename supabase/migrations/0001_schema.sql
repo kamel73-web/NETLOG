@@ -1,0 +1,3 @@
+-- Migration appliquée manuellement sur Supabase en août 2026
+-- Schéma complet : tables, enums, triggers
+-- Voir conversation de développement pour le contenu détaillé

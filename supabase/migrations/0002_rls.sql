@@ -1,0 +1,2 @@
+-- Migration appliquée manuellement sur Supabase en août 2026
+-- Politiques Row Level Security complètes

@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from "react";
+import { submitRegistration, type RegistrationInput } from "./lib/registration";
 import { 
   MOCK_OFFRES, 
   MOCK_USERS, 
@@ -1159,31 +1160,32 @@ export default function App() {
     triggerSystemLog(`Bienvenue de retour, ${user.prenom} !`, "success");
   };
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation
-    if (!regNom.trim() || !regPrenom.trim() || !regEmail.trim() || !regTel.trim() || !regPassword.trim() || !regAdresse.trim()) {
+    if (!regNom.trim() || !regPrenom.trim() || !regEmail.trim() || !regTel.trim() || !regAdresse.trim()) {
       triggerSystemLog("Veuillez renseigner tous les champs obligatoires (*)", "danger");
       return;
     }
 
-    // Tel regex filter
+    if (!/^\S+@\S+\.\S+$/.test(regEmail.trim())) {
+      triggerSystemLog("Adresse email invalide", "danger");
+      return;
+    }
+
+    if (regPassword.length < 8) {
+      triggerSystemLog("Le mot de passe doit contenir au moins 8 caractères", "danger");
+      return;
+    }
+    if (regPassword !== regPasswordConfirm) {
+      triggerSystemLog("Les mots de passe ne correspondent pas", "danger");
+      return;
+    }
+
     const cleanedTel = regTel.replace(/\s+/g, "");
     const telRegex = /^(05|06|07|02|03|04)[0-9]{8}$/;
     if (!telRegex.test(cleanedTel)) {
       triggerSystemLog("Format de téléphone incorrect (ex: 0555123456 pour 10 chiffres)", "danger");
-      return;
-    }
-
-    // Password strength check
-    if (regPassword.length < 8) {
-      triggerSystemLog("Le mot de passe doit contenir au moins 8 caractères.", "danger");
-      return;
-    }
-
-    if (regPassword !== regPasswordConfirm) {
-      triggerSystemLog("Les mots de passe ne correspondent pas.", "danger");
       return;
     }
 
@@ -1192,28 +1194,28 @@ export default function App() {
       return;
     }
 
-    // Specific profiles parsing
+    if (regProfil === ProfileType.Admin) {
+      triggerSystemLog("La création de compte administrateur n'est pas disponible par inscription publique.", "danger");
+      return;
+    }
+
     let raisonSociale = `${regNom} ${regPrenom}`;
     let nrc = "Non assujetti";
     let nif = "";
 
-    const cleanUser: UserProfile = {
-      id: "user-" + Date.now(),
+    const input: RegistrationInput = {
       nom: regNom.trim(),
       prenom: regPrenom.trim(),
       email: regEmail.trim().toLowerCase(),
-      tel: regTel.trim(),
+      password: regPassword,
+      tel: cleanedTel,
       adresse: regAdresse.trim(),
       profil: regProfil,
-      password: regPassword,
-      status: "en_attente",
       wilaya: regWilaya,
-      raisonSociale: "",
-      nrc: ""
     };
 
     if (regProfil === ProfileType.DonneurOrdre) {
-      cleanUser.typeEntite = regDoTypeEntite;
+      input.typeEntite = regDoTypeEntite;
       if (regDoTypeEntite !== "Particulier") {
         if (!regDoRaisonSociale.trim()) {
           triggerSystemLog("Raison sociale obligatoire pour les professionnels", "danger");
@@ -1223,11 +1225,11 @@ export default function App() {
         nrc = regDoRC.trim() || "N/A";
         nif = regDoNIF.trim();
       }
-      cleanUser.secteur = regDoSecteur;
-      cleanUser.volumeFret = regDoVolume;
-      cleanUser.nif = nif;
+      input.secteur = regDoSecteur;
+      input.volumeFret = regDoVolume;
+      input.nif = nif;
     } else if (regProfil === ProfileType.Transporteur) {
-      cleanUser.typeEntite = regTransTypeEntite;
+      input.typeEntite = regTransTypeEntite;
       if (regTransTypeEntite === "Entreprise de transport") {
         if (!regTransRaisonSociale.trim()) {
           triggerSystemLog("Raison sociale de l'entreprise requise", "danger");
@@ -1242,32 +1244,34 @@ export default function App() {
         return;
       }
       nrc = regTransRC.trim();
-      cleanUser.autorisationTransport = regTransAutorisation.trim();
-      cleanUser.nbCamions = regTransNbCamions;
-      cleanUser.wilayaActivite = regTransWilayaActivite;
+      input.autorisationTransport = regTransAutorisation.trim();
+      input.nbCamions = regTransNbCamions;
+      input.wilayaActivite = regTransWilayaActivite;
     } else if (regProfil === ProfileType.Commercial) {
       raisonSociale = `Commercial ${regNom} ${regPrenom}`;
-      cleanUser.diplome = regCommDiplome;
-      cleanUser.experienceTransport = regCommExperience;
-      cleanUser.wilayaIntervention = regCommWilayaInterv;
-      cleanUser.sourceDecouverte = regCommSource.trim();
-    } else if (regProfil === ProfileType.Admin) {
-      raisonSociale = `Admin ${regNom}`;
-      cleanUser.status = "valide"; // Admins created directly get valid
+      input.diplome = regCommDiplome;
+      input.experienceTransport = regCommExperience;
+      input.wilayaIntervention = regCommWilayaInterv;
+      input.sourceDecouverte = regCommSource.trim();
     }
 
-    cleanUser.raisonSociale = raisonSociale;
-    cleanUser.nrc = nrc;
-    cleanUser.dateInscription = new Date().toISOString();
+    input.raisonSociale = raisonSociale;
+    input.nrc = nrc;
 
-    const updatedUsers = [...users, cleanUser];
-    saveState(updatedUsers);
+    const { profile, error } = await submitRegistration(input);
 
+    if (error || !profile) {
+      triggerSystemLog(error ?? "Erreur lors de l'inscription", "danger");
+      return;
+    }
+
+    setCurrentUser(profile);
     setShowRegisterModal(false);
-    // Reset register states
-    setRegNom(""); setRegPrenom(""); setRegEmail(""); setRegTel(""); setRegPassword(""); setRegPasswordConfirm(""); setRegAdresse(""); setRegAcceptCGU(false); setRegStep(1);
-    
-    triggerSystemLog("✅ Compte créé ! Votre inscription est en cours de validation par l'équipe NETLOG. Vous recevrez une confirmation sous 24h.", "success");
+    setRegNom(""); setRegPrenom(""); setRegEmail(""); setRegTel("");
+    setRegPassword(""); setRegPasswordConfirm(""); setRegAdresse("");
+    setRegAcceptCGU(false); setRegStep(1);
+
+    triggerSystemLog("✅ Compte créé ! Votre inscription est en cours de validation par l'équipe NETLOG.", "success");
   };
 
   // --- ACTIONS DONNEUR D'ORDRE ---

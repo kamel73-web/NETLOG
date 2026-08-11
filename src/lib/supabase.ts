@@ -10,28 +10,24 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   );
 }
 
-// Client unique partagé dans toute l'application.
-// La clé "anon" est publique par design : c'est la RLS côté base
-// (migrations 0002_rls.sql) qui protège réellement les données,
-// pas le secret de cette clé.
 export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: false,
+    detectSessionInUrl: true, // nécessaire pour capter le lien de réinitialisation de mot de passe
   },
 });
 
-// ---------- Authentification par téléphone + OTP SMS ----------
-// Priorité imposée par le cahier des charges : les chauffeurs n'utilisent
-// pas l'email. Le numéro de téléphone est l'identifiant principal.
+export type UserRole =
+  | 'donneur_ordre'
+  | 'transporteur'
+  | 'chauffeur'
+  | 'commercial'
+  | 'admin'
+  | 'commissionnaire'
+  | 'manutentionnaire'
+  | 'stockage';
 
-export type UserRole = 'donneur_ordre' | 'transporteur' | 'chauffeur' | 'commercial' | 'admin';
-
-/**
- * Normalise un numéro algérien saisi localement (ex: 0551234567)
- * vers le format international requis par Supabase Auth (+213...).
- */
 export function normalizeAlgerianPhone(rawPhone: string): string {
   const digitsOnly = rawPhone.replace(/[^\d]/g, '');
   if (digitsOnly.startsWith('213')) return `+${digitsOnly}`;
@@ -39,58 +35,68 @@ export function normalizeAlgerianPhone(rawPhone: string): string {
   return `+213${digitsOnly}`;
 }
 
-/**
- * Étape 1 : envoie le code OTP par SMS au numéro donné.
- * Ne crée pas encore de compte — Supabase gère ça à la vérification.
- */
-export async function sendPhoneOtp(rawPhone: string): Promise<{ error: string | null }> {
-  const phone = normalizeAlgerianPhone(rawPhone);
-  const { error } = await supabase.auth.signInWithOtp({ phone });
+// ---------- Authentification par email + mot de passe ----------
+// Le mot de passe n'est jamais manipulé en clair côté client au-delà de
+// cet appel réseau chiffré (HTTPS) : Supabase Auth le hache côté serveur
+// (bcrypt). Plus aucune comparaison JS côté client comme dans l'ancien code.
+
+export async function signUpWithPassword(params: {
+  email: string;
+  password: string;
+  fullName: string;
+  role: UserRole;
+  phone?: string;
+}): Promise<{ error: string | null }> {
+  const { error } = await supabase.auth.signUp({
+    email: params.email.trim().toLowerCase(),
+    password: params.password,
+    options: {
+      data: {
+        full_name: params.fullName,
+        role: params.role,
+        phone: params.phone,
+      },
+    },
+  });
+  return { error: error?.message ?? null };
+}
+
+export async function signInWithPassword(
+  email: string,
+  password: string
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.auth.signInWithPassword({
+    email: email.trim().toLowerCase(),
+    password,
+  });
   return { error: error?.message ?? null };
 }
 
 /**
- * Étape 2 : vérifie le code reçu par SMS.
- * fullName et role ne sont utilisés que lors de la toute première
- * inscription (le trigger handle_new_user() les récupère depuis les
- * metadata pour créer la ligne `profiles`).
+ * Envoie un lien de réinitialisation par email. redirectTo doit pointer
+ * vers une route de l'app qui affiche un formulaire "nouveau mot de passe"
+ * et appelle updatePassword() ci-dessous.
  */
-export async function verifyPhoneOtp(params: {
-  rawPhone: string;
-  token: string;
-  fullName?: string;
-  role?: UserRole;
-}): Promise<{ error: string | null }> {
-  const phone = normalizeAlgerianPhone(params.rawPhone);
-  const { error } = await supabase.auth.verifyOtp({
-    phone,
-    token: params.token,
-    type: 'sms',
+export async function requestPasswordReset(email: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+    redirectTo: `${window.location.origin}/reinitialiser-mot-de-passe`,
   });
+  return { error: error?.message ?? null };
+}
 
-  if (error) return { error: error.message };
-
-  // Si c'est une première inscription, on complète les metadata utilisateur
-  // (le trigger handle_new_user en base lit raw_user_meta_data à la création
-  // du compte auth.users ; s'il s'agit d'une connexion existante, cet appel
-  // est sans effet destructeur, il met juste à jour les metadata).
-  if (params.fullName || params.role) {
-    await supabase.auth.updateUser({
-      data: { full_name: params.fullName, role: params.role },
-    });
-  }
-
-  return { error: null };
+/**
+ * À appeler sur la page de réinitialisation, une fois que Supabase a
+ * établi une session temporaire à partir du lien reçu par email.
+ */
+export async function updatePassword(newPassword: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  return { error: error?.message ?? null };
 }
 
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
 }
 
-/**
- * Récupère le profil métier (table `profiles`) de l'utilisateur connecté.
- * Retourne null si personne n'est authentifié.
- */
 export async function getCurrentProfile() {
   const { data: sessionData } = await supabase.auth.getSession();
   const userId = sessionData.session?.user.id;

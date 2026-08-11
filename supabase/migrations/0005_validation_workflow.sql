@@ -1,0 +1,4 @@
+-- Migration appliquée manuellement sur Supabase en août 2026
+-- Workflow statut : en_attente → valide → suspendu
+-- Trigger protect_profile_status, fonction is_validated()
+-- Mise à jour policies RLS offers/proposals/vehicles
