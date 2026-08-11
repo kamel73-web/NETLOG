@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { submitRegistration, type RegistrationInput } from "./lib/registration";
 import { signInWithPassword, signOut, getCurrentProfile } from "./lib/supabase";
+import { loadAppData } from "./lib/dataLoader";
 import { adaptSupabaseProfile, type SupabaseProfileRow } from "./lib/profileAdapter";
 import { 
   MOCK_OFFRES, 
@@ -799,79 +800,33 @@ export default function App() {
     );
   };
 
-  // --- INITIALISATION AVEC LOCALSTORAGE ---
-  // --- INITIALISATION AVEC LOCALSTORAGE ---
+  // --- INITIALISATION DEPUIS SUPABASE ---
   useEffect(() => {
-    const storedUsers = localStorage.getItem("netlog_users");
-    const storedMoyens = localStorage.getItem("netlog_moyens");
-    const storedOffres = localStorage.getItem("netlog_offres");
-    const storedProps = localStorage.getItem("netlog_props");
-    const storedFactures = localStorage.getItem("netlog_factures");
+    loadAppData().then(({ profiles, vehicles, offers, proposals, invoices, currentUser: supabaseUser }) => {
+      setUsers(profiles);
+      setMoyens(vehicles);
+      setOffres(offers);
+      setPropositions(proposals);
+      setFactures(invoices);
 
-    let liveUsers: UserProfile[] = [];
-    if (storedUsers) {
-      liveUsers = JSON.parse(storedUsers);
-      // Ensure the exact pre-created accounts are in liveUsers
-      if (!liveUsers.some(u => u.email === "admin@netlog.dz")) {
-        liveUsers = MOCK_USERS;
-        localStorage.setItem("netlog_users", JSON.stringify(MOCK_USERS));
-      }
-      setUsers(liveUsers);
-    } else {
-      liveUsers = MOCK_USERS;
-      setUsers(MOCK_USERS);
-      localStorage.setItem("netlog_users", JSON.stringify(MOCK_USERS));
-    }
-
-    if (storedMoyens) setMoyens(JSON.parse(storedMoyens));
-    else {
-      setMoyens(MOCK_MOYENS);
-      localStorage.setItem("netlog_moyens", JSON.stringify(MOCK_MOYENS));
-    }
-
-    if (storedOffres) setOffres(JSON.parse(storedOffres));
-    else {
-      setOffres(MOCK_OFFRES);
-      localStorage.setItem("netlog_offres", JSON.stringify(MOCK_OFFRES));
-    }
-
-    if (storedProps) setPropositions(JSON.parse(storedProps));
-    else {
-      setPropositions(MOCK_PROPOSITIONS);
-      localStorage.setItem("netlog_props", JSON.stringify(MOCK_PROPOSITIONS));
-    }
-
-    if (storedFactures) setFactures(JSON.parse(storedFactures));
-    else {
-      setFactures(MOCK_FACTURES);
-      localStorage.setItem("netlog_factures", JSON.stringify(MOCK_FACTURES));
-    }
-
-    const storedDevis = localStorage.getItem("netlog_devis");
-    if (storedDevis) setDevis(JSON.parse(storedDevis));
-    else {
-      setDevis([]);
-      localStorage.setItem("netlog_devis", JSON.stringify([]));
-    }
-
-    // Load active session from netlog_session
-    const storedSession = localStorage.getItem("netlog_session");
-    if (storedSession) {
-      try {
-        const parsed = JSON.parse(storedSession);
-        const matched = liveUsers.find(u => u.id === parsed.id || u.email === parsed.email);
-        if (matched) {
-          setCurrentUser(matched);
-        } else {
-          setCurrentUser(parsed);
+      // Session active : priorité à Supabase, sinon localStorage legacy
+      if (supabaseUser) {
+        setCurrentUser(supabaseUser);
+      } else {
+        const storedSession = localStorage.getItem("netlog_session");
+        if (storedSession) {
+          try {
+            const parsed = JSON.parse(storedSession);
+            const matched = profiles.find(u => u.id === parsed.id || u.email === parsed.email);
+            setCurrentUser(matched ?? null);
+          } catch (e) {
+            console.error(e);
+          }
         }
-      } catch (e) {
-        console.error(e);
       }
-    } else {
-      // Ne pas connecter automatiquement d'utilisateur par défaut pour forcer l'affichage de l'écran de connexion/inscription
-      setCurrentUser(null);
-    }
+    }).catch(err => {
+      console.error("Erreur chargement données:", err);
+    });
 
     // Load tab preference if any
     const storedTab = localStorage.getItem("netlog_tab");
