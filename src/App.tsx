@@ -5,6 +5,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { submitRegistration, type RegistrationInput } from "./lib/registration";
+import { signInWithPassword, signOut, getCurrentProfile } from "./lib/supabase";
+import { adaptSupabaseProfile, type SupabaseProfileRow } from "./lib/profileAdapter";
 import { 
   MOCK_OFFRES, 
   MOCK_USERS, 
