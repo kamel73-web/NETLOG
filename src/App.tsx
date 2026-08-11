@@ -342,97 +342,6 @@ export default function App() {
     stateRef.current = { users, moyens, offres, propositions, factures, devis };
   }, [users, moyens, offres, propositions, factures, devis]);
 
-  useEffect(() => {
-    let isMounted = true;
-    
-    const syncLoop = async () => {
-      try {
-        const response = await fetch("/api/sync");
-        if (!response.ok) return;
-        const data = await response.json();
-        if (!isMounted) return;
-
-        // If the server already contains synchronized data
-        if (data && data.offres && data.offres.length > 0) {
-          const current = stateRef.current;
-
-          const sUsers = JSON.stringify(data.users || []);
-          const lUsers = JSON.stringify(current.users || []);
-          if (sUsers !== lUsers) {
-            setUsers(data.users);
-            localStorage.setItem("netlog_users", sUsers);
-          }
-
-          const sMoyens = JSON.stringify(data.moyens || []);
-          const lMoyens = JSON.stringify(current.moyens || []);
-          if (sMoyens !== lMoyens) {
-            setMoyens(data.moyens);
-            localStorage.setItem("netlog_moyens", sMoyens);
-          }
-
-          const sOffres = JSON.stringify(data.offres || []);
-          const lOffres = JSON.stringify(current.offres || []);
-          if (sOffres !== lOffres) {
-            setOffres(data.offres);
-            localStorage.setItem("netlog_offres", sOffres);
-          }
-
-          const sProps = JSON.stringify(data.propositions || []);
-          const lProps = JSON.stringify(current.propositions || []);
-          if (sProps !== lProps) {
-            setPropositions(data.propositions);
-            localStorage.setItem("netlog_props", sProps);
-          }
-
-          const sFactures = JSON.stringify(data.factures || []);
-          const lFactures = JSON.stringify(current.factures || []);
-          if (sFactures !== lFactures) {
-            setFactures(data.factures);
-            localStorage.setItem("netlog_factures", sFactures);
-          }
-
-          const sDevis = JSON.stringify(data.devis || []);
-          const lDevis = JSON.stringify(current.devis || []);
-          if (sDevis !== lDevis) {
-            setDevis(data.devis);
-            localStorage.setItem("netlog_devis", sDevis);
-          }
-        } else {
-          // If the server-side state is initial/empty, propagate our current state to the server
-          const current = stateRef.current;
-          if (current.offres && current.offres.length > 0) {
-            await fetch("/api/sync", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                users: current.users,
-                moyens: current.moyens,
-                offres: current.offres,
-                propositions: current.propositions,
-                factures: current.factures,
-                devis: current.devis
-              })
-            }).catch(() => {});
-          }
-        }
-      } catch (err) {
-        console.debug("Background state sync offline:", err);
-      }
-    };
-
-    // Run synchronization loop instantly after 400ms, then run polling every 2000ms
-    const startupTimer = setTimeout(() => {
-      syncLoop();
-    }, 400);
-
-    const pollingTimer = setInterval(syncLoop, 2000);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(startupTimer);
-      clearInterval(pollingTimer);
-    };
-  }, []); // Run precisely once on startup
 
   // Missions & Favorites & Notifications support
   const [missions, setMissions] = useState<any[]>(() => {
@@ -950,19 +859,7 @@ export default function App() {
       newDevis = updatedDevis;
     }
 
-    // Post physical payload to express sync server, making loading/unloading instantly reactive
-    fetch("/api/sync", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        users: newUsers,
-        moyens: newMoyens,
-        offres: newOffres,
-        propositions: newProps,
-        factures: newFactures,
-        devis: newDevis
-      })
-    }).catch(err => console.debug("Sync server background push failed:", err));
+
   };
 
   const saveMissionsState = (newMissions: any[]) => {
