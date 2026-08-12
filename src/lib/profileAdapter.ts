@@ -22,6 +22,7 @@ export interface SupabaseProfileRow {
   nif: string | null;
   transporteur_id: string | null;
   is_active: boolean;
+  status?: 'en_attente' | 'valide' | 'suspendu';
   created_at: string;
   updated_at: string;
   prenom: string | null;
@@ -44,7 +45,13 @@ export function adaptSupabaseProfile(row: SupabaseProfileRow): UserProfile {
     tel: row.phone,
     profil: ROLE_TO_PROFILE_TYPE[row.role] ?? ProfileType.DonneurOrdre,
     password: undefined,
-    status: row.is_active ? 'valide' : 'suspendu',
+    // ⚠️ Correction : la colonne `status` (en_attente/valide/suspendu,
+    // migration 0005) est la vraie source de vérité du workflow de
+    // validation par l'Admin. `is_active` (DEFAULT true) ne doit plus
+    // servir à ça : sinon tout nouvel inscrit apparaît "valide" avant
+    // toute validation, et un compte suspendu reste "valide" tant que
+    // is_active n'est pas explicitement modifié.
+    status: row.status ?? (row.is_active ? 'valide' : 'suspendu'),
     wilaya: row.wilaya_code != null ? String(row.wilaya_code) : undefined,
     typeEntite: (meta.typeEntite as string) ?? undefined,
     nif: row.nif ?? undefined,
