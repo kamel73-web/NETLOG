@@ -114,3 +114,19 @@ export async function getCurrentProfile() {
   }
   return data;
 }
+
+// ---------- Actions Administrateur ----------
+// Ces écritures ne fonctionneront que si la session en cours appartient
+// à un profil role='admin' : la policy RLS côté Supabase doit rejeter
+// toute tentative de modification du statut d'un AUTRE profil par un
+// non-admin (voir migration 0005, trigger protect_profile_status).
+// Si cette policy n'existe pas encore réellement en base, cet appel
+// réussira à tort — à vérifier côté Supabase avant mise en production.
+
+export async function updateProfileStatus(
+  userId: string,
+  status: 'en_attente' | 'valide' | 'suspendu'
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('profiles').update({ status }).eq('id', userId);
+  return { error: error?.message ?? null };
+}
