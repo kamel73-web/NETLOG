@@ -91,19 +91,41 @@ export async function loadInvoices(): Promise<Facture[]> {
   }));
 }
 
+export interface CommuneRow {
+  id: number;
+  wilaya_code: number;
+  name: string;
+  name_ar: string | null;
+}
+
+export async function loadCommunes(): Promise<CommuneRow[]> {
+  const { data, error } = await supabase
+    .from('communes')
+    .select('id, wilaya_code, name, name_ar')
+    .order('wilaya_code', { ascending: true })
+    .order('name', { ascending: true });
+
+  if (error) {
+    console.error('loadCommunes:', error.message);
+    return [];
+  }
+  return data as CommuneRow[];
+}
+
 export interface AppData {
   profiles: UserProfile[];
   vehicles: MoyenTransport[];
   offers: OffreFret[];
   proposals: PropositionPrix[];
   invoices: Facture[];
+  communes: CommuneRow[];
   currentUser: UserProfile | null;
 }
 
 export async function loadAppData(): Promise<AppData> {
-  const [profiles, vehicles, offers, proposals, invoices, profileRow] = await Promise.all([
-    loadProfiles(), loadVehicles(), loadFreightOffers(), loadProposals(), loadInvoices(), getCurrentProfile(),
+  const [profiles, vehicles, offers, proposals, invoices, communes, profileRow] = await Promise.all([
+    loadProfiles(), loadVehicles(), loadFreightOffers(), loadProposals(), loadInvoices(), loadCommunes(), getCurrentProfile(),
   ]);
   const currentUser = profileRow ? adaptSupabaseProfile(profileRow as SupabaseProfileRow) : null;
-  return { profiles, vehicles, offers, proposals, invoices, currentUser };
+  return { profiles, vehicles, offers, proposals, invoices, communes, currentUser };
 }

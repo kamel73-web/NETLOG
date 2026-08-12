@@ -6,8 +6,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { submitRegistration, type RegistrationInput } from "./lib/registration";
 import { signInWithPassword, signOut, getCurrentProfile, updateProfileStatus } from "./lib/supabase";
-import { loadAppData, loadProfiles, type CommuneRow } from "./lib/dataLoader";
-import { adaptSupabaseProfile, type SupabaseProfileRow } from "./lib/profileAdapter";
+import { loadAppData, loadProfiles, type CommuneRow } from "./lib/dataLoader";import { adaptSupabaseProfile, type SupabaseProfileRow } from "./lib/profileAdapter";
 import { 
   MOCK_OFFRES, 
   MOCK_USERS, 
@@ -3160,9 +3159,9 @@ export default function App() {
                                   className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
                                 >
                                   <option value="">{lang === "ar" ? "-- اختر البلدية --" : "-- Choisir une commune --"}</option>
-                                  {COMMUNES.filter(c => c.w === regManuWilaya).map((c, i) => (
-                                    <option key={i} value={lang === "ar" ? c.ar : c.fr}>
-                                      {lang === "ar" ? c.ar : c.fr}
+                                  {communesSupabase.filter(c => c.wilaya_code === Number(regManuWilaya)).map(c => (
+                                    <option key={c.id} value={lang === "ar" ? (c.name_ar ?? c.name) : c.name}>
+                                      {lang === "ar" ? (c.name_ar ?? c.name) : c.name}
                                     </option>
                                   ))}
                                 </select>
@@ -3231,9 +3230,9 @@ export default function App() {
                                     className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
                                   >
                                     <option value="">{lang === "ar" ? "-- اختر البلدية --" : "-- Choisir une commune --"}</option>
-                                    {COMMUNES.filter(c => c.w === regWilaya).map((c, i) => (
-                                      <option key={i} value={lang === "ar" ? c.ar : c.fr}>
-                                        {lang === "ar" ? c.ar : c.fr}
+                                    {communesSupabase.filter(c => c.wilaya_code === Number(regWilaya)).map(c => (
+                                      <option key={c.id} value={lang === "ar" ? (c.name_ar ?? c.name) : c.name}>
+                                        {lang === "ar" ? (c.name_ar ?? c.name) : c.name}
                                       </option>
                                     ))}
                                   </select>
