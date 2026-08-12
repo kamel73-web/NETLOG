@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { submitRegistration, type RegistrationInput } from "./lib/registration";
-import { signInWithPassword, signOut, getCurrentProfile } from "./lib/supabase";
+import { signInWithPassword, signOut, getCurrentProfile, updateProfileStatus } from "./lib/supabase";
 import { loadAppData } from "./lib/dataLoader";
 import { adaptSupabaseProfile, type SupabaseProfileRow } from "./lib/profileAdapter";
 import { 
@@ -33,7 +33,6 @@ import ChauffeurDashboard from "./components/ChauffeurDashboard";
 import DonneurDashboard from "./components/DonneurDashboard";
 import CommercialDashboard from "./components/CommercialDashboard";
 import AdminDashboard from "./components/AdminDashboard";
-import { GoogleProfileFinalizer } from "./components/GoogleProfileFinalizer";
 import LeafletMap from "./components/LeafletMap";
 import { 
   Truck, 
@@ -424,83 +423,11 @@ export default function App() {
   const [regAdresse, setRegAdresse] = useState("");
   const [regProfil, setRegProfil] = useState<ProfileType>(ProfileType.DonneurOrdre);
 
-  // Google sign-in pending configuration
-  const [pendingGoogleUser, setPendingGoogleUser] = useState<{ email: string; name: string } | null>(null);
-
-  const handleGoogleLogin = async () => {
-    try {
-      triggerSystemLog(lang === "ar" ? "جاري الاتصال بـ Google..." : "Initialisation de la connexion Google...", "info");
-      
-      const response = await fetch("/api/auth/google/url");
-      if (!response.ok) {
-        throw new Error("Impossible d'obtenir l'URL d'authentification Google");
-      }
-      
-      const { url } = await response.json();
-      
-      // Open the Google pop-up window
-      const width = 500;
-      const height = 650;
-      const left = window.screen.width / 2 - width / 2;
-      const top = window.screen.height / 2 - height / 2;
-      
-      const authWindow = window.open(
-        url,
-        "google_auth_popup",
-        `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`
-      );
-      
-      if (!authWindow) {
-        triggerSystemLog(lang === "ar" ? "⚠️ تم حظر الناfذة المنبثقة. يرجى السماح بالنوافذ المنبثقة." : "⚠️ Fenêtre pop-up bloquée. Veuillez autoriser les fenêtres pop-up de connexion Google.", "danger");
-      }
-    } catch (err: any) {
-      console.error(err);
-      triggerSystemLog("Erreur: " + err.message, "danger");
-    }
-  };
-
-  const handleGoogleRegisterSubmit = (profile: ProfileType, options: { tel: string, wilaya: string, raisonSociale: string, nbCamions?: string }) => {
-    if (!pendingGoogleUser) return;
-    
-    // Create new profile
-    const nameParts = pendingGoogleUser.name.split(" ");
-    const prenom = nameParts[0] || "";
-    const nom = nameParts.slice(1).join(" ") || "Google User";
-    
-    const newUser: UserProfile = {
-      id: "usr-" + Math.random().toString(36).substring(2, 9),
-      nom,
-      prenom,
-      raisonSociale: options.raisonSociale || `${pendingGoogleUser.name} Google Org`,
-      nrc: "Non communiqué",
-      adresse: "Adresse Google " + options.wilaya,
-      email: pendingGoogleUser.email,
-      tel: options.tel || "0550000000",
-      profil: profile,
-      status: "valide",
-      wilaya: options.wilaya,
-      nbCamions: options.nbCamions || "1",
-      dateInscription: new Date().toISOString().split("T")[0],
-    };
-    
-    const updatedUsers = [...users, newUser];
-    saveState(updatedUsers);
-    
-    // Log in
-    setCurrentUser(newUser);
-    localStorage.setItem("netlog_session", JSON.stringify(newUser));
-    setPendingGoogleUser(null);
-    setShowLoginModal(false);
-    
-    // Go to relevant dashboard tab
-    if (profile === ProfileType.DonneurOrdre) {
-      setCurrentTab("donneur");
-    } else if (profile === ProfileType.Transporteur) {
-      setCurrentTab("transporteur");
-    }
-    
-    triggerSystemLog(lang === "ar" ? `✓ تم إنشاء وتبويب حسابك الجديد بنجاح عبر جوجل!` : `✓ Votre nouveau compte Google a été configuré avec succès !`, "success");
-  };
+  // Le flux "Connexion Google" mock a été retiré : il créait un compte
+  // local (localStorage) sans passer par Supabase Auth, contournant
+  // entièrement l'authentification réelle. Une vraie connexion Google
+  // OAuth passera par supabase.auth.signInWithOAuth({ provider: 'google' })
+  // le jour où ce sera nécessaire — pas par ce mécanisme.
 
   // Specific DO fields
   const [regDoTypeEntite, setRegDoTypeEntite] = useState("Entreprise");
@@ -756,61 +683,14 @@ export default function App() {
     localStorage.setItem("netlog_tab", currentTab);
   }, [currentTab]);
 
-  // Google sign-in postMessage listener
-  useEffect(() => {
-    const handleGoogleAuthMessage = (event: MessageEvent) => {
-      // Validate origin to allow local container or production host URLs
-      const origin = event.origin;
-      if (!origin.endsWith('.run.app') && !origin.includes('localhost') && !origin.includes('0.0.0.0') && !origin.includes('127.0.0.1')) {
-        return;
-      }
-
-      if (event.data?.type === 'GOOGLE_AUTH_SUCCESS') {
-        const decodedEmail = decodeURIComponent(event.data.email).trim().toLowerCase();
-        const decodedName = decodeURIComponent(event.data.name).trim();
-
-        // Search for user
-        const matchedUser = users.find(u => u.email.trim().toLowerCase() === decodedEmail);
-
-        if (matchedUser) {
-          if (matchedUser.status === "en_attente") {
-            triggerSystemLog(lang === "ar" ? "حسابك قيد المراجعة. شكراً لصبرك." : "Votre compte est en cours de validation. Merci de patienter.", "danger");
-            return;
-          }
-          if (matchedUser.status === "suspendu") {
-            triggerSystemLog(lang === "ar" ? "حسابك معلق حالياً." : "Votre compte a été suspendu par NETLOG.", "danger");
-            return;
-          }
-          
-          // Successful log in
-          setCurrentUser(matchedUser);
-          localStorage.setItem("netlog_session", JSON.stringify(matchedUser));
-          setShowLoginModal(false);
-          
-          // Switch tab to dashboard
-          if (matchedUser.profil === ProfileType.DonneurOrdre) {
-            setCurrentTab("donneur");
-          } else if (matchedUser.profil === ProfileType.Transporteur) {
-            setCurrentTab("transporteur");
-          } else if (matchedUser.profil === ProfileType.Chauffeur) {
-            setCurrentTab("chauffeur");
-          } else if (matchedUser.profil === ProfileType.Commercial) {
-            setCurrentTab("commercial");
-          } else if (matchedUser.profil === ProfileType.Admin) {
-            setCurrentTab("admin");
-          }
-          
-          triggerSystemLog(lang === "ar" ? `✓ تم تسجيل الدخول بنجاح عبر جوجل: ${decodedName}` : `✓ Connexion réussie via Google : ${decodedName}`, "success");
-        } else {
-          // Open complete Google profile modal
-          setPendingGoogleUser({ email: decodedEmail, name: decodedName });
-        }
-      }
-    };
-
-    window.addEventListener('message', handleGoogleAuthMessage);
-    return () => window.removeEventListener('message', handleGoogleAuthMessage);
-  }, [users, lang]);
+  // Le listener postMessage "Google sign-in" a été retiré : il connectait
+  // directement un utilisateur (localStorage) sur simple réception d'un
+  // message window.postMessage, sans aucune vérification serveur — un
+  // vecteur d'usurpation trivial. Une vraie connexion Google OAuth
+  // passera par supabase.auth.signInWithOAuth({ provider: 'google' }),
+  // dont la session est validée côté Supabase, pas par un postMessage
+  // que n'importe quel script de la page (ou une extension malveillante)
+  // pourrait émettre.
 
   // Synchronisation automatique vers localStorage et le serveur backend de partage en temps réel
   const saveState = (
@@ -872,18 +752,14 @@ export default function App() {
     localStorage.setItem("netlog_notifications", JSON.stringify(newNotifs));
   };
 
-  const switchUser = (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    if (user) {
-      setCurrentUser(user);
-      localStorage.setItem("netlog_session", JSON.stringify(user));
-      triggerSystemLog(`Connecté en tant que: ${user.raisonSociale || user.nom} (${user.profil})`, "success");
-    }
-  };
+  // switchUser() a été supprimée : elle permettait de se connecter à
+  // N'IMPORTE QUEL compte de la plateforme (y compris Admin) sans mot
+  // de passe, juste en le choisissant dans une liste. Faille critique.
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOut(); // supabase.auth.signOut() — coupe la vraie session
     setCurrentUser(null);
-    localStorage.removeItem("netlog_session");
+    localStorage.removeItem("netlog_session"); // nettoyage de l'ancien mécanisme, au cas où
     setCurrentTab("accueil");
     setGuestMode(false);
     setAuthView("login");
@@ -891,31 +767,55 @@ export default function App() {
   };
 
   // Administrateur - Validation KYC et Actions de Suspension (Profil 4)
-  const handleApproveUser = (userId: string) => {
-    const updated = users.map(u => {
-      if (u.id === userId) {
-        return { ...u, status: "valide" as const };
-      }
-      return u;
-    });
-    saveState(updated);
-    
+  const handleApproveUser = async (userId: string) => {
+    if (currentUser?.profil !== ProfileType.Admin) {
+      triggerSystemLog("Action réservée à l'Administrateur.", "danger");
+      return;
+    }
+
+    // Écriture optimiste côté UI, mais confirmée par Supabase : si la
+    // policy RLS refuse (ex. session pas vraiment admin côté serveur),
+    // on annule le changement local plutôt que de laisser croire que
+    // le compte a été validé alors qu'il ne l'est pas en base.
+    const previous = users;
+    const updated = users.map(u => (u.id === userId ? { ...u, status: "valide" as const } : u));
+    setUsers(updated);
+
+    const { error } = await updateProfileStatus(userId, "valide");
+    if (error) {
+      setUsers(previous); // rollback
+      triggerSystemLog(`Échec de la validation : ${error}`, "danger");
+      return;
+    }
+
+    localStorage.setItem("netlog_users", JSON.stringify(updated));
+
     // Mettre à jour l'utilisateur en cours si c'est lui-même
     if (currentUser?.id === userId) {
       setCurrentUser({ ...currentUser, status: "valide" });
     }
-    
+
     triggerSystemLog("Compte d'acteur validé KYC administrativement avec succès. Email de notification transmis.", "success");
   };
 
-  const handleSuspendUser = (userId: string) => {
-    const updated = users.map(u => {
-      if (u.id === userId) {
-        return { ...u, status: "suspendu" as const };
-      }
-      return u;
-    });
-    saveState(updated);
+  const handleSuspendUser = async (userId: string) => {
+    if (currentUser?.profil !== ProfileType.Admin) {
+      triggerSystemLog("Action réservée à l'Administrateur.", "danger");
+      return;
+    }
+
+    const previous = users;
+    const updated = users.map(u => (u.id === userId ? { ...u, status: "suspendu" as const } : u));
+    setUsers(updated);
+
+    const { error } = await updateProfileStatus(userId, "suspendu");
+    if (error) {
+      setUsers(previous); // rollback
+      triggerSystemLog(`Échec de la suspension : ${error}`, "danger");
+      return;
+    }
+
+    localStorage.setItem("netlog_users", JSON.stringify(updated));
 
     if (currentUser?.id === userId) {
       setCurrentUser({ ...currentUser, status: "suspendu" });
@@ -957,43 +857,54 @@ export default function App() {
   };
 
   // Enregistrer ou se connecter
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!loginEmail || !loginPassword) {
       triggerSystemLog("Veuillez remplir tous les champs obligatoires (*)", "danger");
       return;
     }
 
-    const trimmedEmail = loginEmail.trim().toLowerCase();
-    const user = users.find(u => u.email.trim().toLowerCase() === trimmedEmail);
+    // Authentification réelle : Supabase vérifie le mot de passe côté
+    // serveur (hash bcrypt), plus aucune comparaison en clair côté client.
+    // ⚠️ Remplace l'ancienne logique qui retombait sur un mot de passe par
+    // défaut "Test@2025" pour tout profil chargé depuis Supabase (faille
+    // permettant de se connecter à n'importe quel compte réel).
+    const { error: signInError } = await signInWithPassword(loginEmail.trim(), loginPassword);
 
-    if (!user) {
-      triggerSystemLog("Aucun compte avec cet email", "danger");
+    if (signInError) {
+      triggerSystemLog(
+        signInError.includes("Invalid login credentials")
+          ? "Email ou mot de passe incorrect."
+          : signInError,
+        "danger"
+      );
       return;
     }
 
-    // Match password (defaults or custom, fallback case-insensitive or direct match)
-    const expectedPassword = user.password || "Test@2025";
-    if (loginPassword !== expectedPassword) {
-      triggerSystemLog("Mot de passe incorrect", "danger");
+    const profileRow = await getCurrentProfile();
+    if (!profileRow) {
+      triggerSystemLog("Connecté, mais impossible de charger votre profil. Réessayez.", "danger");
       return;
     }
+    const user = adaptSupabaseProfile(profileRow as SupabaseProfileRow);
 
     // Check account status
     const uStatus = user.status || "valide";
     if (uStatus === "en_attente") {
       triggerSystemLog("Votre compte est en cours de validation. Merci de patienter.", "danger");
+      await signOut();
       return;
     }
     if (uStatus === "suspendu") {
       triggerSystemLog("Votre compte a été suspendu. Contactez NETLOG.", "danger");
+      await signOut();
       return;
     }
 
     // Login successful
     setCurrentUser(user);
-    localStorage.setItem("netlog_session", JSON.stringify(user));
     setShowLoginModal(false);
+    setLoginEmail("");
     setLoginPassword("");
 
     // Route to dashboard
@@ -2038,36 +1949,9 @@ export default function App() {
             </button>
           </div>
 
-          {/* Simulateur de Profil express (contient TOUS les profils d'utilisateurs requis) */}
-          <div className="hidden lg:flex items-center gap-1">
-            <span className="text-[9px] text-[#6B7280] font-bold uppercase tracking-wide">Rôle Démo :</span>
-            <select
-              className="bg-slate-50 border border-slate-200 rounded-lg text-xs px-2 py-1 font-semibold text-slate-700 focus:outline-none cursor-pointer"
-              value={currentUser?.id || ""}
-              onChange={(e) => {
-                if (e.target.value === "") {
-                  handleLogout();
-                } else {
-                  switchUser(e.target.value);
-                  const matched = users.find(u => u.id === e.target.value);
-                  if (matched) {
-                    if (matched.profil === ProfileType.DonneurOrdre) setCurrentTab("donneur");
-                    else if (matched.profil === ProfileType.Transporteur) setCurrentTab("transporteur");
-                    else if (matched.profil === ProfileType.Chauffeur) setCurrentTab("chauffeur");
-                    else if (matched.profil === ProfileType.Commercial) setCurrentTab("commercial");
-                    else if (matched.profil === ProfileType.Admin) setCurrentTab("admin");
-                  }
-                }
-              }}
-            >
-              <option value="">Consulter (Anonyme)</option>
-              {users.map(u => (
-                <option key={u.id} value={u.id}>
-                  {u.nom} {u.prenom} ({u.profil} - {u.status || "valide"})
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Le "Simulateur de Profil express" a été retiré : il permettait
+              de se connecter à n'importe quel compte de la plateforme
+              (y compris Admin) sans authentification. */}
 
           {/* Connected state indicators */}
           {currentUser ? (
@@ -2533,20 +2417,13 @@ export default function App() {
                           <div className="flex-grow border-t border-slate-100"></div>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={handleGoogleLogin}
-                          className="w-full py-3 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl transition-all text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-sm"
-                        >
-                          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                          </svg>
-                          <span>{lang === "ar" ? "تسجيل الدخول بواسطة Google" : "Se connecter avec Google"}</span>
-                        </button>
                       </form>
+
+                      {/* Le panneau "Démo Express" (identifiants pré-remplis,
+                          dont admin@netlog.dz) a été retiré : exposer de
+                          vrais identifiants en clair dans le bundle JS
+                          public est un risque, même si l'authentification
+                          elle-même passe désormais par Supabase. */}
 
                     </div>
                   )}
@@ -5802,26 +5679,6 @@ export default function App() {
               >
                 Se connecter →
               </button>
-
-              <div className="relative flex py-1 items-center">
-                <div className="flex-grow border-t border-slate-100"></div>
-                <span className="flex-shrink mx-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider">ou</span>
-                <div className="flex-grow border-t border-slate-100"></div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleGoogleLogin}
-                className="w-full py-2.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl transition-colors text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-sm"
-              >
-                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
-                <span>Google</span>
-              </button>
             </form>
 
             <div className="space-y-2 pt-2 border-t border-slate-100 text-center text-[11px]">
@@ -5850,19 +5707,6 @@ export default function App() {
               </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* ----------------- MODAL DE CONFIGURATION DE PROFIL GOOGLE COMPLEMENTAIRE ----------------- */}
-      {pendingGoogleUser && (
-        <div className="fixed inset-0 z-[100] bg-[#0F172A]/95 backdrop-blur-lg flex items-center justify-center p-4">
-          <GoogleProfileFinalizer 
-            email={pendingGoogleUser.email}
-            name={pendingGoogleUser.name}
-            lang={lang}
-            onCancel={() => setPendingGoogleUser(null)}
-            onSubmit={handleGoogleRegisterSubmit}
-          />
         </div>
       )}
 
