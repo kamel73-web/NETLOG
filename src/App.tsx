@@ -467,6 +467,8 @@ export default function App() {
   const [regManuWilaya, setRegManuWilaya] = useState("");
   const [regStockageType, setRegStockageType] = useState("Entrepôt couvert");
   const [regStockageCapacite, setRegStockageCapacite] = useState("500");
+  const [regManuCommune, setRegManuCommune] = useState("");
+  const [regStockageCommune, setRegStockageCommune] = useState("");
 
   // Champs spécifiques Manutentionnaire
   const [regManRaisonSociale, setRegManRaisonSociale] = useState("");
@@ -3138,16 +3140,32 @@ export default function App() {
                                     {lang === "ar" ? "ولاية النشاط الرئيسية *" : "Wilaya d'intervention *"}
                                   </label>
                                   <select
-                                    value={regManuWilaya} onChange={(e) => setRegManuWilaya(e.target.value)}
+                                    value={regManuWilaya} onChange={(e) => { setRegManuWilaya(e.target.value); setRegManuCommune(""); }}
                                     className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
                                   >
                                     {WILAYAS.map(w => (
-                                      <option key={w.code} value={lang === "ar" ? w.ar : w.fr}>
+                                      <option key={w.code} value={w.code}>
                                         {lang === "ar" ? w.ar : w.fr}
                                       </option>
                                     ))}
                                   </select>
                                 </div>
+                              </div>
+                              <div>
+                                <label className="block text-[10px] text-slate-500 mb-0.5">
+                                  {lang === "ar" ? "البلدية (الموقع الدقيق) *" : "Commune (localisation précise) *"}
+                                </label>
+                                <select
+                                  value={regManuCommune} onChange={(e) => setRegManuCommune(e.target.value)}
+                                  className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
+                                >
+                                  <option value="">{lang === "ar" ? "-- اختر البلدية --" : "-- Choisir une commune --"}</option>
+                                  {COMMUNES.filter(c => c.w === regManuWilaya).map((c, i) => (
+                                    <option key={i} value={lang === "ar" ? c.ar : c.fr}>
+                                      {lang === "ar" ? c.ar : c.fr}
+                                    </option>
+                                  ))}
+                                </select>
                               </div>
                             </div>
                           )}
@@ -3188,20 +3206,38 @@ export default function App() {
                                   </select>
                                 </div>
                               </div>
-                              <div>
-                                <label className="block text-[10px] text-slate-500 mb-0.5">
-                                  {lang === "ar" ? "ولاية موقع المستودع *" : "Wilaya du site de stockage *"}
-                                </label>
-                                <select
-                                  value={regWilaya} onChange={(e) => setRegWilaya(e.target.value)}
-                                  className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
-                                >
-                                  {WILAYAS.map(w => (
-                                    <option key={w.code} value={lang === "ar" ? w.ar : w.fr}>
-                                      {lang === "ar" ? w.ar : w.fr}
-                                    </option>
-                                  ))}
-                                </select>
+                              <div className="grid grid-cols-2 gap-2.5">
+                                <div>
+                                  <label className="block text-[10px] text-slate-500 mb-0.5">
+                                    {lang === "ar" ? "ولاية موقع المستودع *" : "Wilaya du site de stockage *"}
+                                  </label>
+                                  <select
+                                    value={regWilaya} onChange={(e) => { setRegWilaya(e.target.value); setRegStockageCommune(""); }}
+                                    className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
+                                  >
+                                    {WILAYAS.map(w => (
+                                      <option key={w.code} value={w.code}>
+                                        {lang === "ar" ? w.ar : w.fr}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] text-slate-500 mb-0.5">
+                                    {lang === "ar" ? "البلدية (الموقع الدقيق) *" : "Commune (localisation précise) *"}
+                                  </label>
+                                  <select
+                                    value={regStockageCommune} onChange={(e) => setRegStockageCommune(e.target.value)}
+                                    className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
+                                  >
+                                    <option value="">{lang === "ar" ? "-- اختر البلدية --" : "-- Choisir une commune --"}</option>
+                                    {COMMUNES.filter(c => c.w === regWilaya).map((c, i) => (
+                                      <option key={i} value={lang === "ar" ? c.ar : c.fr}>
+                                        {lang === "ar" ? c.ar : c.fr}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
                               </div>
                             </div>
                           )}
