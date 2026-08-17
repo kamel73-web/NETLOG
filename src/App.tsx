@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { submitRegistration, type RegistrationInput } from "./lib/registration";
 import { signInWithPassword, signOut, getCurrentProfile, updateProfileStatus } from "./lib/supabase";
-import { loadAppData } from "./lib/dataLoader";
+import { loadAppData, loadProfiles } from "./lib/dataLoader";
 import { adaptSupabaseProfile, type SupabaseProfileRow } from "./lib/profileAdapter";
 import { 
   MOCK_OFFRES, 
@@ -461,13 +461,17 @@ export default function App() {
   const [recrutWilaya, setRecrutWilaya] = useState("Oran");
   const [regCommSource, setRegCommSource] = useState("");
 
+  // Champs spécifiques Manutentionnaire (section 30 du CDC)
+  const [regManRaisonSociale, setRegManRaisonSociale] = useState("");
+  const [regManRC, setRegManRC] = useState("");
+  const [regManTypesEngins, setRegManTypesEngins] = useState<string[]>(["Chariot élévateur"]);
+  const [regManWilayaActivite, setRegManWilayaActivite] = useState("Alger");
+
   // États pour gérer l'affichage de notre magnifique écran de connexion / inscription
   const [guestMode, setGuestMode] = useState(false);
   const [authView, setAuthView] = useState<"login" | "register">("login");
 
-  // Secret admin access
-  const [showAdminTabOption, setShowAdminTabOption] = useState(false);
-  const [adminCodeInput, setAdminCodeInput] = useState("");
+  // L'accès admin secret par code a été retiré (voir plus haut).
 
   // CGU acknowledgment
   const [regAcceptCGU, setRegAcceptCGU] = useState(false);
@@ -907,6 +911,15 @@ export default function App() {
     setLoginEmail("");
     setLoginPassword("");
 
+    // ⚠️ loadAppData() (donc `users`) a été chargé au montage de la page,
+    // AVANT toute authentification — à ce moment-là, RLS ne renvoyait
+    // rien (session anonyme). Sans ce rafraîchissement, un Admin qui se
+    // connecte en session fraîche (ex. navigation privée) voit une liste
+    // de comptes vide malgré une connexion réussie.
+    loadProfiles().then(setUsers).catch((err) => {
+      console.error("Erreur rafraîchissement profils après connexion:", err);
+    });
+
     // Route to dashboard
     if (user.profil === ProfileType.DonneurOrdre) {
       setCurrentTab("donneur");
@@ -1018,6 +1031,19 @@ export default function App() {
       input.experienceTransport = regCommExperience;
       input.wilayaIntervention = regCommWilayaInterv;
       input.sourceDecouverte = regCommSource.trim();
+    } else if (regProfil === ProfileType.Manutentionnaire) {
+      if (!regManRaisonSociale.trim()) {
+        triggerSystemLog("Raison sociale obligatoire pour les manutentionnaires", "danger");
+        return;
+      }
+      if (!regManRC.trim()) {
+        triggerSystemLog("Numéro d'inscription RC obligatoire pour les manutentionnaires", "danger");
+        return;
+      }
+      raisonSociale = regManRaisonSociale.trim();
+      nrc = regManRC.trim();
+      input.typesEngins = regManTypesEngins.join(", ");
+      input.wilayaActivite = regManWilayaActivite;
     }
 
     input.raisonSociale = raisonSociale;
@@ -1035,6 +1061,10 @@ export default function App() {
     setRegNom(""); setRegPrenom(""); setRegEmail(""); setRegTel("");
     setRegPassword(""); setRegPasswordConfirm(""); setRegAdresse("");
     setRegAcceptCGU(false); setRegStep(1);
+
+    loadProfiles().then(setUsers).catch((err) => {
+      console.error("Erreur rafraîchissement profils après inscription:", err);
+    });
 
     triggerSystemLog("✅ Compte créé ! Votre inscription est en cours de validation par l'équipe NETLOG.", "success");
   };
@@ -2512,6 +2542,28 @@ export default function App() {
                                 </span>
                               </div>
                             </div>
+
+                            {/* Option 4: Manutentionnaire */}
+                            <div 
+                              onClick={() => setRegProfil(ProfileType.Manutentionnaire)}
+                              className={`p-3 rounded-2xl border-2 transition-all flex items-center gap-3 cursor-pointer ${
+                                regProfil === ProfileType.Manutentionnaire 
+                                  ? "border-[#1D9E75] bg-[#E1F5EE]/40" 
+                                  : "border-slate-100 bg-slate-50/60 hover:border-slate-200"
+                              }`}
+                            >
+                              <span className="text-2xl pt-1">🏗️</span>
+                              <div className="flex-1">
+                                <strong className="text-xs text-slate-850 block font-extrabold">
+                                  {lang === "ar" ? "مقاول مناولة (رافعات، شاحنات رفع)" : "Manutentionnaire (Engins de levage)"}
+                                </strong>
+                                <span className="text-[10px] text-slate-500 font-semibold block">
+                                  {lang === "ar"
+                                    ? "مقدمو خدمات الرفع والمناولة: رافعات، شاحنات شوكية، جرافات، نصابات."
+                                    : "Prestataires de manutention : grues, chariots élévateurs, pelles, nacelles."}
+                                </span>
+                              </div>
+                            </div>
                           </div>
 
                           <button
@@ -2538,7 +2590,9 @@ export default function App() {
                                   ? (lang === "ar" ? "🏭 طالب شحن / آمر صرف" : "🏭 Donneur d'Ordre") 
                                   : regProfil === ProfileType.Transporteur 
                                     ? (lang === "ar" ? "🚛 ناقل بري محترف" : "🚛 Transporteur Routier") 
-                                    : (lang === "ar" ? "💼 وكيل تجاري" : "💼 Agent Commercial")}
+                                    : regProfil === ProfileType.Manutentionnaire
+                                      ? (lang === "ar" ? "🏗️ مقاول مناولة" : "🏗️ Manutentionnaire")
+                                      : (lang === "ar" ? "💼 وكيل تجاري" : "💼 Agent Commercial")}
                               </strong>
                             </div>
                             <button
@@ -2951,6 +3005,72 @@ export default function App() {
                                     value={regCommSource} onChange={(e) => setRegCommSource(e.target.value)}
                                     className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700"
                                   />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Cas 2D : CHAMPS SPÉCIFIQUES POUR LE MANUTENTIONNAIRE */}
+                          {regProfil === ProfileType.Manutentionnaire && (
+                            <div className="space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                              <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest block border-b pb-1">
+                                {lang === "ar" ? "معلومات نشاط المناولة" : "Informations d'activité de manutention"}
+                              </span>
+
+                              <div className="grid grid-cols-2 gap-2.5">
+                                <div>
+                                  <label className="block text-[10px] text-slate-500 mb-0.5">
+                                    {lang === "ar" ? "الاسم التجاري *" : "Raison sociale *"}
+                                  </label>
+                                  <input
+                                    type="text" required placeholder={lang === "ar" ? "مثال: مناولة الجزائر" : "ex: Manutention Alger SARL"}
+                                    value={regManRaisonSociale} onChange={(e) => setRegManRaisonSociale(e.target.value)}
+                                    className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] text-slate-500 mb-0.5">
+                                    {lang === "ar" ? "رقم السجل التجاري (RC) *" : "N° Registre de Commerce (RC) *"}
+                                  </label>
+                                  <input
+                                    type="text" required placeholder="ex: 16/00-0943521B21"
+                                    value={regManRC} onChange={(e) => setRegManRC(e.target.value)}
+                                    className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 font-mono"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2.5">
+                                <div>
+                                  <label className="block text-[10px] text-slate-500 mb-0.5">
+                                    {lang === "ar" ? "نوع العتاد المتوفر *" : "Type d'engin principal *"}
+                                  </label>
+                                  <select
+                                    value={regManTypesEngins[0]} onChange={(e) => setRegManTypesEngins([e.target.value])}
+                                    className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
+                                  >
+                                    <option value="Grue">{lang === "ar" ? "رافعة" : "Grue"}</option>
+                                    <option value="Chariot élévateur">{lang === "ar" ? "شاحنة شوكية" : "Chariot élévateur"}</option>
+                                    <option value="Pelle">{lang === "ar" ? "حفارة" : "Pelle"}</option>
+                                    <option value="Chargeuse">{lang === "ar" ? "جرافة" : "Chargeuse"}</option>
+                                    <option value="Nacelle">{lang === "ar" ? "نصاب" : "Nacelle"}</option>
+                                    <option value="Autre">{lang === "ar" ? "أخرى" : "Autre"}</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] text-slate-500 mb-0.5">
+                                    {lang === "ar" ? "ولاية النشاط الرئيسية *" : "Wilaya d'activité principale *"}
+                                  </label>
+                                  <select
+                                    value={regManWilayaActivite} onChange={(e) => setRegManWilayaActivite(e.target.value)}
+                                    className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
+                                  >
+                                    {WILAYAS.map(w => (
+                                      <option key={w.code} value={lang === "ar" ? w.ar : w.fr}>
+                                        {lang === "ar" ? w.ar : w.fr}
+                                      </option>
+                                    ))}
+                                  </select>
                                 </div>
                               </div>
                             </div>
@@ -5115,49 +5235,31 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* Option 4: Secret Admin Card (Unlocks via small verification or secret code) */}
-                  {showAdminTabOption ? (
-                    <div 
-                      onClick={() => setRegProfil(ProfileType.Admin)}
-                      className={`p-4 rounded-xl border-2 text-center cursor-pointer transition-all space-y-2 relative overflow-hidden select-none ${
-                        regProfil === ProfileType.Admin 
-                          ? "border-[#534AB7] bg-purple-50 ring-1 ring-[#534AB7]" 
-                          : "border-slate-100 bg-slate-50 hover:border-slate-200"
-                      }`}
-                    >
-                      <div className="text-3xl">⚙️</div>
-                      <h4 className="font-extrabold text-xs text-slate-900">Administrateur NETLOG</h4>
-                      <p className="text-[10px] text-slate-500 leading-normal font-medium">
-                        Équipe interne de support, validation des KYC et reporting consolidé.
-                      </p>
-                      {regProfil === ProfileType.Admin && (
-                        <span className="absolute top-2 right-2 w-3 h-3 bg-[#534AB7] rounded-full ring-2 ring-white"></span>
-                      )}
-                    </div>
-                  ) : (
-                    <div 
-                      className="p-4 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center bg-slate-50/50 space-y-2"
-                    >
-                      <span className="text-lg">🔒</span>
-                      <h4 className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">Accès Administrateur</h4>
-                      <div className="flex gap-1 max-w-[150px]">
-                        <input 
-                          type="password" 
-                          placeholder="Code secret"
-                          value={adminCodeInput}
-                          onChange={(e) => {
-                            setAdminCodeInput(e.target.value);
-                            if (e.target.value === "Admin@2025" || e.target.value === "bvf-admin") {
-                              setShowAdminTabOption(true);
-                              setRegProfil(ProfileType.Admin);
-                              triggerSystemLog("Compte Administrateur débloqué !", "success");
-                            }
-                          }}
-                          className="w-full text-[10px] py-1 px-1.5 border rounded focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                  )}
+                  {/* Option 4: Manutentionnaire */}
+                  <div 
+                    onClick={() => setRegProfil(ProfileType.Manutentionnaire)}
+                    className={`p-4 rounded-xl border-2 text-center cursor-pointer transition-all space-y-2 relative overflow-hidden select-none ${
+                      regProfil === ProfileType.Manutentionnaire 
+                        ? "border-[#1D9E75] bg-[#E1F5EE]/40 ring-1 ring-[#1D9E75]" 
+                        : "border-slate-100 bg-slate-50 hover:border-slate-200"
+                    }`}
+                  >
+                    <div className="text-3xl">🏗️</div>
+                    <h4 className="font-extrabold text-xs text-slate-900">Manutentionnaire</h4>
+                    <p className="text-[10px] text-slate-500 leading-normal font-medium">
+                      Prestataires de manutention : grues, chariots élévateurs, pelles, nacelles.
+                    </p>
+                    {regProfil === ProfileType.Manutentionnaire && (
+                      <span className="absolute top-2 right-2 w-3 h-3 bg-[#1D9E75] rounded-full ring-2 ring-white"></span>
+                    )}
+                  </div>
+
+                  {/* La carte "Administrateur NETLOG" déblocable par code secret
+                      (Admin@2025 / bvf-admin) a été retirée : un compte admin
+                      ne doit jamais pouvoir être créé depuis l'inscription
+                      publique, code secret ou non. Le premier compte admin
+                      s'amorce via SQL directement sur Supabase (voir procédure
+                      d'amorçage), les suivants sont promus par un admin existant. */}
                 </div>
 
                 <div className="pt-4 flex justify-end">
@@ -5565,6 +5667,55 @@ export default function App() {
                           onChange={(e) => setRegCommSource(e.target.value)}
                           className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-white"
                         />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {regProfil === ProfileType.Manutentionnaire && (
+                  <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-100">
+                    <span className="text-[10px] font-extrabold text-[#085041] uppercase tracking-wide block mb-2 border-b pb-1">
+                      🏗️ Informations d'activité de manutention
+                    </span>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div>
+                        <label className="block text-[10px] text-slate-500 mb-0.5">Raison sociale *</label>
+                        <input
+                          type="text" required placeholder="ex: Manutention Alger SARL"
+                          value={regManRaisonSociale} onChange={(e) => setRegManRaisonSociale(e.target.value)}
+                          className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-slate-500 mb-0.5">N° Registre de Commerce (RC) *</label>
+                        <input
+                          type="text" required placeholder="ex: 16/00-0943521B21"
+                          value={regManRC} onChange={(e) => setRegManRC(e.target.value)}
+                          className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-slate-500 mb-0.5">Type d'engin principal *</label>
+                        <select
+                          value={regManTypesEngins[0]} onChange={(e) => setRegManTypesEngins([e.target.value])}
+                          className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs bg-white cursor-pointer"
+                        >
+                          {["Grue", "Chariot élévateur", "Pelle", "Chargeuse", "Nacelle", "Autre"].map(t => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-slate-500 mb-0.5">Wilaya d'activité principale *</label>
+                        <select
+                          value={regManWilayaActivite} onChange={(e) => setRegManWilayaActivite(e.target.value)}
+                          className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs bg-white cursor-pointer"
+                        >
+                          {WILAYAS.map(w => (
+                            <option key={w.code} value={w.fr}>{w.fr}</option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                   </div>
