@@ -127,6 +127,25 @@ export async function updateProfileStatus(
   userId: string,
   status: 'en_attente' | 'valide' | 'suspendu'
 ): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('profiles').update({ status }).eq('id', userId);
-  return { error: error?.message ?? null };
+  // ⚠️ .select() après .update() est indispensable ici : sans lui,
+  // Supabase renvoie un succès (pas d'erreur) même si la policy RLS a
+  // silencieusement filtré la ligne et que 0 ligne n'a été modifiée.
+  // On vérifie donc explicitement le nombre de lignes retournées.
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ status })
+    .eq('id', userId)
+    .select('id, status');
+
+  if (error) {
+    return { error: error.message };
+  }
+  if (!data || data.length === 0) {
+    return {
+      error:
+        "Aucune ligne modifiée — la policy RLS a probablement bloqué l'écriture " +
+        "(vérifiez que la session courante a bien role='admin' côté profiles).",
+    };
+  }
+  return { error: null };
 }
