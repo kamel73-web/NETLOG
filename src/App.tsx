@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { submitRegistration, type RegistrationInput } from "./lib/registration";
 import { signInWithPassword, signOut, getCurrentProfile, updateProfileStatus } from "./lib/supabase";
-import { loadAppData, loadProfiles } from "./lib/dataLoader";
+import { loadAppData, loadProfiles, type CommuneRow } from "./lib/dataLoader";
 import { adaptSupabaseProfile, type SupabaseProfileRow } from "./lib/profileAdapter";
 import { 
   MOCK_OFFRES, 
@@ -329,6 +329,7 @@ export default function App() {
 
   // --- ÉTATS ---
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [communesSupabase, setCommunesSupabase] = useState<CommuneRow[]>([]);
   const [moyens, setMoyens] = useState<MoyenTransport[]>([]);
   const [offres, setOffres] = useState<OffreFret[]>([]);
   const [propositions, setPropositions] = useState<PropositionPrix[]>([]);
@@ -460,6 +461,14 @@ export default function App() {
   const [recrutProfilType, setRecrutProfilType] = useState<ProfileType>(ProfileType.Transporteur);
   const [recrutWilaya, setRecrutWilaya] = useState("Oran");
   const [regCommSource, setRegCommSource] = useState("");
+  const [regCommissNRC, setRegCommissNRC] = useState("");
+  const [regCommissRaisonSociale, setRegCommissRaisonSociale] = useState("");
+  const [regManuTypeEngin, setRegManuTypeEngin] = useState("Chariot élévateur");
+  const [regManuWilaya, setRegManuWilaya] = useState("");
+  const [regStockageType, setRegStockageType] = useState("Entrepôt couvert");
+  const [regStockageCapacite, setRegStockageCapacite] = useState("500");
+  const [regManuCommune, setRegManuCommune] = useState("");
+  const [regStockageCommune, setRegStockageCommune] = useState("");
 
   // Champs spécifiques Manutentionnaire (section 30 du CDC)
   const [regManRaisonSociale, setRegManRaisonSociale] = useState("");
@@ -642,12 +651,13 @@ export default function App() {
 
   // --- INITIALISATION DEPUIS SUPABASE ---
   useEffect(() => {
-    loadAppData().then(({ profiles, vehicles, offers, proposals, invoices, currentUser: supabaseUser }) => {
+    loadAppData().then(({ profiles, vehicles, offers, proposals, invoices, communes, currentUser: supabaseUser }) => {
       setUsers(profiles);
       setMoyens(vehicles);
       setOffres(offers);
       setPropositions(proposals);
       setFactures(invoices);
+      setCommunesSupabase(communes);
 
       // Session active : priorité à Supabase, sinon localStorage legacy
       if (supabaseUser) {
@@ -2543,7 +2553,33 @@ export default function App() {
                               </div>
                             </div>
 
+<<<<<<< HEAD
+                            {/* Option 4: Commissionnaire / Transitaire */}
+                            <div 
+                              onClick={() => setRegProfil(ProfileType.Commissionnaire)}
+                              className={`p-3 rounded-2xl border-2 transition-all flex items-center gap-3 cursor-pointer ${
+                                regProfil === ProfileType.Commissionnaire 
+                                  ? "border-[#1D9E75] bg-[#E1F5EE]/40" 
+                                  : "border-slate-100 bg-slate-50/60 hover:border-slate-200"
+                              }`}
+                            >
+                              <span className="text-2xl pt-1">🔗</span>
+                              <div className="flex-1">
+                                <strong className="text-xs text-slate-850 block font-extrabold">
+                                  {lang === "ar" ? "مفوض نقل / عبور / وسيط لوجستي" : "Commissionnaire / Transitaire"}
+                                </strong>
+                                <span className="text-[10px] text-slate-500 font-semibold block">
+                                  {lang === "ar"
+                                    ? "وسطاء النقل الذين يديرون شبكات الناقلين الخاصة بهم ويتفاوضون على عمليات الشحن."
+                                    : "Organisateurs de transport gérant un réseau privé de transporteurs et négociant les opérations de fret."}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Option 5: Manutentionnaire */}
+=======
                             {/* Option 4: Manutentionnaire */}
+>>>>>>> 6271a9b856d20c118afcc17564b1c24f30b69f82
                             <div 
                               onClick={() => setRegProfil(ProfileType.Manutentionnaire)}
                               className={`p-3 rounded-2xl border-2 transition-all flex items-center gap-3 cursor-pointer ${
@@ -2555,12 +2591,43 @@ export default function App() {
                               <span className="text-2xl pt-1">🏗️</span>
                               <div className="flex-1">
                                 <strong className="text-xs text-slate-850 block font-extrabold">
+<<<<<<< HEAD
+                                  {lang === "ar" ? "مناول / مقدم خدمات المناولة" : "Manutentionnaire / Prestataire de manutention"}
+                                </strong>
+                                <span className="text-[10px] text-slate-500 font-semibold block">
+                                  {lang === "ar"
+                                    ? "مشغلو الرافعات الشوكية والمعدات الثقيلة لخدمات التحميل والتفريغ."
+                                    : "Opérateurs de chariots élévateurs et engins de levage pour les opérations de chargement/déchargement."}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Option 6: Stockage */}
+                            <div 
+                              onClick={() => setRegProfil(ProfileType.Stockage)}
+                              className={`p-3 rounded-2xl border-2 transition-all flex items-center gap-3 cursor-pointer ${
+                                regProfil === ProfileType.Stockage 
+                                  ? "border-[#1D9E75] bg-[#E1F5EE]/40" 
+                                  : "border-slate-100 bg-slate-50/60 hover:border-slate-200"
+                              }`}
+                            >
+                              <span className="text-2xl pt-1">🏭</span>
+                              <div className="flex-1">
+                                <strong className="text-xs text-slate-850 block font-extrabold">
+                                  {lang === "ar" ? "مزود خدمات التخزين / المستودع" : "Prestataire de Stockage / Entrepôt"}
+                                </strong>
+                                <span className="text-[10px] text-slate-500 font-semibold block">
+                                  {lang === "ar"
+                                    ? "أصحاب المستودعات ومرافق التخزين المبردة أو المغطاة أو المفتوحة."
+                                    : "Gestionnaires d'entrepôts, de zones de stockage couvertes, frigorifiques ou à ciel ouvert."}
+=======
                                   {lang === "ar" ? "مقاول مناولة (رافعات، شاحنات رفع)" : "Manutentionnaire (Engins de levage)"}
                                 </strong>
                                 <span className="text-[10px] text-slate-500 font-semibold block">
                                   {lang === "ar"
                                     ? "مقدمو خدمات الرفع والمناولة: رافعات، شاحنات شوكية، جرافات، نصابات."
                                     : "Prestataires de manutention : grues, chariots élévateurs, pelles, nacelles."}
+>>>>>>> 6271a9b856d20c118afcc17564b1c24f30b69f82
                                 </span>
                               </div>
                             </div>
@@ -2589,10 +2656,21 @@ export default function App() {
                                 {regProfil === ProfileType.DonneurOrdre 
                                   ? (lang === "ar" ? "🏭 طالب شحن / آمر صرف" : "🏭 Donneur d'Ordre") 
                                   : regProfil === ProfileType.Transporteur 
+<<<<<<< HEAD
+                                    ? (lang === "ar" ? "🚛 ناقل بري محترف" : "🚛 Transporteur Routier")
+                                    : regProfil === ProfileType.Commissionnaire
+                                      ? (lang === "ar" ? "🔗 مفوض نقل / وسيط لوجستي" : "🔗 Commissionnaire / Transitaire")
+                                      : regProfil === ProfileType.Manutentionnaire
+                                        ? (lang === "ar" ? "🏗️ مناول" : "🏗️ Manutentionnaire")
+                                        : regProfil === ProfileType.Stockage
+                                          ? (lang === "ar" ? "🏭 مزود تخزين" : "🏭 Prestataire de Stockage")
+                                          : (lang === "ar" ? "💼 وكيل تجاري" : "💼 Agent Commercial")}
+=======
                                     ? (lang === "ar" ? "🚛 ناقل بري محترف" : "🚛 Transporteur Routier") 
                                     : regProfil === ProfileType.Manutentionnaire
                                       ? (lang === "ar" ? "🏗️ مقاول مناولة" : "🏗️ Manutentionnaire")
                                       : (lang === "ar" ? "💼 وكيل تجاري" : "💼 Agent Commercial")}
+>>>>>>> 6271a9b856d20c118afcc17564b1c24f30b69f82
                               </strong>
                             </div>
                             <button
@@ -3010,6 +3088,22 @@ export default function App() {
                             </div>
                           )}
 
+<<<<<<< HEAD
+                          {/* KYC Commissionnaire / Transitaire */}
+                          {(regProfil === ProfileType.Commissionnaire) && (
+                            <div className="space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                              <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest block border-b pb-1">
+                                {lang === "ar" ? "تأهيل مفوض النقل / الوسيط اللوجستي" : "Qualification Commissionnaire / Transitaire"}
+                              </span>
+                              <div className="grid grid-cols-2 gap-2.5">
+                                <div>
+                                  <label className="block text-[10px] text-slate-500 mb-0.5">
+                                    {lang === "ar" ? "الرقم التجاري (RC) *" : "Numéro RC *"}
+                                  </label>
+                                  <input
+                                    type="text" required placeholder="RC XXXX/XXXX"
+                                    value={regCommissNRC} onChange={(e) => setRegCommissNRC(e.target.value)}
+=======
                           {/* Cas 2D : CHAMPS SPÉCIFIQUES POUR LE MANUTENTIONNAIRE */}
                           {regProfil === ProfileType.Manutentionnaire && (
                             <div className="space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
@@ -3025,11 +3119,18 @@ export default function App() {
                                   <input
                                     type="text" required placeholder={lang === "ar" ? "مثال: مناولة الجزائر" : "ex: Manutention Alger SARL"}
                                     value={regManRaisonSociale} onChange={(e) => setRegManRaisonSociale(e.target.value)}
+>>>>>>> 6271a9b856d20c118afcc17564b1c24f30b69f82
                                     className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700"
                                   />
                                 </div>
                                 <div>
                                   <label className="block text-[10px] text-slate-500 mb-0.5">
+<<<<<<< HEAD
+                                    {lang === "ar" ? "الولاية الرئيسية للنشاط *" : "Wilaya d'activité principale *"}
+                                  </label>
+                                  <select
+                                    value={regWilaya} onChange={(e) => setRegWilaya(e.target.value)}
+=======
                                     {lang === "ar" ? "رقم السجل التجاري (RC) *" : "N° Registre de Commerce (RC) *"}
                                   </label>
                                   <input
@@ -3063,6 +3164,7 @@ export default function App() {
                                   </label>
                                   <select
                                     value={regManWilayaActivite} onChange={(e) => setRegManWilayaActivite(e.target.value)}
+>>>>>>> 6271a9b856d20c118afcc17564b1c24f30b69f82
                                     className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
                                   >
                                     {WILAYAS.map(w => (
@@ -3073,6 +3175,147 @@ export default function App() {
                                   </select>
                                 </div>
                               </div>
+<<<<<<< HEAD
+                              <div>
+                                <label className="block text-[10px] text-slate-500 mb-0.5">
+                                  {lang === "ar" ? "الرقم التجاري أو اسم المكتب / الشركة *" : "Raison sociale ou dénomination commerciale *"}
+                                </label>
+                                <input
+                                  type="text" required placeholder={lang === "ar" ? "مكتب / شركة..." : "Bureau / SARL / EI..."}
+                                  value={regCommissRaisonSociale} onChange={(e) => setRegCommissRaisonSociale(e.target.value)}
+                                  className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700"
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* KYC Manutentionnaire */}
+                          {(regProfil === ProfileType.Manutentionnaire) && (
+                            <div className="space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                              <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest block border-b pb-1">
+                                {lang === "ar" ? "تأهيل مزود خدمات المناولة" : "Qualification Prestataire de Manutention"}
+                              </span>
+                              <div className="grid grid-cols-2 gap-2.5">
+                                <div>
+                                  <label className="block text-[10px] text-slate-500 mb-0.5">
+                                    {lang === "ar" ? "نوع المعدات الرئيسية *" : "Type d'engins principaux *"}
+                                  </label>
+                                  <select
+                                    value={regManuTypeEngin} onChange={(e) => setRegManuTypeEngin(e.target.value)}
+                                    className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
+                                  >
+                                    <option value="Chariot élévateur">{lang === "ar" ? "رافعة شوكية" : "Chariot élévateur (Fourche)"}</option>
+                                    <option value="Grue mobile">{lang === "ar" ? "رافعة متنقلة" : "Grue mobile"}</option>
+                                    <option value="Transpalette">{lang === "ar" ? "جهاز نقل البالتات" : "Transpalette / Tire-palettes"}</option>
+                                    <option value="Engins multiples">{lang === "ar" ? "معدات متعددة" : "Engins multiples"}</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] text-slate-500 mb-0.5">
+                                    {lang === "ar" ? "ولاية النشاط الرئيسية *" : "Wilaya d'intervention *"}
+                                  </label>
+                                  <select
+                                    value={regManuWilaya} onChange={(e) => { setRegManuWilaya(e.target.value); setRegManuCommune(""); }}
+                                    className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
+                                  >
+                                    {WILAYAS.map(w => (
+                                      <option key={w.code} value={w.code}>
+                                        {lang === "ar" ? w.ar : w.fr}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-[10px] text-slate-500 mb-0.5">
+                                  {lang === "ar" ? "البلدية (الموقع الدقيق) *" : "Commune (localisation précise) *"}
+                                </label>
+                                <select
+                                  value={regManuCommune} onChange={(e) => setRegManuCommune(e.target.value)}
+                                  className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
+                                >
+                                  <option value="">{lang === "ar" ? "-- اختر البلدية --" : "-- Choisir une commune --"}</option>
+                                  {communesSupabase.filter(c => c.wilaya_code === Number(regManuWilaya)).map(c => (
+                                    <option key={c.id} value={lang === "ar" ? (c.name_ar ?? c.name) : c.name}>
+                                      {lang === "ar" ? (c.name_ar ?? c.name) : c.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* KYC Stockage */}
+                          {(regProfil === ProfileType.Stockage) && (
+                            <div className="space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                              <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest block border-b pb-1">
+                                {lang === "ar" ? "تأهيل مزود خدمات التخزين" : "Qualification Prestataire de Stockage"}
+                              </span>
+                              <div className="grid grid-cols-2 gap-2.5">
+                                <div>
+                                  <label className="block text-[10px] text-slate-500 mb-0.5">
+                                    {lang === "ar" ? "نوع المستودع *" : "Type d'entrepôt *"}
+                                  </label>
+                                  <select
+                                    value={regStockageType} onChange={(e) => setRegStockageType(e.target.value)}
+                                    className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
+                                  >
+                                    <option value="Entrepôt couvert">{lang === "ar" ? "مستودع مغطى" : "Entrepôt couvert"}</option>
+                                    <option value="Zone frigorifique">{lang === "ar" ? "منطقة تبريد" : "Zone frigorifique"}</option>
+                                    <option value="Zone à ciel ouvert">{lang === "ar" ? "منطقة مكشوفة" : "Zone à ciel ouvert"}</option>
+                                    <option value="Multi-types">{lang === "ar" ? "متعدد الأنواع" : "Multi-types"}</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] text-slate-500 mb-0.5">
+                                    {lang === "ar" ? "الطاقة الاستيعابية التقريبية (م²) *" : "Capacité approximative (m²) *"}
+                                  </label>
+                                  <select
+                                    value={regStockageCapacite} onChange={(e) => setRegStockageCapacite(e.target.value)}
+                                    className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
+                                  >
+                                    <option value="500">{lang === "ar" ? "أقل من 500 م²" : "Moins de 500 m²"}</option>
+                                    <option value="1000">{lang === "ar" ? "500 إلى 1000 م²" : "500 à 1 000 m²"}</option>
+                                    <option value="5000">{lang === "ar" ? "1000 إلى 5000 م²" : "1 000 à 5 000 m²"}</option>
+                                    <option value="10000">{lang === "ar" ? "أكثر من 5000 م²" : "Plus de 5 000 m²"}</option>
+                                  </select>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2.5">
+                                <div>
+                                  <label className="block text-[10px] text-slate-500 mb-0.5">
+                                    {lang === "ar" ? "ولاية موقع المستودع *" : "Wilaya du site de stockage *"}
+                                  </label>
+                                  <select
+                                    value={regWilaya} onChange={(e) => { setRegWilaya(e.target.value); setRegStockageCommune(""); }}
+                                    className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
+                                  >
+                                    {WILAYAS.map(w => (
+                                      <option key={w.code} value={w.code}>
+                                        {lang === "ar" ? w.ar : w.fr}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] text-slate-500 mb-0.5">
+                                    {lang === "ar" ? "البلدية (الموقع الدقيق) *" : "Commune (localisation précise) *"}
+                                  </label>
+                                  <select
+                                    value={regStockageCommune} onChange={(e) => setRegStockageCommune(e.target.value)}
+                                    className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
+                                  >
+                                    <option value="">{lang === "ar" ? "-- اختر البلدية --" : "-- Choisir une commune --"}</option>
+                                    {communesSupabase.filter(c => c.wilaya_code === Number(regWilaya)).map(c => (
+                                      <option key={c.id} value={lang === "ar" ? (c.name_ar ?? c.name) : c.name}>
+                                        {lang === "ar" ? (c.name_ar ?? c.name) : c.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+=======
+>>>>>>> 6271a9b856d20c118afcc17564b1c24f30b69f82
                             </div>
                           )}
 
