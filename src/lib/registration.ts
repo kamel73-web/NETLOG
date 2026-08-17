@@ -35,6 +35,7 @@ export interface RegistrationInput {
   experienceTransport?: string;
   wilayaIntervention?: string;
   sourceDecouverte?: string;
+  typesEngins?: string;
 }
 
 export async function submitRegistration(
@@ -75,6 +76,7 @@ export async function submitRegistration(
     experienceTransport: input.experienceTransport,
     wilayaIntervention: input.wilayaIntervention,
     sourceDecouverte: input.sourceDecouverte,
+    typesEngins: input.typesEngins,
   };
 
   const wilayaCode = input.wilaya ? Number(input.wilaya) : null;
