@@ -30,6 +30,7 @@ import {
   UserX
 } from "lucide-react";
 import { UserProfile, ProfileType, OffreFret, OffreStatus, Facture, FactureStatus, ReglementMode } from "../types";
+import { updateProfileStatus } from "../lib/supabase";
 
 interface AdminDashboardProps {
   currentUser: UserProfile;
@@ -127,16 +128,18 @@ export default function AdminDashboard({
   // Collect unique locations to search in accounts filters
   const uniqueWilayas = Array.from(new Set(users.map(u => u.wilaya).filter(Boolean))) as string[];
 
-  // --- KYC HANDLERS ---
-  const handleApproveKYC = (userId: string) => {
-    const updated = users.map(u => {
-      if (u.id === userId) {
-        return { ...u, status: "valide" as const };
-      }
-      return u;
-    });
+  // --- KYC HANDLERS (maintenant branchés sur Supabase) ---
+  const handleApproveKYC = async (userId: string) => {
+    const { error } = await updateProfileStatus(userId, "valide");
+    if (error) {
+      triggerSystemLog(`Échec validation : ${error}`, "danger");
+      return;
+    }
+    const updated = users.map(u =>
+      u.id === userId ? { ...u, status: "valide" as const } : u
+    );
     saveState(updated);
-    triggerSystemLog(`Compte approuvé KYC d'admission. L'utilisateur a été notifié par email.`, "success");
+    triggerSystemLog(`Compte approuvé KYC. L'utilisateur a été notifié.`, "success");
     if (inspectUser && inspectUser.id === userId) {
       setInspectUser({ ...inspectUser, status: "valide" });
     }
@@ -148,35 +151,42 @@ export default function AdminDashboard({
     setShowSuspendModal(true);
   };
 
-  const handleConfirmSuspension = () => {
+  const handleConfirmSuspension = async () => {
     if (!suspendReason.trim()) {
       triggerSystemLog("Veuillez certifier un motif réglementaire de suspension !", "danger");
       return;
     }
-    const updated = users.map(u => {
-      if (u.id === suspendUserId) {
-         return { ...u, status: "suspendu" as const };
-      }
-      return u;
-    });
+    if (!suspendUserId) return;
+
+    const { error } = await updateProfileStatus(suspendUserId, "suspendu");
+    if (error) {
+      triggerSystemLog(`Échec suspension : ${error}`, "danger");
+      return;
+    }
+
+    const updated = users.map(u =>
+      u.id === suspendUserId ? { ...u, status: "suspendu" as const } : u
+    );
     saveState(updated);
     setShowSuspendModal(false);
-    triggerSystemLog(`Compte suspendu immédiatement. Notification officielle expédiée.`, "info");
+    triggerSystemLog(`Compte suspendu. Notification officielle expédiée.`, "info");
     if (inspectUser && inspectUser.id === suspendUserId) {
       setInspectUser({ ...inspectUser, status: "suspendu" });
     }
   };
 
   // Re-enable a suspended profile
-  const handleReactivateUser = (userId: string) => {
-    const updated = users.map(u => {
-      if (u.id === userId) {
-        return { ...u, status: "valide" as const };
-      }
-      return u;
-    });
+  const handleReactivateUser = async (userId: string) => {
+    const { error } = await updateProfileStatus(userId, "valide");
+    if (error) {
+      triggerSystemLog(`Échec réactivation : ${error}`, "danger");
+      return;
+    }
+    const updated = users.map(u =>
+      u.id === userId ? { ...u, status: "valide" as const } : u
+    );
     saveState(updated);
-    triggerSystemLog("Compte d'exploitation restauré avec succès !", "success");
+    triggerSystemLog("Compte restauré avec succès.", "success");
     if (inspectUser && inspectUser.id === userId) {
       setInspectUser({ ...inspectUser, status: "valide" });
     }
