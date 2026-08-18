@@ -1053,6 +1053,30 @@ export default function App() {
       nrc = regManRC.trim();
       input.typesEngins = regManTypesEngins.join(", ");
       input.wilayaActivite = regManWilayaActivite;
+    } else if (regProfil === ProfileType.Commissionnaire) {
+      if (!regManRaisonSociale.trim()) {
+        triggerSystemLog("Raison sociale obligatoire pour les commissionnaires", "danger");
+        return;
+      }
+      if (!regManRC.trim()) {
+        triggerSystemLog("Numéro d'inscription RC obligatoire pour les commissionnaires", "danger");
+        return;
+      }
+      raisonSociale = regManRaisonSociale.trim();
+      nrc = regManRC.trim();
+      input.wilayaActivite = regManWilayaActivite;
+    } else if (regProfil === ProfileType.Stockage) {
+      if (!regManRaisonSociale.trim()) {
+        triggerSystemLog("Raison sociale obligatoire pour l'espace de stockage", "danger");
+        return;
+      }
+      if (!regManRC.trim()) {
+        triggerSystemLog("Numéro d'inscription RC obligatoire pour l'espace de stockage", "danger");
+        return;
+      }
+      raisonSociale = regManRaisonSociale.trim();
+      nrc = regManRC.trim();
+      input.wilayaActivite = regManWilayaActivite;
     }
 
     input.raisonSociale = raisonSociale;
@@ -2472,86 +2496,68 @@ export default function App() {
                     <div className="space-y-4 animate-fade-in">
                       
                       {/* Étape d'inscription 1 sur 2 : Sélection du Profil */}
-                      {regStep === 1 && (
-                        <div className="space-y-3">
-                          <div>
-                            <h3 className="text-base font-black text-slate-800">
-                              {lang === "ar" ? "أي نوع من الفاعلين أنت ؟" : "Quel type d'acteur êtes-vous ?"}
-                            </h3>
-                            <p className="text-[11px] text-slate-500">
-                              {lang === "ar"
-                                ? "اختر فئة النشاط التي تتوافق مع عملك لعرض نموذج التحقق والـ KYC المناسب لك."
-                                : "Choisissez la catégorie d'acteur qui correspond à votre exploitation pour afficher le bon processus KYC."}
-                            </p>
-                          </div>
+            {regStep === 1 && (
+              <div className="space-y-4">
+                <p className="text-xs font-bold text-slate-700 text-center mb-2">
+                  {lang === "ar" ? "ما هو قطاع نشاطك الرئيسي في المنصة؟" : "Quel est le profil qui décrit le mieux votre activité ?"}
+                </p>
 
-                          <div className="space-y-2">
-                            {/* Option 1: Donneur d'Ordre */}
-                            <div 
-                              onClick={() => setRegProfil(ProfileType.DonneurOrdre)}
-                              className={`p-3 rounded-2xl border-2 transition-all flex items-center gap-3 cursor-pointer ${
-                                regProfil === ProfileType.DonneurOrdre 
-                                  ? "border-[#1D9E75] bg-[#E1F5EE]/40" 
-                                  : "border-slate-100 bg-slate-50/60 hover:border-slate-200"
-                              }`}
-                            >
-                              <span className="text-2xl pt-1">🏭</span>
-                              <div className="flex-1">
-                                <strong className="text-xs text-slate-850 block font-extrabold">
-                                  {lang === "ar" ? "حساب طالب شحن (آمر صرف Fret)" : "Espace Donneur d'Ordre (DO)"}
-                                </strong>
-                                <span className="text-[10px] text-slate-500 font-semibold block">
-                                  {lang === "ar"
-                                    ? "مؤسسات، شركات مصغرة، أو تجار يقومون بنشر عروض نقل البضائع وشحن الطرقات."
-                                    : "Entreprises, PME, ou commerçants publiant des offres de fret routier à expédier."}
-                                </span>
-                              </div>
-                            </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div
+                    onClick={() => setRegProfil(ProfileType.DonneurOrdre)}
+                    className={`p-4 rounded-xl border-2 text-center cursor-pointer transition-all space-y-2 relative overflow-hidden select-none ${
+                      regProfil === ProfileType.DonneurOrdre
+                        ? "border-[#1D9E75] bg-[#E1F5EE]/40 ring-1 ring-[#1D9E75]"
+                        : "border-slate-100 bg-slate-50 hover:border-slate-200"
+                    }`}
+                  >
+                    <div className="text-3xl">🏭</div>
+                    <h4 className="font-extrabold text-xs text-slate-900">Donneur d'Ordre (DO)</h4>
+                    <p className="text-[10px] text-slate-500 leading-normal font-medium">
+                      Entreprises, PME, commerçants ayant du fret à faire transporter.
+                    </p>
+                    {regProfil === ProfileType.DonneurOrdre && (
+                      <span className="absolute top-2 right-2 w-3 h-3 bg-[#1D9E75] rounded-full ring-2 ring-white"></span>
+                    )}
+                  </div>
 
-                            {/* Option 2: Transporteur */}
-                            <div 
-                              onClick={() => setRegProfil(ProfileType.Transporteur)}
-                              className={`p-3 rounded-2xl border-2 transition-all flex items-center gap-3 cursor-pointer ${
-                                regProfil === ProfileType.Transporteur 
-                                  ? "border-[#1D9E75] bg-[#E1F5EE]/40" 
-                                  : "border-slate-100 bg-slate-50/60 hover:border-slate-200"
-                              }`}
-                            >
-                              <span className="text-2xl pt-1">🚛</span>
-                              <div className="flex-1">
-                                <strong className="text-xs text-slate-850 block font-extrabold">
-                                  {lang === "ar" ? "ناقل بضائع بري / مقدم خدمات لوجستية" : "Transporteur Routier / Prestataire"}
-                                </strong>
-                                <span className="text-[10px] text-slate-500 font-semibold block">
-                                  {lang === "ar"
-                                    ? "سائقو شاحنات مستقلون، حرفيو نقل، أو مسيرو أساطيل شحن بري في مختلف الولايات."
-                                    : "Camionneurs indépendants, artisans logistiques, ou gérants de flotte de transport routier."}
-                                </span>
-                              </div>
-                            </div>
+                  <div
+                    onClick={() => setRegProfil(ProfileType.Transporteur)}
+                    className={`p-4 rounded-xl border-2 text-center cursor-pointer transition-all space-y-2 relative overflow-hidden select-none ${
+                      regProfil === ProfileType.Transporteur
+                        ? "border-[#1D9E75] bg-[#E1F5EE]/40 ring-1 ring-[#1D9E75]"
+                        : "border-slate-100 bg-slate-50 hover:border-slate-200"
+                    }`}
+                  >
+                    <div className="text-3xl">🚛</div>
+                    <h4 className="font-extrabold text-xs text-slate-900">Transporteur Routier</h4>
+                    <p className="text-[10px] text-slate-500 leading-normal font-medium">
+                      Artisans-transporteurs ou entreprises de logistique avec flotte.
+                    </p>
+                    {regProfil === ProfileType.Transporteur && (
+                      <span className="absolute top-2 right-2 w-3 h-3 bg-[#1D9E75] rounded-full ring-2 ring-white"></span>
+                    )}
+                  </div>
 
-                            {/* Option 3: Commercial */}
-                            <div 
-                              onClick={() => setRegProfil(ProfileType.Commercial)}
-                              className={`p-3 rounded-2xl border-2 transition-all flex items-center gap-3 cursor-pointer ${
-                                regProfil === ProfileType.Commercial 
-                                  ? "border-[#1D9E75] bg-[#E1F5EE]/40" 
-                                  : "border-slate-100 bg-slate-50/60 hover:border-slate-200"
-                              }`}
-                            >
-                              <span className="text-2xl pt-1">💼</span>
-                              <div className="flex-1">
-                                <strong className="text-xs text-slate-850 block font-extrabold">
-                                  {lang === "ar" ? "وكيل تجاري مستقل في BVF" : "Commercial indépendant de BVF"}
-                                </strong>
-                                <span className="text-[10px] text-slate-500 font-semibold block">
-                                  {lang === "ar"
-                                    ? "مندوب تجاري تابع لشبكة NETLOG، وسطاء معتمدون، ومستشارو توظيف مسجلون."
-                                    : "Agent commercial indépendant de NETLOG, apporteurs d'affaires et recruteurs connectés."}
-                                </span>
-                              </div>
-                            </div>
+                  <div
+                    onClick={() => setRegProfil(ProfileType.Commercial)}
+                    className={`p-4 rounded-xl border-2 text-center cursor-pointer transition-all space-y-2 relative overflow-hidden select-none ${
+                      regProfil === ProfileType.Commercial
+                        ? "border-[#1D9E75] bg-[#E1F5EE]/40 ring-1 ring-[#1D9E75]"
+                        : "border-slate-100 bg-slate-50 hover:border-slate-200"
+                    }`}
+                  >
+                    <div className="text-3xl">💼</div>
+                    <h4 className="font-extrabold text-xs text-slate-900">Commercial BVF</h4>
+                    <p className="text-[10px] text-slate-500 leading-normal font-medium">
+                      Agent commercial indépendant, apporteur d'affaires NETLOG.
+                    </p>
+                    {regProfil === ProfileType.Commercial && (
+                      <span className="absolute top-2 right-2 w-3 h-3 bg-[#1D9E75] rounded-full ring-2 ring-white"></span>
+                    )}
+                  </div>
 
+<<<<<<< HEAD
                             {/* Option 4: Commissionnaire / Transitaire */}
                             <div 
                               onClick={() => setRegProfil(ProfileType.Commissionnaire)}
@@ -2618,15 +2624,74 @@ export default function App() {
                               </div>
                             </div>
                           </div>
+=======
+                  <div
+                    onClick={() => setRegProfil(ProfileType.Commissionnaire)}
+                    className={`p-4 rounded-xl border-2 text-center cursor-pointer transition-all space-y-2 relative overflow-hidden select-none ${
+                      regProfil === ProfileType.Commissionnaire
+                        ? "border-[#1D9E75] bg-[#E1F5EE]/40 ring-1 ring-[#1D9E75]"
+                        : "border-slate-100 bg-slate-50 hover:border-slate-200"
+                    }`}
+                  >
+                    <div className="text-3xl">📋</div>
+                    <h4 className="font-extrabold text-xs text-slate-900">Commissionnaire</h4>
+                    <p className="text-[10px] text-slate-500 leading-normal font-medium">
+                      Organisateur de transport, commissionnaire de fret agréé.
+                    </p>
+                    {regProfil === ProfileType.Commissionnaire && (
+                      <span className="absolute top-2 right-2 w-3 h-3 bg-[#1D9E75] rounded-full ring-2 ring-white"></span>
+                    )}
+                  </div>
+>>>>>>> e478709 (feat: inscription publique 6 profils + montage dashboards DO/transporteur)
 
-                          <button
-                            onClick={() => setRegStep(2)}
-                            className="w-full py-3 bg-[#1D9E75] hover:bg-[#085041] text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md mt-2 cursor-pointer"
-                          >
-                            {lang === "ar" ? "متابعة التسجيل ➔" : "Continuer l'inscription ➔"}
-                          </button>
-                        </div>
-                      )}
+                  <div
+                    onClick={() => setRegProfil(ProfileType.Manutentionnaire)}
+                    className={`p-4 rounded-xl border-2 text-center cursor-pointer transition-all space-y-2 relative overflow-hidden select-none ${
+                      regProfil === ProfileType.Manutentionnaire
+                        ? "border-[#1D9E75] bg-[#E1F5EE]/40 ring-1 ring-[#1D9E75]"
+                        : "border-slate-100 bg-slate-50 hover:border-slate-200"
+                    }`}
+                  >
+                    <div className="text-3xl">🏗️</div>
+                    <h4 className="font-extrabold text-xs text-slate-900">Manutentionnaire</h4>
+                    <p className="text-[10px] text-slate-500 leading-normal font-medium">
+                      Grues, chariots élévateurs, engins de manutention.
+                    </p>
+                    {regProfil === ProfileType.Manutentionnaire && (
+                      <span className="absolute top-2 right-2 w-3 h-3 bg-[#1D9E75] rounded-full ring-2 ring-white"></span>
+                    )}
+                  </div>
+
+                  <div
+                    onClick={() => setRegProfil(ProfileType.Stockage)}
+                    className={`p-4 rounded-xl border-2 text-center cursor-pointer transition-all space-y-2 relative overflow-hidden select-none ${
+                      regProfil === ProfileType.Stockage
+                        ? "border-[#1D9E75] bg-[#E1F5EE]/40 ring-1 ring-[#1D9E75]"
+                        : "border-slate-100 bg-slate-50 hover:border-slate-200"
+                    }`}
+                  >
+                    <div className="text-3xl">🏢</div>
+                    <h4 className="font-extrabold text-xs text-slate-900">Espace de stockage</h4>
+                    <p className="text-[10px] text-slate-500 leading-normal font-medium">
+                      Entrepôts, dépôts, plateformes de stockage.
+                    </p>
+                    {regProfil === ProfileType.Stockage && (
+                      <span className="absolute top-2 right-2 w-3 h-3 bg-[#1D9E75] rounded-full ring-2 ring-white"></span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-4 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setRegStep(2)}
+                    className="px-5 py-2.5 bg-[#1D9E75] text-white rounded-lg text-xs font-bold hover:bg-[#085041] transition-all cursor-pointer shadow-md"
+                  >
+                    {lang === "ar" ? "متابعة التسجيل ➔" : "Continuer l'inscription ➔"}
+                  </button>
+                </div>
+              </div>
+            )}
 
                       {/* Étape d'inscription 2 sur 2 : Renseignement du Formulaire de KYC */}
                       {regStep === 2 && (
@@ -3700,6 +3765,56 @@ export default function App() {
             propositions={propositions}
             factures={factures}
             triggerSystemLog={triggerSystemLog}
+          />
+        )}
+
+        {/* ----------------- TAB: ESPACE DONNEUR D'ORDRE ----------------- */}
+        {currentTab === "donneur" && currentUser?.profil === ProfileType.DonneurOrdre && (
+          <DonneurDashboard
+            currentUser={currentUser}
+            setCurrentUser={setCurrentUser}
+            lang={lang}
+            t={t}
+            saveState={saveState}
+            offres={offres}
+            propositions={propositions}
+            factures={factures}
+            devis={devis}
+            counters={counters}
+            incrementCounter={incrementCounter}
+            users={users}
+            triggerSystemLog={triggerSystemLog}
+            setActiveContractDoc={setActiveContractDoc}
+            translateCity={translateCity}
+            translateMoyenType={translateMoyenType}
+            translateMarchandise={translateMarchandise}
+            setCurrentTab={setCurrentTab}
+          />
+        )}
+
+        {/* ----------------- TAB: ESPACE TRANSPORTEUR ----------------- */}
+        {currentTab === "transporteur" && currentUser?.profil === ProfileType.Transporteur && (
+          <TransporteurDashboard
+            currentUser={currentUser}
+            setCurrentUser={setCurrentUser}
+            lang={lang}
+            t={t}
+            moyens={moyens}
+            saveState={saveState}
+            offres={offres}
+            propositions={propositions}
+            factures={factures}
+            devis={devis}
+            counters={counters}
+            incrementCounter={incrementCounter}
+            users={users}
+            initiateBid={initiateBid}
+            triggerSystemLog={triggerSystemLog}
+            setActiveContractDoc={setActiveContractDoc}
+            translateCity={translateCity}
+            translateMoyenType={translateMoyenType}
+            translateMarchandise={translateMarchandise}
+            setCurrentTab={setCurrentTab}
           />
         )}
 
@@ -5343,97 +5458,122 @@ export default function App() {
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  {/* Option 1: Donneur d'Ordre */}
-                  <div 
+                  <div
                     onClick={() => setRegProfil(ProfileType.DonneurOrdre)}
                     className={`p-4 rounded-xl border-2 text-center cursor-pointer transition-all space-y-2 relative overflow-hidden select-none ${
-                      regProfil === ProfileType.DonneurOrdre 
-                        ? "border-[#1D9E75] bg-[#E1F5EE]/40 ring-1 ring-[#1D9E75]" 
+                      regProfil === ProfileType.DonneurOrdre
+                        ? "border-[#1D9E75] bg-[#E1F5EE]/40 ring-1 ring-[#1D9E75]"
                         : "border-slate-100 bg-slate-50 hover:border-slate-200"
                     }`}
                   >
                     <div className="text-3xl">🏭</div>
                     <h4 className="font-extrabold text-xs text-slate-900">Donneur d'Ordre (DO)</h4>
                     <p className="text-[10px] text-slate-500 leading-normal font-medium">
-                      Entreprises, PME, commerçants ou particuliers ayant du fret à faire transporter sur l'Algérie.
+                      Entreprises, PME, commerçants ayant du fret à faire transporter.
                     </p>
                     {regProfil === ProfileType.DonneurOrdre && (
                       <span className="absolute top-2 right-2 w-3 h-3 bg-[#1D9E75] rounded-full ring-2 ring-white"></span>
                     )}
                   </div>
 
-                  {/* Option 2: Transporteur */}
-                  <div 
+                  <div
                     onClick={() => setRegProfil(ProfileType.Transporteur)}
                     className={`p-4 rounded-xl border-2 text-center cursor-pointer transition-all space-y-2 relative overflow-hidden select-none ${
-                      regProfil === ProfileType.Transporteur 
-                        ? "border-[#1D9E75] bg-[#E1F5EE]/40 ring-1 ring-[#1D9E75]" 
+                      regProfil === ProfileType.Transporteur
+                        ? "border-[#1D9E75] bg-[#E1F5EE]/40 ring-1 ring-[#1D9E75]"
                         : "border-slate-100 bg-slate-50 hover:border-slate-200"
                     }`}
                   >
                     <div className="text-3xl">🚛</div>
                     <h4 className="font-extrabold text-xs text-slate-900">Transporteur Routier</h4>
                     <p className="text-[10px] text-slate-500 leading-normal font-medium">
-                      Camionneurs indépendants, artisans-transporteurs ou entreprises de logistique avec flotte.
+                      Artisans-transporteurs ou entreprises de logistique avec flotte.
                     </p>
                     {regProfil === ProfileType.Transporteur && (
                       <span className="absolute top-2 right-2 w-3 h-3 bg-[#1D9E75] rounded-full ring-2 ring-white"></span>
                     )}
                   </div>
 
-                  {/* Option 3: Commercial BVF */}
-                  <div 
+                  <div
                     onClick={() => setRegProfil(ProfileType.Commercial)}
                     className={`p-4 rounded-xl border-2 text-center cursor-pointer transition-all space-y-2 relative overflow-hidden select-none ${
-                      regProfil === ProfileType.Commercial 
-                        ? "border-[#1D9E75] bg-[#E1F5EE]/40 ring-1 ring-[#1D9E75]" 
+                      regProfil === ProfileType.Commercial
+                        ? "border-[#1D9E75] bg-[#E1F5EE]/40 ring-1 ring-[#1D9E75]"
                         : "border-slate-100 bg-slate-50 hover:border-slate-200"
                     }`}
                   >
                     <div className="text-3xl">💼</div>
                     <h4 className="font-extrabold text-xs text-slate-900">Commercial BVF</h4>
                     <p className="text-[10px] text-slate-500 leading-normal font-medium">
-                      Agent commercial indépendant de NETLOG, apporteurs d'affaires et recruteurs connectés.
+                      Agent commercial indépendant, apporteur d'affaires NETLOG.
                     </p>
                     {regProfil === ProfileType.Commercial && (
                       <span className="absolute top-2 right-2 w-3 h-3 bg-[#1D9E75] rounded-full ring-2 ring-white"></span>
                     )}
                   </div>
 
-                  {/* Option 4: Manutentionnaire */}
-                  <div 
+                  <div
+                    onClick={() => setRegProfil(ProfileType.Commissionnaire)}
+                    className={`p-4 rounded-xl border-2 text-center cursor-pointer transition-all space-y-2 relative overflow-hidden select-none ${
+                      regProfil === ProfileType.Commissionnaire
+                        ? "border-[#1D9E75] bg-[#E1F5EE]/40 ring-1 ring-[#1D9E75]"
+                        : "border-slate-100 bg-slate-50 hover:border-slate-200"
+                    }`}
+                  >
+                    <div className="text-3xl">📋</div>
+                    <h4 className="font-extrabold text-xs text-slate-900">Commissionnaire</h4>
+                    <p className="text-[10px] text-slate-500 leading-normal font-medium">
+                      Organisateur de transport, commissionnaire de fret agréé.
+                    </p>
+                    {regProfil === ProfileType.Commissionnaire && (
+                      <span className="absolute top-2 right-2 w-3 h-3 bg-[#1D9E75] rounded-full ring-2 ring-white"></span>
+                    )}
+                  </div>
+
+                  <div
                     onClick={() => setRegProfil(ProfileType.Manutentionnaire)}
                     className={`p-4 rounded-xl border-2 text-center cursor-pointer transition-all space-y-2 relative overflow-hidden select-none ${
-                      regProfil === ProfileType.Manutentionnaire 
-                        ? "border-[#1D9E75] bg-[#E1F5EE]/40 ring-1 ring-[#1D9E75]" 
+                      regProfil === ProfileType.Manutentionnaire
+                        ? "border-[#1D9E75] bg-[#E1F5EE]/40 ring-1 ring-[#1D9E75]"
                         : "border-slate-100 bg-slate-50 hover:border-slate-200"
                     }`}
                   >
                     <div className="text-3xl">🏗️</div>
                     <h4 className="font-extrabold text-xs text-slate-900">Manutentionnaire</h4>
                     <p className="text-[10px] text-slate-500 leading-normal font-medium">
-                      Prestataires de manutention : grues, chariots élévateurs, pelles, nacelles.
+                      Grues, chariots élévateurs, engins de manutention.
                     </p>
                     {regProfil === ProfileType.Manutentionnaire && (
                       <span className="absolute top-2 right-2 w-3 h-3 bg-[#1D9E75] rounded-full ring-2 ring-white"></span>
                     )}
                   </div>
 
-                  {/* La carte "Administrateur NETLOG" déblocable par code secret
-                      (Admin@2025 / bvf-admin) a été retirée : un compte admin
-                      ne doit jamais pouvoir être créé depuis l'inscription
-                      publique, code secret ou non. Le premier compte admin
-                      s'amorce via SQL directement sur Supabase (voir procédure
-                      d'amorçage), les suivants sont promus par un admin existant. */}
+                  <div
+                    onClick={() => setRegProfil(ProfileType.Stockage)}
+                    className={`p-4 rounded-xl border-2 text-center cursor-pointer transition-all space-y-2 relative overflow-hidden select-none ${
+                      regProfil === ProfileType.Stockage
+                        ? "border-[#1D9E75] bg-[#E1F5EE]/40 ring-1 ring-[#1D9E75]"
+                        : "border-slate-100 bg-slate-50 hover:border-slate-200"
+                    }`}
+                  >
+                    <div className="text-3xl">🏢</div>
+                    <h4 className="font-extrabold text-xs text-slate-900">Espace de stockage</h4>
+                    <p className="text-[10px] text-slate-500 leading-normal font-medium">
+                      Entrepôts, dépôts, plateformes de stockage.
+                    </p>
+                    {regProfil === ProfileType.Stockage && (
+                      <span className="absolute top-2 right-2 w-3 h-3 bg-[#1D9E75] rounded-full ring-2 ring-white"></span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="pt-4 flex justify-end">
                   <button
+                    type="button"
                     onClick={() => setRegStep(2)}
-                    className="px-5 py-2.5 bg-[#1D9E75] text-white rounded-lg text-xs font-bold hover:bg-[#085041] transition-all cursor-pointer flex items-center gap-1 shadow-md"
+                    className="px-5 py-2.5 bg-[#1D9E75] text-white rounded-lg text-xs font-bold hover:bg-[#085041] transition-all cursor-pointer shadow-md"
                   >
-                    <span>Continuer l'inscription</span>
-                    <ChevronRight className="w-4 h-4" />
+                    {lang === "ar" ? "متابعة التسجيل ➔" : "Continuer l'inscription ➔"}
                   </button>
                 </div>
               </div>
@@ -5837,7 +5977,7 @@ export default function App() {
                   </div>
                 )}
 
-                {regProfil === ProfileType.Manutentionnaire && (
+                {(regProfil === ProfileType.Manutentionnaire || regProfil === ProfileType.Commissionnaire || regProfil === ProfileType.Stockage) && (
                   <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-100">
                     <span className="text-[10px] font-extrabold text-[#085041] uppercase tracking-wide block mb-2 border-b pb-1">
                       🏗️ Informations d'activité de manutention
