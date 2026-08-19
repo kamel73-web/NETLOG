@@ -2619,43 +2619,8 @@ export default function App() {
                     {regProfil === ProfileType.Stockage && (
                       <span className="absolute top-2 right-2 w-3 h-3 bg-[#1D9E75] rounded-full ring-2 ring-white"></span>
                     )}
-                  </div> e478709 (feat: inscription publique 6 profils + montage dashboards DO/transporteur)
-
-                  <div
-                    onClick={() => setRegProfil(ProfileType.Manutentionnaire)}
-                    className={`p-4 rounded-xl border-2 text-center cursor-pointer transition-all space-y-2 relative overflow-hidden select-none ${
-                      regProfil === ProfileType.Manutentionnaire
-                        ? "border-[#1D9E75] bg-[#E1F5EE]/40 ring-1 ring-[#1D9E75]"
-                        : "border-slate-100 bg-slate-50 hover:border-slate-200"
-                    }`}
-                  >
-                    <div className="text-3xl">🏗️</div>
-                    <h4 className="font-extrabold text-xs text-slate-900">Manutentionnaire</h4>
-                    <p className="text-[10px] text-slate-500 leading-normal font-medium">
-                      Grues, chariots élévateurs, engins de manutention.
-                    </p>
-                    {regProfil === ProfileType.Manutentionnaire && (
-                      <span className="absolute top-2 right-2 w-3 h-3 bg-[#1D9E75] rounded-full ring-2 ring-white"></span>
-                    )}
                   </div>
 
-                  <div
-                    onClick={() => setRegProfil(ProfileType.Stockage)}
-                    className={`p-4 rounded-xl border-2 text-center cursor-pointer transition-all space-y-2 relative overflow-hidden select-none ${
-                      regProfil === ProfileType.Stockage
-                        ? "border-[#1D9E75] bg-[#E1F5EE]/40 ring-1 ring-[#1D9E75]"
-                        : "border-slate-100 bg-slate-50 hover:border-slate-200"
-                    }`}
-                  >
-                    <div className="text-3xl">🏢</div>
-                    <h4 className="font-extrabold text-xs text-slate-900">Espace de stockage</h4>
-                    <p className="text-[10px] text-slate-500 leading-normal font-medium">
-                      Entrepôts, dépôts, plateformes de stockage.
-                    </p>
-                    {regProfil === ProfileType.Stockage && (
-                      <span className="absolute top-2 right-2 w-3 h-3 bg-[#1D9E75] rounded-full ring-2 ring-white"></span>
-                    )}
-                  </div>
                 </div>
 
                 <div className="pt-4 flex justify-end">
