@@ -4091,72 +4091,39 @@ export default function App() {
         {currentTab === "publier" && (() => {
           const isDO = currentUser?.profil === ProfileType.DonneurOrdre;
 
-         const handleQuickPublishOfferSubmit = async (e: React.FormEvent) => {
+const handleQuickPublishOfferSubmit = (e: React.FormEvent) => {
   e.preventDefault();
-  if (!isDO || !currentUser) {
+  if (!isDO) {
     triggerSystemLog("Interdit : Vous devez être connecté en tant que Donneur d'Ordre pour poster une offre.", "danger");
     return;
   }
 
-  const wilayaDepartObj = WILAYAS.find(w => w.fr === pubDepart);
-  const wilayaArriveeObj = WILAYAS.find(w => w.fr === pubArrivee);
-  if (!wilayaDepartObj || !wilayaArriveeObj) {
-    triggerSystemLog("Wilaya de départ ou d'arrivée invalide.", "danger");
-    return;
-  }
-
-  const dateChargement = new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0];
-  const dateLivraison = new Date(Date.now() + 86400000 * 5).toISOString().split("T")[0];
-  const codeConfirmation = String(Math.floor(1000 + Math.random() * 9000));
-  const commentaire = pubCommentaire || "Acheminement rapide conforme aux normes NETLOG d'Algérie.";
-
-  let insertedId: string;
-  try {
-    const inserted = await createFreightOffer({
-      wilayaDepart: parseInt(wilayaDepartObj.code, 10),
-      wilayaArrivee: parseInt(wilayaArriveeObj.code, 10),
-      pointRepereDepart: `Entrepôt principal de ${pubDepart}`,
-      pointRepereArrivee: `Dépôt client d'arrivée à ${pubArrivee}`,
-      description: commentaire,
-      // UI = tonnes ; colonne DB = kg
-      poidsKg: pubPoids > 0 ? pubPoids * 1000 : undefined,
-      typeMarchandise: pubMarchandise || undefined,
-      prixPropose: pubPrix >= 0 ? pubPrix : 0,
-      paymentMethod: "cash",
-      dateEnlevementSouhaitee: dateChargement,
-    });
-    insertedId = String(inserted.id);
-  } catch (err: any) {
-    triggerSystemLog(`Échec de la publication : ${err?.message ?? "erreur inconnue"}`, "danger");
-    return;
-  }
-
+  const newId = `offre-${offres.length + 1}`;
   const newOffer: OffreFret = {
-    id: insertedId,
+    id: newId,
     donneurId: currentUser.id,
     donneurRaisonSociale: currentUser.raisonSociale || `${currentUser.prenom} ${currentUser.nom}`,
     depart: pubDepart,
     arrivee: pubArrivee,
     departDetails: `Entrepôt principal de ${pubDepart}`,
     arriveeDetails: `Dépôt client d'arrivée à ${pubArrivee}`,
-    dateChargement,
-    dateLivraison,
+    dateChargement: new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0],
+    dateLivraison: new Date(Date.now() + 86400000 * 5).toISOString().split("T")[0],
     poids: pubPoids,
     marchandise: pubMarchandise,
     moyenExige: pubMoyen,
     nombreVoyages: 1,
     prixFixe: pubPrix,
     status: OffreStatus.Publie,
-    commentaire,
-    codeConfirmation,
-    dateCreation: new Date().toISOString(),
+    commentaire: pubCommentaire || "Acheminement rapide conforme aux normes NETLOG d'Algérie.",
+    codeConfirmation: String(Math.floor(1000 + Math.random() * 9000)),
+    dateCreation: new Date().toISOString()
   };
 
-  saveState(undefined, undefined, [newOffer, ...offres]);
-  triggerSystemLog(
-    `Offre ${insertedId} publiée (${pubDepart} ➔ ${pubArrivee}). Visible en base.`,
-    "success"
-  );
+  const updatedOffres = [newOffer, ...offres];
+  saveState(undefined, undefined, updatedOffres);
+  triggerSystemLog(`Félicitations ! Votre offre de fret ${newId} (Axe: ${pubDepart} ➔ ${pubArrivee}) est publiée en direct sur la bourse de fret !`, "success");
+  
   setCurrentTab("accueil");
 };
 
