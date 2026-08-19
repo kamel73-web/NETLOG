@@ -465,6 +465,7 @@ export default function App() {
   const [regManuTypeEngin, setRegManuTypeEngin] = useState("Chariot élévateur");
   const [regManuWilaya, setRegManuWilaya] = useState("");
   const [regStockageType, setRegStockageType] = useState("Entrepôt couvert");
+  const [regStockageRaisonSociale, setRegStockageRaisonSociale] = useState("");
   const [regStockageCapacite, setRegStockageCapacite] = useState("500");
   const [regManuCommune, setRegManuCommune] = useState("");
   const [regStockageCommune, setRegStockageCommune] = useState("");
@@ -3182,6 +3183,20 @@ export default function App() {
                               <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest block border-b pb-1">
                                 {lang === "ar" ? "تأهيل مزود خدمات التخزين" : "Qualification Prestataire de Stockage"}
                               </span>
+                              <div className="mb-2.5">
+                                <label className="block text-[10px] text-slate-500 mb-0.5">
+                                  {lang === "ar" ? "اسم الشركة / الاسم التجاري *" : "Raison sociale *"}
+                                </label>
+                                <input
+                                  type="text"
+                                  value={regStockageRaisonSociale}
+                                  onChange={(e) => setRegStockageRaisonSociale(e.target.value)}
+                                  required
+                                  placeholder={lang === "ar" ? "أدخل اسم الشركة أو الاسم التجاري" : "Nom de l'entreprise / dénomination"}
+                                  className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700"
+                                />
+                              </div>
+
                               <div className="grid grid-cols-2 gap-2.5">
                                 <div>
                                   <label className="block text-[10px] text-slate-500 mb-0.5">
