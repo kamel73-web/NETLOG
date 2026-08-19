@@ -6,9 +6,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { submitRegistration, type RegistrationInput } from "./lib/registration";
 import { signInWithPassword, signOut, getCurrentProfile, updateProfileStatus } from "./lib/supabase";
-import { loadAppData, loadProfiles, type WilayaRow } from "./lib/dataLoader";
-import { createFreightOffer } from "./lib/freightOffers";
-import { adaptSupabaseProfile, type SupabaseProfileRow } from "./lib/profileAdapter";
+import { loadAppData, loadProfiles, type CommuneRow } from "./lib/dataLoader";import { adaptSupabaseProfile, type SupabaseProfileRow } from "./lib/profileAdapter";
 import { 
   MOCK_OFFRES, 
   MOCK_USERS, 
@@ -965,6 +963,28 @@ export default function App() {
       nrc = regManRC.trim();
       input.typesEngins = regManTypesEngins.join(", ");
       input.wilayaActivite = regManWilayaActivite;
+    } else if (regProfil === ProfileType.Commissionnaire) {
+      if (!regManRaisonSociale.trim()) {
+        triggerSystemLog("Raison sociale obligatoire pour les commissionnaires", "danger");
+        return;
+      }
+      if (!regManRC.trim()) {
+        triggerSystemLog("Numéro d'inscription RC obligatoire pour les commissionnaires", "danger");
+        return;
+      }
+      raisonSociale = regManRaisonSociale.trim();
+      nrc = regManRC.trim();
+      input.wilayaActivite = regManWilayaActivite;
+    } else if (regProfil === ProfileType.Stockage) {
+      if (!regStockageRaisonSociale.trim()) {
+        triggerSystemLog("Raison sociale obligatoire pour l'espace de stockage", "danger");
+        return;
+      }
+      raisonSociale = regStockageRaisonSociale.trim();
+      input.wilayaActivite = regWilaya;
+      input.stockageType = regStockageType;
+      input.stockageCapacite = regStockageCapacite;
+      input.stockageCommune = regStockageCommune;
     }
 
     input.raisonSociale = raisonSociale;
@@ -998,40 +1018,8 @@ export default function App() {
     // Code de confirmation aléatoire pour le déchargement
     const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
 
-    // freight_offers.wilaya_depart / wilaya_arrivee attendent un code
-    // numérique (référence à wilayas.code) ; le formulaire local manipule
-    // des noms de wilaya (ex: "Alger") — on retrouve l'entrée correspondante.
-    const wilayaDepartObj = wilayas.find(w => w.fr === formDepart);
-    const wilayaArriveeObj = wilayas.find(w => w.fr === formArrivee);
-    if (!wilayaDepartObj || !wilayaArriveeObj) {
-      triggerSystemLog("Wilaya de départ ou d'arrivée invalide.", "danger");
-      return;
-    }
-
-    let insertedId: string | number = "offre-" + Date.now();
-    try {
-      const inserted = await createFreightOffer({
-        wilayaDepart: wilayaDepartObj.code,
-        wilayaArrivee: wilayaArriveeObj.code,
-        pointRepereDepart: formDepartDetails || undefined,
-        pointRepereArrivee: formArriveeDetails || undefined,
-        description: formCommentaire || undefined,
-        poidsKg: formPoids ? Number(formPoids) : undefined,
-        typeMarchandise: formMarchandise || undefined,
-        // prix_propose est NOT NULL côté base : 0 signifie "prix à négocier"
-        // quand le donneur d'ordre n'a pas fixé de prix.
-        prixPropose: formPrixFixe ? Number(formPrixFixe) : 0,
-        paymentMethod: "cash",
-        dateEnlevementSouhaitee: formDateChargement || undefined,
-      });
-      insertedId = inserted.id;
-    } catch (err: any) {
-      triggerSystemLog(`Échec de la publication de l'offre : ${err.message}`, "danger");
-      return;
-    }
-
     const newOffre: OffreFret = {
-      id: String(insertedId),
+      id: "offre-" + Date.now(),
       donneurId: currentUser.id,
       donneurRaisonSociale: currentUser.raisonSociale,
       depart: formDepart,
@@ -1052,15 +1040,18 @@ export default function App() {
       dateCreation: new Date().toISOString(),
     };
 
-    const updatedOptions = [...offres, newOffre];
-    saveState(undefined, undefined, updatedOptions);
-    triggerSystemLog("Demande d'offre de fret publiée instantanément sur la bourse !", "success");
-    
-    // Reset form
-    setFormDepartDetails("");
-    setFormArriveeDetails("");
-    setFormCommentaire("");
-    setFormPrixFixe("");
+      setOffres(prev => [...prev, newOffre]);
+      triggerSystemLog("Offre publiee sur la bourse Supabase", "success");
+      setFormDepartDetails("");
+      setFormArriveeDetails("");
+      setFormCommentaire("");
+      setFormPrixFixe("");
+
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erreur inconnue";
+      console.error("handleCreateOffre:", msg);
+      triggerSystemLog("Erreur publication: " + msg, "danger");
+    }
   };
 
   // Accepter une proposition
