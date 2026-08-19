@@ -36,6 +36,9 @@ export interface RegistrationInput {
   wilayaIntervention?: string;
   sourceDecouverte?: string;
   typesEngins?: string;
+  stockageType?: string;
+  stockageCapacite?: string;
+  stockageCommune?: string;
 }
 
 export async function submitRegistration(
@@ -77,6 +80,9 @@ export async function submitRegistration(
     wilayaIntervention: input.wilayaIntervention,
     sourceDecouverte: input.sourceDecouverte,
     typesEngins: input.typesEngins,
+    stockageType: input.stockageType,
+    stockageCapacite: input.stockageCapacite,
+    stockageCommune: input.stockageCommune,
   };
 
   const wilayaCode = input.wilaya ? Number(input.wilaya) : null;

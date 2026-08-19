@@ -1067,17 +1067,15 @@ export default function App() {
       nrc = regManRC.trim();
       input.wilayaActivite = regManWilayaActivite;
     } else if (regProfil === ProfileType.Stockage) {
-      if (!regManRaisonSociale.trim()) {
+      if (!regStockageRaisonSociale.trim()) {
         triggerSystemLog("Raison sociale obligatoire pour l'espace de stockage", "danger");
         return;
       }
-      if (!regManRC.trim()) {
-        triggerSystemLog("Numéro d'inscription RC obligatoire pour l'espace de stockage", "danger");
-        return;
-      }
-      raisonSociale = regManRaisonSociale.trim();
-      nrc = regManRC.trim();
-      input.wilayaActivite = regManWilayaActivite;
+      raisonSociale = regStockageRaisonSociale.trim();
+      input.wilayaActivite = regWilaya;
+      input.stockageType = regStockageType;
+      input.stockageCapacite = regStockageCapacite;
+      input.stockageCommune = regStockageCommune;
     }
 
     input.raisonSociale = raisonSociale;
