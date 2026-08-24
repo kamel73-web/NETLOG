@@ -13,7 +13,97 @@ export enum ProfileType {
   Admin = "Administrateur NETLOG",
   Chauffeur = "Chauffeur"
 }
+/**
+ * Rôles métier du modèle pivot NETLOG.
+ *
+ * IMPORTANT :
+ * ProfileType reste conservé pour assurer la compatibilité
+ * avec les données et composants existants.
+ */
+export type NetlogRole =
+  | "DO"
+  | "TRANSITAIRE"
+  | "TRANSPORTEUR"
+  | "COMMERCIAL_FREELANCE"
+  | "MANUTENTIONNAIRE"
+  | "ADMIN";
 
+/**
+ * Classification métier d'un profil NETLOG.
+ */
+export interface NetlogProfileClassification {
+  role: NetlogRole;
+  /**
+   * Le transitaire est fonctionnellement rattaché au domaine
+   * Donneur d'Ordre dans le modèle pivot.
+   */
+  parentRole?: "DO";
+  legacyProfileType: ProfileType;
+}
+
+/**
+ * Convertit le profil historique vers le rôle métier pivot.
+ *
+ * Cette fonction permet de faire évoluer progressivement l'interface
+ * sans casser les utilisateurs déjà enregistrés.
+ */
+export function classifyNetlogProfile(
+  profil?: ProfileType | null
+): NetlogProfileClassification | null {
+  switch (profil) {
+    case ProfileType.DonneurOrdre:
+      return {
+        role: "DO",
+        legacyProfileType: ProfileType.DonneurOrdre,
+      };
+
+    case ProfileType.Commissionnaire:
+      return {
+        role: "TRANSITAIRE",
+        parentRole: "DO",
+        legacyProfileType: ProfileType.Commissionnaire,
+      };
+
+    case ProfileType.Transporteur:
+      return {
+        role: "TRANSPORTEUR",
+        legacyProfileType: ProfileType.Transporteur,
+      };
+
+    case ProfileType.Commercial:
+      return {
+        role: "COMMERCIAL_FREELANCE",
+        legacyProfileType: ProfileType.Commercial,
+      };
+
+    case ProfileType.Manutentionnaire:
+      return {
+        role: "MANUTENTIONNAIRE",
+        legacyProfileType: ProfileType.Manutentionnaire,
+      };
+
+    case ProfileType.Admin:
+      return {
+        role: "ADMIN",
+        legacyProfileType: ProfileType.Admin,
+      };
+
+    case ProfileType.Stockage:
+    case ProfileType.Chauffeur:
+    default:
+      return null;
+  }
+}
+
+/**
+ * Teste le rôle métier pivot d'un profil.
+ */
+export function hasNetlogRole(
+  profil: ProfileType | null | undefined,
+  role: NetlogRole
+): boolean {
+  return classifyNetlogProfile(profil)?.role === role;
+}
 export interface UserProfile {
   id: string;
   nom: string;
