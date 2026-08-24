@@ -1015,38 +1015,39 @@ export default function App() {
     e.preventDefault();
     if (!currentUser) return;
 
-    // Code de confirmation aléatoire pour le déchargement
-    const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
+    try {
+      // Code de confirmation temporaire pour l'affichage local
+      const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
 
-    const newOffre: OffreFret = {
-      id: "offre-" + Date.now(),
-      donneurId: currentUser.id,
-      donneurRaisonSociale: currentUser.raisonSociale,
-      depart: formDepart,
-      arrivee: formArrivee,
-      departDetails: formDepartDetails || `Wilaya de ${formDepart}`,
-      arriveeDetails: formArriveeDetails || `Wilaya de ${formArrivee}`,
-      dateChargement: formDateChargement,
-      dateLivraison: formDateLivraison,
-      poids: Number(formPoids),
-      longueurExigee: Number(formLongueur),
-      marchandise: formMarchandise,
-      moyenExige: formMoyen,
-      nombreVoyages: Number(formVoyages),
-      prixFixe: formPrixFixe ? Number(formPrixFixe) : undefined,
-      commentaire: formCommentaire,
-      status: OffreStatus.Publie,
-      codeConfirmation: randomCode,
-      dateCreation: new Date().toISOString(),
-    };
+      const newOffre: OffreFret = {
+        id: "offre-" + Date.now(),
+        donneurId: currentUser.id,
+        donneurRaisonSociale: currentUser.raisonSociale,
+        depart: formDepart,
+        arrivee: formArrivee,
+        departDetails: formDepartDetails || `Wilaya de ${formDepart}`,
+        arriveeDetails: formArriveeDetails || `Wilaya de ${formArrivee}`,
+        dateChargement: formDateChargement,
+        dateLivraison: formDateLivraison,
+        poids: Number(formPoids),
+        longueurExigee: Number(formLongueur),
+        marchandise: formMarchandise,
+        moyenExige: formMoyen,
+        nombreVoyages: Number(formVoyages),
+        prixFixe: formPrixFixe ? Number(formPrixFixe) : undefined,
+        commentaire: formCommentaire,
+        status: OffreStatus.Publie,
+        codeConfirmation: randomCode,
+        dateCreation: new Date().toISOString(),
+      };
 
       setOffres(prev => [...prev, newOffre]);
       triggerSystemLog("Offre publiee sur la bourse Supabase", "success");
+
       setFormDepartDetails("");
       setFormArriveeDetails("");
       setFormCommentaire("");
       setFormPrixFixe("");
-
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erreur inconnue";
       console.error("handleCreateOffre:", msg);
