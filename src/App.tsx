@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { submitRegistration, type RegistrationInput } from "./lib/registration";
 import { signInWithPassword, signOut, getCurrentProfile, updateProfileStatus } from "./lib/supabase";
-import { loadAppData, loadProfiles } from "./lib/dataLoader";
+import { loadAppData, loadProfiles, type WilayaRow } from "./lib/dataLoader";
 import { createFreightOffer } from "./lib/freightOffers";
 import { adaptSupabaseProfile, type SupabaseProfileRow } from "./lib/profileAdapter";
 import { 
@@ -73,111 +73,22 @@ import {
 } from "lucide-react";
 import ContractDocument from "./components/ContractDocument";
 import { translations, LangType, translateMoyenType, translateCity, translateMarchandise, translateCommentaire } from "./translations";
-import { COMMUNES } from "./communesData";
 
-const WILAYAS = [
-  { code: "01", fr: "Adrar", ar: "أدرار" },
-  { code: "02", fr: "Chlef", ar: "الشلف" },
-  { code: "03", fr: "Laghouat", ar: "الأغواط" },
-  { code: "04", fr: "Oum El Bouaghi", ar: "أم البواقي" },
-  { code: "05", fr: "Batna", ar: "باتنة" },
-  { code: "06", fr: "Béjaïa", ar: "bajaia بجاية" }, // support direct searches
-  { code: "07", fr: "Biskra", ar: "بسكرة" },
-  { code: "08", fr: "Béchar", ar: "بشار" },
-  { code: "09", fr: "Blida", ar: "البليدة" },
-  { code: "10", fr: "Bouira", ar: "البويرة" },
-  { code: "11", fr: "Tamanrasset", ar: "تمنراست" },
-  { code: "12", fr: "Tébessa", ar: "تبسة" },
-  { code: "13", fr: "Tlemcen", ar: "تلمسان" },
-  { code: "14", fr: "Tiaret", ar: "تيارت" },
-  { code: "15", fr: "Tizi Ouzou", ar: "تيزي وزو" },
-  { code: "16", fr: "Alger", ar: "الجزائر العاصمة" },
-  { code: "17", fr: "Djelfa", ar: "الجلفة" },
-  { code: "18", fr: "Jijel", ar: "جيجل" },
-  { code: "19", fr: "Sétif", ar: "سطيف" },
-  { code: "20", fr: "Saïda", ar: "سعيدة" },
-  { code: "21", fr: "Skikda", ar: "سكيكدة" },
-  { code: "22", fr: "Sidi Bel Abbès", ar: "سيدي بلعباس" },
-  { code: "23", fr: "Annaba", ar: "عنابة" },
-  { code: "24", fr: "Guelma", ar: "قالمة" },
-  { code: "25", fr: "Constantine", ar: "قسنطينة" },
-  { code: "26", fr: "Médéa", ar: "المدية" },
-  { code: "27", fr: "Mostaganem", ar: "مستغانم" },
-  { code: "28", fr: "M'Sila", ar: "المسيلة" },
-  { code: "29", fr: "Mascara", ar: "معسكر" },
-  { code: "30", fr: "Ouargla", ar: "ورقلة" },
-  { code: "31", fr: "Oran", ar: "وهران" },
-  { code: "32", fr: "El Bayadh", ar: "البيض" },
-  { code: "33", fr: "Illizi", ar: "إليزي" },
-  { code: "34", fr: "Bordj Bou Arréridj", ar: "برج بوعريريج" },
-  { code: "35", fr: "Boumerdès", ar: "بومرداس" },
-  { code: "36", fr: "El Tarf", ar: "الطارف" },
-  { code: "37", fr: "Tindouf", ar: "تندوف" },
-  { code: "38", fr: "Tissemsilt", ar: "تيسمسيلت" },
-  { code: "39", fr: "El Oued", ar: "الوادي" },
-  { code: "40", fr: "Khenchela", ar: "خنشلة" },
-  { code: "41", fr: "Souk Ahras", ar: "سوق أهراس" },
-  { code: "42", fr: "Tipaza", ar: "تيبازة" },
-  { code: "43", fr: "Mila", ar: "ميلة" },
-  { code: "44", fr: "Aïn Defla", ar: "عين الدفلى" },
-  { code: "45", fr: "Naâma", ar: "النعامة" },
-  { code: "46", fr: "Aïn Témouchent", ar: "عين تموشنت" },
-  { code: "47", fr: "Ghardaïa", ar: "غرداية" },
-  { code: "48", fr: "Relizane", ar: "غليزان" },
-  { code: "49", fr: "El M'Ghair", ar: "المغير" },
-  { code: "50", fr: "Touggourt", ar: "تقرت" },
-  { code: "51", fr: "Ouled Djellal", ar: "أولاد جلال" },
-  { code: "52", fr: "Béni Abbès", ar: "بني عباس" },
-  { code: "53", fr: "In Salah", ar: "عين صالح" },
-  { code: "54", fr: "In Guezzam", ar: "عين قزام" },
-  { code: "55", fr: "Djanet", ar: "جانت" },
-  { code: "56", fr: "Sidi Khaled", ar: "سيدي خالد" },
-  { code: "57", fr: "El Meniaa", ar: "المنيعة" },
-  { code: "58", fr: "Hassi Messaoud", ar: "حاسي مسعود" }
-];
+// wilayas était auparavant un tableau de 58 entrées codées en dur ici.
+// Retiré : les wilayas sont désormais chargées depuis la table Supabase
+// `wilayas` (voir lib/dataLoader.ts → loadWilayas), pour n'avoir qu'une
+// seule source de vérité. Le mode hors-ligne ne concerne que l'interface
+// chauffeur (volontairement minimale), donc garder cette liste dupliquée
+// côté client pour tout le reste de l'app n'était pas justifié.
 
-const filterCitySuggestions = (search: string) => {
-  if (!search) return [];
-  const cleanSearch = search.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-  const results: Array<{ code: string; fr: string; ar: string }> = [];
-
-  // 1. Search in communes (e.g., Bab Ezzouar, Rouiba...)
-  const matchedCommunes = COMMUNES.filter(c => {
-    const cleanFr = c.fr.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const cleanAr = c.ar.toLowerCase();
-    return cleanFr.includes(cleanSearch) || cleanAr.includes(cleanSearch);
-  });
-
-  matchedCommunes.slice(0, 15).forEach(c => {
-    const wil = WILAYAS.find(w => w.code === c.w) || { fr: "", ar: "" };
-    results.push({
-      code: c.w,
-      fr: `${c.fr} (${wil.fr})`,
-      ar: `${c.ar} (${wil.ar})`
-    });
-  });
-
-  // 2. Search in Wilayas as well
-  const matchedWilayas = WILAYAS.filter(w => {
-    const cleanFr = w.fr.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const cleanAr = w.ar.toLowerCase();
-    return cleanFr.includes(cleanSearch) || cleanAr.includes(cleanSearch);
-  });
-
-  matchedWilayas.forEach(w => {
-    // Avoid duplication if commune already added chief-town
-    if (!results.some(r => r.fr.toLowerCase().includes(w.fr.toLowerCase()) || r.ar.includes(w.ar))) {
-      results.push({
-        code: w.code,
-        fr: w.fr,
-        ar: w.ar
-      });
-    }
-  });
-
-  return results.slice(0, 10);
-};
+// filterCitySuggestions() et l'import COMMUNES (2238 lignes dans
+// communesData.ts) ont été retirés : cette fonction n'était appelée
+// nulle part dans toute l'application (vérifié sur l'ensemble de src/).
+// C'était du poids mort pur dans le bundle JS. Si une autocomplétion de
+// commune est nécessaire un jour, elle doit interroger la table
+// `communes` de Supabase à la demande (filtrée par wilaya_code), pas
+// recharger une copie statique de 1500+ lignes dans le bundle.
+// → Fichier src/communesData.ts à supprimer du dépôt.
 
 // Helper for dynamic password strength indicator
 const getPasswordStrength = (pwd: string) => {
@@ -378,6 +289,9 @@ export default function App() {
 
   // Utilisateur connecté simulé
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  // Wilayas chargées depuis Supabase (table `wilayas`) — plus de copie
+  // codée en dur. Vide au tout premier rendu, peuplée par loadAppData().
+  const [wilayas, setWilayas] = useState<WilayaRow[]>([]);
 
   // Vue courante : "accueil" | "donneur" | "transporteur" | "simulation" | "facture"
   const [currentTab, setCurrentTab] = useState<string>("accueil");
@@ -648,12 +562,13 @@ export default function App() {
 
   // --- INITIALISATION DEPUIS SUPABASE ---
   useEffect(() => {
-    loadAppData().then(({ profiles, vehicles, offers, proposals, invoices, currentUser: supabaseUser }) => {
+    loadAppData().then(({ profiles, vehicles, offers, proposals, invoices, currentUser: supabaseUser, wilayas: wilayasData }) => {
       setUsers(profiles);
       setMoyens(vehicles);
       setOffres(offers);
       setPropositions(proposals);
       setFactures(invoices);
+      setWilayas(wilayasData);
 
       // Session active : priorité à Supabase, sinon localStorage legacy
       if (supabaseUser) {
@@ -1084,10 +999,10 @@ export default function App() {
     const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
 
     // freight_offers.wilaya_depart / wilaya_arrivee attendent un code
-    // numérique (référence à wilayas.code), alors que le formulaire local
-    // manipule des noms de wilaya (ex: "Alger"). Conversion nécessaire.
-    const wilayaDepartObj = WILAYAS.find(w => w.fr === formDepart);
-    const wilayaArriveeObj = WILAYAS.find(w => w.fr === formArrivee);
+    // numérique (référence à wilayas.code) ; le formulaire local manipule
+    // des noms de wilaya (ex: "Alger") — on retrouve l'entrée correspondante.
+    const wilayaDepartObj = wilayas.find(w => w.fr === formDepart);
+    const wilayaArriveeObj = wilayas.find(w => w.fr === formArrivee);
     if (!wilayaDepartObj || !wilayaArriveeObj) {
       triggerSystemLog("Wilaya de départ ou d'arrivée invalide.", "danger");
       return;
@@ -1096,8 +1011,8 @@ export default function App() {
     let insertedId: string | number = "offre-" + Date.now();
     try {
       const inserted = await createFreightOffer({
-        wilayaDepart: parseInt(wilayaDepartObj.code, 10),
-        wilayaArrivee: parseInt(wilayaArriveeObj.code, 10),
+        wilayaDepart: wilayaDepartObj.code,
+        wilayaArrivee: wilayaArriveeObj.code,
         pointRepereDepart: formDepartDetails || undefined,
         pointRepereArrivee: formArriveeDetails || undefined,
         description: formCommentaire || undefined,
@@ -2725,7 +2640,7 @@ export default function App() {
                                   value={regWilaya} onChange={(e) => setRegWilaya(e.target.value)}
                                   className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
                                 >
-                                  {WILAYAS.map(w => (
+                                  {wilayas.map(w => (
                                     <option key={w.code} value={lang === "ar" ? w.ar : w.fr}>
                                       {lang === "ar" ? w.ar : w.fr}
                                     </option>
@@ -2959,7 +2874,7 @@ export default function App() {
                                     value={regTransWilayaActivite} onChange={(e) => setRegTransWilayaActivite(e.target.value)}
                                     className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
                                   >
-                                    {WILAYAS.map(w => (
+                                    {wilayas.map(w => (
                                       <option key={w.code} value={lang === "ar" ? w.ar : w.fr}>
                                         {lang === "ar" ? w.ar : w.fr}
                                       </option>
@@ -3030,7 +2945,7 @@ export default function App() {
                                     value={regCommWilayaInterv} onChange={(e) => setRegCommWilayaInterv(e.target.value)}
                                     className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
                                   >
-                                    {WILAYAS.map(w => (
+                                    {wilayas.map(w => (
                                       <option key={w.code} value={lang === "ar" ? w.ar : w.fr}>
                                         {lang === "ar" ? w.ar : w.fr}
                                       </option>
@@ -3125,7 +3040,7 @@ export default function App() {
                                     value={regManWilayaActivite} onChange={(e) => setRegManWilayaActivite(e.target.value)}
                                     className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
                                   >
-                                    {WILAYAS.map(w => (
+                                    {wilayas.map(w => (
                                       <option key={w.code} value={lang === "ar" ? w.ar : w.fr}>
                                         {lang === "ar" ? w.ar : w.fr}
                                       </option>
@@ -3174,7 +3089,7 @@ export default function App() {
                                   value={regTCWilayaActivite} onChange={(e) => setRegTCWilayaActivite(e.target.value)}
                                   className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
                                 >
-                                  {WILAYAS.map(w => (
+                                  {wilayas.map(w => (
                                     <option key={w.code} value={lang === "ar" ? w.ar : w.fr}>
                                       {lang === "ar" ? w.ar : w.fr}
                                     </option>
@@ -3298,7 +3213,7 @@ export default function App() {
                     className="w-full pl-8 pr-3 py-2.5 bg-white border border-[#E5E7EB] rounded-[8px] text-xs font-bold text-slate-700 focus:outline-none focus:border-[#1D9E75] cursor-pointer"
                   >
                     <option value="Tous">Toutes les wilayas (Départ) ▼</option>
-                    {[...WILAYAS].sort((a,b) => a.fr.localeCompare(b.fr)).map(w => (
+                    {[...wilayas].sort((a,b) => a.fr.localeCompare(b.fr)).map(w => (
                       <option key={w.code} value={w.fr}>{w.fr}</option>
                     ))}
                   </select>
@@ -3315,7 +3230,7 @@ export default function App() {
                     className="w-full pl-8 pr-3 py-2.5 bg-white border border-[#E5E7EB] rounded-[8px] text-xs font-bold text-slate-700 focus:outline-none focus:border-[#1D9E75] cursor-pointer"
                   >
                     <option value="Tous">Toutes les wilayas (Arrivée) ▼</option>
-                    {[...WILAYAS].sort((a,b) => a.fr.localeCompare(b.fr)).map(w => (
+                    {[...wilayas].sort((a,b) => a.fr.localeCompare(b.fr)).map(w => (
                       <option key={w.code} value={w.fr}>{w.fr}</option>
                     ))}
                   </select>
@@ -4091,41 +4006,42 @@ export default function App() {
         {currentTab === "publier" && (() => {
           const isDO = currentUser?.profil === ProfileType.DonneurOrdre;
 
-const handleQuickPublishOfferSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!isDO) {
-    triggerSystemLog("Interdit : Vous devez être connecté en tant que Donneur d'Ordre pour poster une offre.", "danger");
-    return;
-  }
+          const handleQuickPublishOfferSubmit = (e: React.FormEvent) => {
+            e.preventDefault();
+            if (!isDO) {
+              triggerSystemLog("Interdit : Vous devez être connecté en tant que Donneur d'Ordre pour poster une offre.", "danger");
+              return;
+            }
 
-  const newId = `offre-${offres.length + 1}`;
-  const newOffer: OffreFret = {
-    id: newId,
-    donneurId: currentUser.id,
-    donneurRaisonSociale: currentUser.raisonSociale || `${currentUser.prenom} ${currentUser.nom}`,
-    depart: pubDepart,
-    arrivee: pubArrivee,
-    departDetails: `Entrepôt principal de ${pubDepart}`,
-    arriveeDetails: `Dépôt client d'arrivée à ${pubArrivee}`,
-    dateChargement: new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0],
-    dateLivraison: new Date(Date.now() + 86400000 * 5).toISOString().split("T")[0],
-    poids: pubPoids,
-    marchandise: pubMarchandise,
-    moyenExige: pubMoyen,
-    nombreVoyages: 1,
-    prixFixe: pubPrix,
-    status: OffreStatus.Publie,
-    commentaire: pubCommentaire || "Acheminement rapide conforme aux normes NETLOG d'Algérie.",
-    codeConfirmation: String(Math.floor(1000 + Math.random() * 9000)),
-    dateCreation: new Date().toISOString()
-  };
+            const newId = `offre-${offres.length + 1}`;
+            const newOffer: OffreFret = {
+              id: newId,
+              donneurId: currentUser.id,
+              donneurRaisonSociale: currentUser.raisonSociale || `${currentUser.prenom} ${currentUser.nom}`,
+              depart: pubDepart,
+              arrivee: pubArrivee,
+              departDetails: `Entrepôt principal de ${pubDepart}`,
+              arriveeDetails: `Dépôt client d'arrivée à ${pubArrivee}`,
+              dateChargement: new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0],
+              dateLivraison: new Date(Date.now() + 86400000 * 5).toISOString().split("T")[0],
+              poids: pubPoids,
+              marchandise: pubMarchandise,
+              moyenExige: pubMoyen,
+              nombreVoyages: 1,
+              prixFixe: pubPrix,
+              status: OffreStatus.Publie,
+              commentaire: pubCommentaire || "Acheminement rapide conforme aux normes NETLOG d'Algérie.",
+              codeConfirmation: String(Math.floor(1000 + Math.random() * 9000)),
+              dateCreation: new Date().toISOString()
+            };
 
-  const updatedOffres = [newOffer, ...offres];
-  saveState(undefined, undefined, updatedOffres);
-  triggerSystemLog(`Félicitations ! Votre offre de fret ${newId} (Axe: ${pubDepart} ➔ ${pubArrivee}) est publiée en direct sur la bourse de fret !`, "success");
-  
-  setCurrentTab("accueil");
-};
+            const updatedOffres = [newOffer, ...offres];
+            saveState(undefined, undefined, updatedOffres);
+            triggerSystemLog(`Félicitations ! Votre offre de fret ${newId} (Axe: ${pubDepart} ➔ ${pubArrivee}) est publiée en direct sur la bourse de fret !`, "success");
+            
+            // Redirect to main listing!
+            setCurrentTab("accueil");
+          };
 
           return (
             <div className="space-y-6">
@@ -5470,9 +5386,9 @@ const handleQuickPublishOfferSubmit = (e: React.FormEvent) => {
                         onChange={(e) => setRegWilaya(e.target.value)}
                         className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs bg-white cursor-pointer font-sans"
                       >
-                        {WILAYAS.map(w => (
+                        {wilayas.map(w => (
                           <option key={w.code} value={w.fr}>
-                            {w.code} - {w.fr} ({w.ar})
+                            {String(w.code).padStart(2, '0')} - {w.fr} ({w.ar})
                           </option>
                         ))}
                       </select>
@@ -5722,7 +5638,7 @@ const handleQuickPublishOfferSubmit = (e: React.FormEvent) => {
                             onChange={(e) => setRegTransWilayaActivite(e.target.value)}
                             className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs bg-white cursor-pointer font-sans"
                           >
-                            {WILAYAS.map(w => (
+                            {wilayas.map(w => (
                               <option key={w.code} value={w.fr}>{w.fr}</option>
                             ))}
                           </select>
@@ -5778,7 +5694,7 @@ const handleQuickPublishOfferSubmit = (e: React.FormEvent) => {
                           onChange={(e) => setRegCommWilayaInterv(e.target.value)}
                           className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs bg-white cursor-pointer font-sans"
                         >
-                          {WILAYAS.map(w => (
+                          {wilayas.map(w => (
                             <option key={w.code} value={w.fr}>{w.fr}</option>
                           ))}
                         </select>
@@ -5838,7 +5754,7 @@ const handleQuickPublishOfferSubmit = (e: React.FormEvent) => {
                           value={regManWilayaActivite} onChange={(e) => setRegManWilayaActivite(e.target.value)}
                           className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs bg-white cursor-pointer"
                         >
-                          {WILAYAS.map(w => (
+                          {wilayas.map(w => (
                             <option key={w.code} value={w.fr}>{w.fr}</option>
                           ))}
                         </select>
