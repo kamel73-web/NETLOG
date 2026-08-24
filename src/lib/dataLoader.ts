@@ -91,25 +91,16 @@ export async function loadInvoices(): Promise<Facture[]> {
   }));
 }
 
-export interface CommuneRow {
-  id: number;
-  wilaya_code: number;
-  name: string;
-  name_ar: string | null;
+export interface WilayaRow {
+  code: number;
+  fr: string;
+  ar: string;
 }
 
-export async function loadCommunes(): Promise<CommuneRow[]> {
-  const { data, error } = await supabase
-    .from('communes')
-    .select('id, wilaya_code, name, name_ar')
-    .order('wilaya_code', { ascending: true })
-    .order('name', { ascending: true });
-
-  if (error) {
-    console.error('loadCommunes:', error.message);
-    return [];
-  }
-  return data as CommuneRow[];
+export async function loadWilayas(): Promise<WilayaRow[]> {
+  const { data, error } = await supabase.from('wilayas').select('code, name, name_ar').order('code', { ascending: true });
+  if (error) { console.error('loadWilayas:', error.message); return []; }
+  return (data as any[]).map(w => ({ code: w.code, fr: w.name, ar: w.name_ar ?? w.name }));
 }
 
 export interface AppData {
@@ -118,14 +109,14 @@ export interface AppData {
   offers: OffreFret[];
   proposals: PropositionPrix[];
   invoices: Facture[];
-  communes: CommuneRow[];
   currentUser: UserProfile | null;
+  wilayas: WilayaRow[];
 }
 
 export async function loadAppData(): Promise<AppData> {
-  const [profiles, vehicles, offers, proposals, invoices, communes, profileRow] = await Promise.all([
-    loadProfiles(), loadVehicles(), loadFreightOffers(), loadProposals(), loadInvoices(), loadCommunes(), getCurrentProfile(),
+  const [profiles, vehicles, offers, proposals, invoices, profileRow, wilayas] = await Promise.all([
+    loadProfiles(), loadVehicles(), loadFreightOffers(), loadProposals(), loadInvoices(), getCurrentProfile(), loadWilayas(),
   ]);
   const currentUser = profileRow ? adaptSupabaseProfile(profileRow as SupabaseProfileRow) : null;
-  return { profiles, vehicles, offers, proposals, invoices, communes, currentUser };
+  return { profiles, vehicles, offers, proposals, invoices, currentUser, wilayas };
 }
