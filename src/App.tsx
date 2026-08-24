@@ -840,20 +840,27 @@ export default function App() {
       console.error("Erreur rafraîchissement profils après connexion:", err);
     });
 
-    // Route to dashboard
-    if (user.profil === ProfileType.DonneurOrdre) {
-      setCurrentTab("donneur");
-    } else if (user.profil === ProfileType.Transporteur) {
-      setCurrentTab("transporteur");
-    } else if (user.profil === ProfileType.Chauffeur) {
-      setCurrentTab("chauffeur");
-    } else if (user.profil === ProfileType.Commercial) {
-      setCurrentTab("commercial");
-    } else if (user.profil === ProfileType.Admin) {
-      setCurrentTab("admin");
-    } else {
-      setCurrentTab("accueil");
-    }
+    // Route to dashboard selon le rôle métier NETLOG
+const netlogRole = classifyNetlogProfile(user.profil)?.role;
+
+if (netlogRole === "DO") {
+  setCurrentTab("donneur");
+} else if (netlogRole === "TRANSITAIRE") {
+  setCurrentTab("transitaire");
+} else if (netlogRole === "TRANSPORTEUR") {
+  setCurrentTab("transporteur");
+} else if (netlogRole === "COMMERCIAL_FREELANCE") {
+  setCurrentTab("commercial");
+} else if (netlogRole === "MANUTENTIONNAIRE") {
+  setCurrentTab("manutentionnaire");
+} else if (user.profil === ProfileType.Chauffeur) {
+  // Compatibilité avec le profil Chauffeur existant
+  setCurrentTab("chauffeur");
+} else if (netlogRole === "ADMIN") {
+  setCurrentTab("admin");
+} else {
+  setCurrentTab("accueil");
+}
 
     triggerSystemLog(`Bienvenue de retour, ${user.prenom} !`, "success");
   };
