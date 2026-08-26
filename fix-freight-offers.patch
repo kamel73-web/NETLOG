@@ -1,0 +1,77 @@
+diff --git a/src/App.tsx b/src/App.tsx
+index f64ee9b..5fdc46e 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -4073,16 +4073,43 @@ export default function App() {
+         {currentTab === "publier" && (() => {
+           const isDO = currentUser?.profil === ProfileType.DonneurOrdre;
+ 
+-          const handleQuickPublishOfferSubmit = (e: React.FormEvent) => {
++          const handleQuickPublishOfferSubmit = async (e: React.FormEvent) => {
+             e.preventDefault();
+             if (!isDO) {
+               triggerSystemLog("Interdit : Vous devez être connecté en tant que Donneur d'Ordre pour poster une offre.", "danger");
+               return;
+             }
+ 
+-            const newId = `offre-${offres.length + 1}`;
++            // freight_offers.wilaya_depart / wilaya_arrivee attendent un code
++            // numérique (référence à wilayas.code), pas le nom affiché.
++            const wilayaDepartObj = wilayas.find(w => w.fr === pubDepart);
++            const wilayaArriveeObj = wilayas.find(w => w.fr === pubArrivee);
++            if (!wilayaDepartObj || !wilayaArriveeObj) {
++              triggerSystemLog("Wilaya de départ ou d'arrivée invalide.", "danger");
++              return;
++            }
++
++            let insertedId: string | number = "offre-" + Date.now();
++            try {
++              const inserted = await createFreightOffer({
++                wilayaDepart: wilayaDepartObj.code,
++                wilayaArrivee: wilayaArriveeObj.code,
++                pointRepereDepart: `Entrepôt principal de ${pubDepart}`,
++                pointRepereArrivee: `Dépôt client d'arrivée à ${pubArrivee}`,
++                description: pubCommentaire || undefined,
++                poidsKg: pubPoids ? Number(pubPoids) : undefined,
++                typeMarchandise: pubMarchandise || undefined,
++                prixPropose: pubPrix ? Number(pubPrix) : 0,
++                paymentMethod: "cash",
++              });
++              insertedId = inserted.id;
++            } catch (err: any) {
++              triggerSystemLog(`Échec de la publication de l'offre : ${err.message}`, "danger");
++              return;
++            }
++
+             const newOffer: OffreFret = {
+-              id: newId,
++              id: String(insertedId),
+               donneurId: currentUser.id,
+               donneurRaisonSociale: currentUser.raisonSociale || `${currentUser.prenom} ${currentUser.nom}`,
+               depart: pubDepart,
+@@ -4104,7 +4131,7 @@ export default function App() {
+ 
+             const updatedOffres = [newOffer, ...offres];
+             saveState(undefined, undefined, updatedOffres);
+-            triggerSystemLog(`Félicitations ! Votre offre de fret ${newId} (Axe: ${pubDepart} ➔ ${pubArrivee}) est publiée en direct sur la bourse de fret !`, "success");
++            triggerSystemLog(`Félicitations ! Votre offre de fret ${insertedId} (Axe: ${pubDepart} ➔ ${pubArrivee}) est publiée en direct sur la bourse de fret !`, "success");
+             
+             // Redirect to main listing!
+             setCurrentTab("accueil");
+diff --git a/src/components/StockageDashboard.tsx b/src/components/StockageDashboard.tsx
+index d4c6c66..a865e59 100644
+--- a/src/components/StockageDashboard.tsx
++++ b/src/components/StockageDashboard.tsx
+@@ -16,9 +16,9 @@ export default function StockageDashboard({
+   const [disponibilite, setDisponibilite] = useState<"Disponible" | "Complet" | "Partiel">("Disponible");
+   const [editMode, setEditMode] = useState(false);
+ 
+-  const metadata = currentUser.metadata ?? {};
+-  const commune =
+-    typeof metadata.commune === "string" ? metadata.commune : "";
++  // Pas de champ "metadata" sur UserProfile — on réutilise wilayaActivite
++  // (déjà utilisé par les autres profils comme localisation d'activité).
++  const commune = currentUser.wilayaActivite || "";
+ 
+   const dipoColors: Record<string, string> = {
+     "Disponible": "bg-emerald-100 text-emerald-700",
