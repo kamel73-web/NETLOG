@@ -993,7 +993,19 @@ export default function App() {
   // --- ACTIONS DONNEUR D'ORDRE ---
   const handleCreateOffre = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser) return;
+   if (!currentUser) {
+  console.error("[NETLOG] Publication impossible : aucun currentUser");
+  return;
+}
+
+console.log("[NETLOG] handleCreateOffre déclenché", {
+  userId: currentUser.id,
+  profil: currentUser.profil,
+  formDepart,
+  formArrivee,
+  formPoids,
+  formMarchandise,
+});
 
     // Code de confirmation aléatoire pour le déchargement
     const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
@@ -1010,6 +1022,7 @@ export default function App() {
 
     let insertedId: string | number = "offre-" + Date.now();
     try {
+      console.log("[NETLOG] Appel createFreightOffer...");
       const inserted = await createFreightOffer({
         wilayaDepart: wilayaDepartObj.code,
         wilayaArrivee: wilayaArriveeObj.code,
@@ -1025,10 +1038,12 @@ export default function App() {
         dateEnlevementSouhaitee: formDateChargement || undefined,
       });
       insertedId = inserted.id;
+      console.log("[NETLOG] createFreightOffer SUCCESS", inserted);
     } catch (err: any) {
-      triggerSystemLog(`Échec de la publication de l'offre : ${err.message}`, "danger");
-      return;
-    }
+  console.error("[NETLOG] createFreightOffer ERROR", err);
+  triggerSystemLog(`Échec de la publication de l'offre : ${err.message}`, "danger");
+  return;
+}
 
     const newOffre: OffreFret = {
       id: String(insertedId),
