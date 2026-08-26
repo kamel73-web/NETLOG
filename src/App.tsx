@@ -34,6 +34,9 @@ import ChauffeurDashboard from "./components/ChauffeurDashboard";
 import DonneurDashboard from "./components/DonneurDashboard";
 import CommercialDashboard from "./components/CommercialDashboard";
 import AdminDashboard from "./components/AdminDashboard";
+import CommissionnaireDashboard from "./components/CommissionnaireDashboard";
+import ManutentionnaireDashboard from "./components/ManutentionnaireDashboard";
+import StockageDashboard from "./components/StockageDashboard";
 import LeafletMap from "./components/LeafletMap";
 import { 
   Truck, 
@@ -993,19 +996,7 @@ export default function App() {
   // --- ACTIONS DONNEUR D'ORDRE ---
   const handleCreateOffre = async (e: React.FormEvent) => {
     e.preventDefault();
-   if (!currentUser) {
-  console.error("[NETLOG] Publication impossible : aucun currentUser");
-  return;
-}
-
-console.log("[NETLOG] handleCreateOffre déclenché", {
-  userId: currentUser.id,
-  profil: currentUser.profil,
-  formDepart,
-  formArrivee,
-  formPoids,
-  formMarchandise,
-});
+    if (!currentUser) return;
 
     // Code de confirmation aléatoire pour le déchargement
     const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
@@ -1022,7 +1013,6 @@ console.log("[NETLOG] handleCreateOffre déclenché", {
 
     let insertedId: string | number = "offre-" + Date.now();
     try {
-      console.log("[NETLOG] Appel createFreightOffer...");
       const inserted = await createFreightOffer({
         wilayaDepart: wilayaDepartObj.code,
         wilayaArrivee: wilayaArriveeObj.code,
@@ -1038,12 +1028,10 @@ console.log("[NETLOG] handleCreateOffre déclenché", {
         dateEnlevementSouhaitee: formDateChargement || undefined,
       });
       insertedId = inserted.id;
-      console.log("[NETLOG] createFreightOffer SUCCESS", inserted);
     } catch (err: any) {
-  console.error("[NETLOG] createFreightOffer ERROR", err);
-  triggerSystemLog(`Échec de la publication de l'offre : ${err.message}`, "danger");
-  return;
-}
+      triggerSystemLog(`Échec de la publication de l'offre : ${err.message}`, "danger");
+      return;
+    }
 
     const newOffre: OffreFret = {
       id: String(insertedId),
@@ -3639,6 +3627,47 @@ console.log("[NETLOG] handleCreateOffre déclenché", {
             users={users}
             propositions={propositions}
             factures={factures}
+            triggerSystemLog={triggerSystemLog}
+          />
+        )}
+
+        {/* ----------------- TAB: ESPACE COMMISSIONNAIRE / TRANSITAIRE ----------------- */}
+        {currentTab === "commissionnaire" && currentUser?.profil === ProfileType.Commissionnaire && (
+          <CommissionnaireDashboard
+            currentUser={currentUser}
+            setCurrentUser={setCurrentUser}
+            lang={lang}
+            t={t}
+            offres={offres}
+            users={users}
+            moyens={moyens}
+            propositions={propositions}
+            factures={factures}
+            saveState={saveState}
+            triggerSystemLog={triggerSystemLog}
+            setCurrentTab={setCurrentTab}
+          />
+        )}
+
+        {/* ----------------- TAB: ESPACE MANUTENTIONNAIRE ----------------- */}
+        {currentTab === "manutentionnaire" && currentUser?.profil === ProfileType.Manutentionnaire && (
+          <ManutentionnaireDashboard
+            currentUser={currentUser}
+            setCurrentUser={setCurrentUser}
+            lang={lang}
+            t={t}
+            offres={offres}
+            triggerSystemLog={triggerSystemLog}
+          />
+        )}
+
+        {/* ----------------- TAB: ESPACE STOCKAGE ----------------- */}
+        {currentTab === "stockage" && currentUser?.profil === ProfileType.Stockage && (
+          <StockageDashboard
+            currentUser={currentUser}
+            setCurrentUser={setCurrentUser}
+            lang={lang}
+            t={t}
             triggerSystemLog={triggerSystemLog}
           />
         )}
