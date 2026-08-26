@@ -303,4 +303,3 @@ export interface DevisOfficiel {
   ipSignataire?: string | null;
   methodSignature?: "dessinee" | "tapee" | "cachet" | "otp" | null;
 }
-

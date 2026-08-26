@@ -16,9 +16,8 @@ export default function StockageDashboard({
   const [disponibilite, setDisponibilite] = useState<"Disponible" | "Complet" | "Partiel">("Disponible");
   const [editMode, setEditMode] = useState(false);
 
-  const metadata = currentUser.metadata ?? {};
-  const commune =
-    typeof metadata.commune === "string" ? metadata.commune : "";
+  
+  const commune = (currentUser as any).wilayaActivite || "";
 
   const dipoColors: Record<string, string> = {
     "Disponible": "bg-emerald-100 text-emerald-700",
