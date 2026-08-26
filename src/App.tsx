@@ -6,7 +6,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { submitRegistration, type RegistrationInput } from "./lib/registration";
 import { signInWithPassword, signOut, getCurrentProfile, updateProfileStatus } from "./lib/supabase";
-import { loadAppData, loadProfiles, type CommuneRow } from "./lib/dataLoader";import { adaptSupabaseProfile, type SupabaseProfileRow } from "./lib/profileAdapter";
+import { loadAppData, loadProfiles, type WilayaRow } from "./lib/dataLoader";
+import { createFreightOffer } from "./lib/freightOffers";
+import { adaptSupabaseProfile, type SupabaseProfileRow } from "./lib/profileAdapter";
 import { 
   MOCK_OFFRES, 
   MOCK_USERS, 
@@ -20,8 +22,7 @@ import {
   MoyenType, 
   MoyenTransport, 
   UserProfile, 
-  ProfileType,
-  classifyNetlogProfile,
+  ProfileType, 
   PropositionPrix, 
   Facture, 
   FactureStatus,
@@ -840,27 +841,20 @@ export default function App() {
       console.error("Erreur rafraîchissement profils après connexion:", err);
     });
 
-    // Route to dashboard selon le rôle métier NETLOG
-const netlogRole = classifyNetlogProfile(user.profil)?.role;
-
-if (netlogRole === "DO") {
-  setCurrentTab("donneur");
-} else if (netlogRole === "TRANSITAIRE") {
-  setCurrentTab("transitaire");
-} else if (netlogRole === "TRANSPORTEUR") {
-  setCurrentTab("transporteur");
-} else if (netlogRole === "COMMERCIAL_FREELANCE") {
-  setCurrentTab("commercial");
-} else if (netlogRole === "MANUTENTIONNAIRE") {
-  setCurrentTab("manutentionnaire");
-} else if (user.profil === ProfileType.Chauffeur) {
-  // Compatibilité avec le profil Chauffeur existant
-  setCurrentTab("chauffeur");
-} else if (netlogRole === "ADMIN") {
-  setCurrentTab("admin");
-} else {
-  setCurrentTab("accueil");
-}
+    // Route to dashboard
+    if (user.profil === ProfileType.DonneurOrdre) {
+      setCurrentTab("donneur");
+    } else if (user.profil === ProfileType.Transporteur) {
+      setCurrentTab("transporteur");
+    } else if (user.profil === ProfileType.Chauffeur) {
+      setCurrentTab("chauffeur");
+    } else if (user.profil === ProfileType.Commercial) {
+      setCurrentTab("commercial");
+    } else if (user.profil === ProfileType.Admin) {
+      setCurrentTab("admin");
+    } else {
+      setCurrentTab("accueil");
+    }
 
     triggerSystemLog(`Bienvenue de retour, ${user.prenom} !`, "success");
   };
@@ -971,28 +965,6 @@ if (netlogRole === "DO") {
       nrc = regManRC.trim();
       input.typesEngins = regManTypesEngins.join(", ");
       input.wilayaActivite = regManWilayaActivite;
-    } else if (regProfil === ProfileType.Commissionnaire) {
-      if (!regManRaisonSociale.trim()) {
-        triggerSystemLog("Raison sociale obligatoire pour les commissionnaires", "danger");
-        return;
-      }
-      if (!regManRC.trim()) {
-        triggerSystemLog("Numéro d'inscription RC obligatoire pour les commissionnaires", "danger");
-        return;
-      }
-      raisonSociale = regManRaisonSociale.trim();
-      nrc = regManRC.trim();
-      input.wilayaActivite = regManWilayaActivite;
-    } else if (regProfil === ProfileType.Stockage) {
-      if (!regStockageRaisonSociale.trim()) {
-        triggerSystemLog("Raison sociale obligatoire pour l'espace de stockage", "danger");
-        return;
-      }
-      raisonSociale = regStockageRaisonSociale.trim();
-      input.wilayaActivite = regWilaya;
-      input.stockageType = regStockageType;
-      input.stockageCapacite = regStockageCapacite;
-      input.stockageCommune = regStockageCommune;
     }
 
     input.raisonSociale = raisonSociale;
@@ -1023,44 +995,72 @@ if (netlogRole === "DO") {
     e.preventDefault();
     if (!currentUser) return;
 
-    try {
-      // Code de confirmation temporaire pour l'affichage local
-      const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
+    // Code de confirmation aléatoire pour le déchargement
+    const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
 
-      const newOffre: OffreFret = {
-        id: "offre-" + Date.now(),
-        donneurId: currentUser.id,
-        donneurRaisonSociale: currentUser.raisonSociale,
-        depart: formDepart,
-        arrivee: formArrivee,
-        departDetails: formDepartDetails || `Wilaya de ${formDepart}`,
-        arriveeDetails: formArriveeDetails || `Wilaya de ${formArrivee}`,
-        dateChargement: formDateChargement,
-        dateLivraison: formDateLivraison,
-        poids: Number(formPoids),
-        longueurExigee: Number(formLongueur),
-        marchandise: formMarchandise,
-        moyenExige: formMoyen,
-        nombreVoyages: Number(formVoyages),
-        prixFixe: formPrixFixe ? Number(formPrixFixe) : undefined,
-        commentaire: formCommentaire,
-        status: OffreStatus.Publie,
-        codeConfirmation: randomCode,
-        dateCreation: new Date().toISOString(),
-      };
-
-      setOffres(prev => [...prev, newOffre]);
-      triggerSystemLog("Offre publiee sur la bourse Supabase", "success");
-
-      setFormDepartDetails("");
-      setFormArriveeDetails("");
-      setFormCommentaire("");
-      setFormPrixFixe("");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Erreur inconnue";
-      console.error("handleCreateOffre:", msg);
-      triggerSystemLog("Erreur publication: " + msg, "danger");
+    // freight_offers.wilaya_depart / wilaya_arrivee attendent un code
+    // numérique (référence à wilayas.code) ; le formulaire local manipule
+    // des noms de wilaya (ex: "Alger") — on retrouve l'entrée correspondante.
+    const wilayaDepartObj = wilayas.find(w => w.fr === formDepart);
+    const wilayaArriveeObj = wilayas.find(w => w.fr === formArrivee);
+    if (!wilayaDepartObj || !wilayaArriveeObj) {
+      triggerSystemLog("Wilaya de départ ou d'arrivée invalide.", "danger");
+      return;
     }
+
+    let insertedId: string | number = "offre-" + Date.now();
+    try {
+      const inserted = await createFreightOffer({
+        wilayaDepart: wilayaDepartObj.code,
+        wilayaArrivee: wilayaArriveeObj.code,
+        pointRepereDepart: formDepartDetails || undefined,
+        pointRepereArrivee: formArriveeDetails || undefined,
+        description: formCommentaire || undefined,
+        poidsKg: formPoids ? Number(formPoids) : undefined,
+        typeMarchandise: formMarchandise || undefined,
+        // prix_propose est NOT NULL côté base : 0 signifie "prix à négocier"
+        // quand le donneur d'ordre n'a pas fixé de prix.
+        prixPropose: formPrixFixe ? Number(formPrixFixe) : 0,
+        paymentMethod: "cash",
+        dateEnlevementSouhaitee: formDateChargement || undefined,
+      });
+      insertedId = inserted.id;
+    } catch (err: any) {
+      triggerSystemLog(`Échec de la publication de l'offre : ${err.message}`, "danger");
+      return;
+    }
+
+    const newOffre: OffreFret = {
+      id: String(insertedId),
+      donneurId: currentUser.id,
+      donneurRaisonSociale: currentUser.raisonSociale,
+      depart: formDepart,
+      arrivee: formArrivee,
+      departDetails: formDepartDetails || `Wilaya de ${formDepart}`,
+      arriveeDetails: formArriveeDetails || `Wilaya de ${formArrivee}`,
+      dateChargement: formDateChargement,
+      dateLivraison: formDateLivraison,
+      poids: Number(formPoids),
+      longueurExigee: Number(formLongueur),
+      marchandise: formMarchandise,
+      moyenExige: formMoyen,
+      nombreVoyages: Number(formVoyages),
+      prixFixe: formPrixFixe ? Number(formPrixFixe) : undefined,
+      commentaire: formCommentaire,
+      status: OffreStatus.Publie,
+      codeConfirmation: randomCode,
+      dateCreation: new Date().toISOString(),
+    };
+
+    const updatedOptions = [...offres, newOffre];
+    saveState(undefined, undefined, updatedOptions);
+    triggerSystemLog("Demande d'offre de fret publiée instantanément sur la bourse !", "success");
+    
+    // Reset form
+    setFormDepartDetails("");
+    setFormArriveeDetails("");
+    setFormCommentaire("");
+    setFormPrixFixe("");
   };
 
   // Accepter une proposition
@@ -3545,6 +3545,73 @@ if (netlogRole === "DO") {
 
           </div>
         )}
+
+        {/* ----------------- TAB: ESPACE DONNEUR D'ORDRE (PROFIL 1) ----------------- */}
+        {currentTab === "donneur" && currentUser?.profil === ProfileType.DonneurOrdre && (
+          <DonneurDashboard
+            currentUser={currentUser}
+            setCurrentUser={setCurrentUser}
+            lang={lang}
+            t={t}
+            saveState={saveState}
+            offres={offres}
+            propositions={propositions}
+            factures={factures}
+            devis={devis}
+            counters={counters}
+            incrementCounter={incrementCounter}
+            users={users}
+            triggerSystemLog={triggerSystemLog}
+            setActiveContractDoc={setActiveContractDoc}
+            translateCity={translateCity}
+            translateMoyenType={translateMoyenType}
+            translateMarchandise={translateMarchandise}
+            setCurrentTab={setCurrentTab}
+          />
+        )}
+
+        {/* ----------------- TAB: ESPACE TRANSPORTEUR (PROFIL 2) ----------------- */}
+        {currentTab === "transporteur" && currentUser?.profil === ProfileType.Transporteur && (
+          <TransporteurDashboard
+            currentUser={currentUser}
+            setCurrentUser={setCurrentUser}
+            lang={lang}
+            t={t}
+            moyens={moyens}
+            saveState={saveState}
+            offres={offres}
+            propositions={propositions}
+            factures={factures}
+            devis={devis}
+            counters={counters}
+            incrementCounter={incrementCounter}
+            users={users}
+            initiateBid={initiateBid}
+            triggerSystemLog={triggerSystemLog}
+            setActiveContractDoc={setActiveContractDoc}
+            translateCity={translateCity}
+            translateMoyenType={translateMoyenType}
+            translateMarchandise={translateMarchandise}
+            setCurrentTab={setCurrentTab}
+          />
+        )}
+
+        {/* ----------------- TAB: ESPACE CHAUFFEUR (PROFIL 6) ----------------- */}
+        {currentTab === "chauffeur" && currentUser?.profil === ProfileType.Chauffeur && (
+          <ChauffeurDashboard
+            currentUser={currentUser}
+            setCurrentUser={setCurrentUser}
+            offres={offres}
+            users={users}
+            saveState={saveState}
+            lang={lang}
+            t={t}
+            triggerSystemLog={triggerSystemLog}
+            translateCity={translateCity}
+            translateMarchandise={translateMarchandise}
+          />
+        )}
+
         {/* ----------------- TAB: ESPACE COMMERCIAL BVF (PROFIL 3) ----------------- */}
         {currentTab === "commercial" && currentUser?.profil === ProfileType.Commercial && (
           <CommercialDashboard
