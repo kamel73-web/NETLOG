@@ -74,5 +74,9 @@ export function adaptSupabaseProfile(row: SupabaseProfileRow): UserProfile {
     disponibiliteChauffeur:
       (meta.disponibiliteChauffeur as UserProfile['disponibiliteChauffeur']) ?? 'Disponible',
     positionChauffeur: (meta.positionChauffeur as string) ?? undefined,
+    // Objet brut transmis en plus des champs déjà extraits ci-dessus :
+    // certains composants (ex. StockageDashboard) lisent des clés qui
+    // n'ont pas encore de champ dédié dans UserProfile.
+    metadata: meta as Record<string, any>,
   };
 }
