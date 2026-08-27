@@ -1020,8 +1020,26 @@ switch (user.profil) {
 
   // --- ACTIONS DONNEUR D'ORDRE ---
   const handleCreateOffre = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentUser) return;
+  e.preventDefault();
+
+  console.log("[NETLOG] handleCreateOffre déclenché", {
+    currentUserId: currentUser?.id,
+    currentUserProfil: currentUser?.profil,
+    formDepart,
+    formArrivee,
+    formPoids,
+    formMarchandise,
+    formPrixFixe,
+  });
+
+  if (!currentUser) {
+    console.error("[NETLOG] Publication refusée : currentUser est null");
+    triggerSystemLog(
+      "Impossible de publier : aucun utilisateur connecté.",
+      "danger"
+    );
+    return;
+  }
 
     // Code de confirmation aléatoire pour le déchargement
     const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
