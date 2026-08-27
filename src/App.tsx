@@ -844,20 +844,45 @@ export default function App() {
       console.error("Erreur rafraîchissement profils après connexion:", err);
     });
 
-    // Route to dashboard
-    if (user.profil === ProfileType.DonneurOrdre) {
-      setCurrentTab("donneur");
-    } else if (user.profil === ProfileType.Transporteur) {
-      setCurrentTab("transporteur");
-    } else if (user.profil === ProfileType.Chauffeur) {
-      setCurrentTab("chauffeur");
-    } else if (user.profil === ProfileType.Commercial) {
-      setCurrentTab("commercial");
-    } else if (user.profil === ProfileType.Admin) {
-      setCurrentTab("admin");
-    } else {
-      setCurrentTab("accueil");
-    }
+    // Route vers le dashboard correspondant au profil connecté
+switch (user.profil) {
+  case ProfileType.DonneurOrdre:
+    setCurrentTab("donneur");
+    break;
+
+  case ProfileType.Transporteur:
+    setCurrentTab("transporteur");
+    break;
+
+  case ProfileType.Chauffeur:
+    setCurrentTab("chauffeur");
+    break;
+
+  case ProfileType.Commercial:
+    setCurrentTab("commercial");
+    break;
+
+  case ProfileType.Commissionnaire:
+    setCurrentTab("commissionnaire");
+    break;
+
+  case ProfileType.Manutentionnaire:
+    setCurrentTab("manutentionnaire");
+    break;
+
+  case ProfileType.Stockage:
+    setCurrentTab("stockage");
+    break;
+
+  case ProfileType.Admin:
+    setCurrentTab("admin");
+    break;
+
+  default:
+    console.error("[NETLOG] Profil sans dashboard :", user.profil);
+    setCurrentTab("accueil");
+    break;
+}
 
     triggerSystemLog(`Bienvenue de retour, ${user.prenom} !`, "success");
   };
