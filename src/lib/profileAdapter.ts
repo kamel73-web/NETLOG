@@ -28,7 +28,7 @@ export interface SupabaseProfileRow {
   prenom: string | null;
   nrc: string | null;
   adresse: string | null;
-  metadata: Record<string, unknown>;
+  metadata?: Record<string, unknown> | null;
 }
 
 export function adaptSupabaseProfile(row: SupabaseProfileRow): UserProfile {
@@ -45,34 +45,55 @@ export function adaptSupabaseProfile(row: SupabaseProfileRow): UserProfile {
     tel: row.phone,
     profil: ROLE_TO_PROFILE_TYPE[row.role] ?? ProfileType.DonneurOrdre,
     password: undefined,
-    // ⚠️ Correction : la colonne `status` (en_attente/valide/suspendu,
-    // migration 0005) est la vraie source de vérité du workflow de
-    // validation par l'Admin. `is_active` (DEFAULT true) ne doit plus
-    // servir à ça : sinon tout nouvel inscrit apparaît "valide" avant
-    // toute validation, et un compte suspendu reste "valide" tant que
-    // is_active n'est pas explicitement modifié.
-    status: row.status ?? (row.is_active ? 'valide' : 'suspendu'),
-    wilaya: row.wilaya_code != null ? String(row.wilaya_code) : undefined,
+
+    status:
+      row.status ??
+      (row.is_active ? 'valide' : 'suspendu'),
+
+    wilaya:
+      row.wilaya_code != null
+        ? String(row.wilaya_code)
+        : undefined,
+
     typeEntite: (meta.typeEntite as string) ?? undefined,
     nif: row.nif ?? undefined,
     secteur: (meta.secteur as string) ?? undefined,
     volumeFret: (meta.volumeFret as string) ?? undefined,
-    autorisationTransport: (meta.autorisationTransport as string) ?? undefined,
+    autorisationTransport:
+      (meta.autorisationTransport as string) ?? undefined,
     nbCamions: (meta.nbCamions as string) ?? undefined,
-    wilayaActivite: (meta.wilayaActivite as string) ?? undefined,
+    wilayaActivite:
+      (meta.wilayaActivite as string) ?? undefined,
     diplome: (meta.diplome as string) ?? undefined,
-    experienceTransport: (meta.experienceTransport as string) ?? undefined,
-    wilayaIntervention: (meta.wilayaIntervention as string) ?? undefined,
-    sourceDecouverte: (meta.sourceDecouverte as string) ?? undefined,
+    experienceTransport:
+      (meta.experienceTransport as string) ?? undefined,
+    wilayaIntervention:
+      (meta.wilayaIntervention as string) ?? undefined,
+    sourceDecouverte:
+      (meta.sourceDecouverte as string) ?? undefined,
+
     dateInscription: row.created_at,
-    hasAbonnement: (meta.hasAbonnement as boolean) ?? undefined,
-    typeAbonnement: (meta.typeAbonnement as string) ?? undefined,
-    dateAbonnement: (meta.dateAbonnement as string) ?? undefined,
-    conventionSignee: (meta.conventionSignee as boolean) ?? undefined,
-    dateConvention: (meta.dateConvention as string) ?? undefined,
-    transporteurParentId: row.transporteur_id ?? undefined,
+
+    hasAbonnement:
+      (meta.hasAbonnement as boolean) ?? undefined,
+    typeAbonnement:
+      (meta.typeAbonnement as string) ?? undefined,
+    dateAbonnement:
+      (meta.dateAbonnement as string) ?? undefined,
+
+    conventionSignee:
+      (meta.conventionSignee as boolean) ?? undefined,
+    dateConvention:
+      (meta.dateConvention as string) ?? undefined,
+
+    transporteurParentId:
+      row.transporteur_id ?? undefined,
+
     disponibiliteChauffeur:
-      (meta.disponibiliteChauffeur as UserProfile['disponibiliteChauffeur']) ?? 'Disponible',
-    positionChauffeur: (meta.positionChauffeur as string) ?? undefined,
+      (meta.disponibiliteChauffeur as UserProfile['disponibiliteChauffeur']) ??
+      'Disponible',
+
+    positionChauffeur:
+      (meta.positionChauffeur as string) ?? undefined,
   };
 }

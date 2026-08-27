@@ -25,7 +25,7 @@ export default function CommissionnaireDashboard({
 
   const transporteurs = users.filter(u => u.profil === ProfileType.Transporteur);
   const mesOffres = offres.filter(o => o.donneurId === currentUser.id);
-  const offresActives = mesOffres.filter(o => o.status === OffreStatus.Publie || o.status === OffreStatus.EnCours);
+  const offresActives = mesOffres.filter(o => o.status === OffreStatus.Publie || o.status === OffreStatus.Attribue);
   const mesFactures = factures.filter(f => f.donneurId === currentUser.id);
   const caTotal = mesFactures.reduce((s, f) => s + (f.montant || 0), 0);
 
