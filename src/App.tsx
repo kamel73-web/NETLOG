@@ -4160,7 +4160,7 @@ switch (user.profil) {
         {currentTab === "publier" && (() => {
           const isDO = currentUser?.profil === ProfileType.DonneurOrdre;
 
-          const handleQuickPublishOfferSubmit = (e: React.FormEvent) => {
+          const handleQuickPublishOfferSubmit = async (e: React.FormEvent) => {
             e.preventDefault();
             if (!isDO) {
               triggerSystemLog("Interdit : Vous devez être connecté en tant que Donneur d'Ordre pour poster une offre.", "danger");
@@ -4189,12 +4189,52 @@ switch (user.profil) {
               dateCreation: new Date().toISOString()
             };
 
-            const updatedOffres = [newOffer, ...offres];
-            saveState(undefined, undefined, updatedOffres);
-            triggerSystemLog(`Félicitations ! Votre offre de fret ${newId} (Axe: ${pubDepart} ➔ ${pubArrivee}) est publiée en direct sur la bourse de fret !`, "success");
-            
-            // Redirect to main listing!
-            setCurrentTab("accueil");
+            // INSERT Supabase
+            const wilayaDepart = wilayas.find(w => w.fr === pubDepart || w.ar === pubDepart);
+            const wilayaArrivee = wilayas.find(w => w.fr === pubArrivee || w.ar === pubArrivee);
+
+            if (!wilayaDepart || !wilayaArrivee) {
+              triggerSystemLog("Wilaya non reconnue. Verifiez votre saisie.", "danger");
+              return;
+            }
+
+            try {
+              const { data, error } = await supabase
+                .from("freight_offers")
+                .insert({
+                  donneur_ordre_id: currentUser.id,
+                  wilaya_depart: Number(wilayaDepart.code),
+                  wilaya_arrivee: Number(wilayaArrivee.code),
+                  point_repere_depart: "Entrepot principal de " + pubDepart,
+                  point_repere_arrivee: "Depot client " + pubArrivee,
+                  date_enlevement_souhaitee: new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0],
+                  poids_kg: Math.round(pubPoids * 1000),
+                  type_marchandise: pubMarchandise,
+                  type_moyen_exige: pubMoyen,
+                  nombre_voyages: 1,
+                  prix_propose: pubPrix ?? 0,
+                  description: pubCommentaire || "Acheminement rapide NETLOG.",
+                  payment_method: "cash",
+                  status: "ouverte",
+                })
+                .select()
+                .single();
+
+              if (error) throw error;
+
+              newOffer.id = String(data.id);
+              newOffer.codeConfirmation = data.code_confirmation ?? "0000";
+              newOffer.dateCreation = data.created_at;
+
+              setOffres(prev => [newOffer, ...prev]);
+              triggerSystemLog("Offre publiee sur la bourse NETLOG ! Axe: " + pubDepart + " vers " + pubArrivee, "success");
+              setCurrentTab("accueil");
+
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : "Erreur inconnue";
+              console.error("handleQuickPublishOfferSubmit:", msg);
+              triggerSystemLog("Erreur publication: " + msg, "danger");
+            }
           };
 
           return (
