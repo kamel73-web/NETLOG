@@ -21,7 +21,8 @@ import {
   AlertTriangle,
   Plus
 } from "lucide-react";
-import { MoyenType, OffreStatus, ProfileType, DevisOfficiel, Facture, FactureStatus, ReglementMode } from "../types";
+import { MoyenType, OffreStatus, ProfileType, DevisOfficiel, Facture, FactureStatus, ReglementMode } from "../types"
+import { createVehicle } from "../lib/freightOffers";
 import DevisModule from "./DevisModule";
 
 // Standard list of Algerian Wilayas
@@ -277,18 +278,18 @@ export default function TransporteurDashboard({
     }
   };
 
-  const handleSaveMoyenSubmit = (e: React.FormEvent) => {
+  const handleSaveMoyenSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formPlate || !formWeight) {
       triggerSystemLog("Veuillez remplir l'immatriculation et le poids utile max.", "danger");
       return;
     }
+    if (!currentUser?.id) {
+      triggerSystemLog("Session utilisateur absente.", "danger");
+      return;
+    }
 
-    // Algerian license plate check format suggestion
-    const plateRegex = /^\d{5,6}-\d{3}-\d{2}$/;
-    
     const computedVol = Number((formLen * formWidth * formHeight).toFixed(1));
-
     const newMoyenData: any = {
       type: formMoyenType,
       marque: formBrand,
@@ -316,17 +317,26 @@ export default function TransporteurDashboard({
       saveState(undefined, updated);
       triggerSystemLog("Camion modifié avec succès ! 🚛", "success");
     } else {
-      const addedMoyen = {
-        id: "moyen-" + Date.now(),
-        transporteurId: currentUser.id,
-        ...newMoyenData
-      };
-      const updated = [...moyens, addedMoyen];
-      saveState(undefined, updated);
-      triggerSystemLog("Nouveau camion enregistré avec succès ! 🎉", "success");
+      try {
+        const inserted = await createVehicle({
+          type: String(formMoyenType),
+          immatriculation: formPlate,
+          capaciteKg: Number(formWeight) * 1000,
+          isAvailable: formStatus === "Disponible",
+        });
+        const addedMoyen = {
+          id: String(inserted.id),
+          transporteurId: currentUser.id,
+          ...newMoyenData
+        };
+        saveState(undefined, [addedMoyen, ...moyens]);
+        triggerSystemLog("Nouveau camion enregistré en base ! 🎉", "success");
+      } catch (err: any) {
+        triggerSystemLog(`Échec enregistrement camion : ${err?.message ?? "erreur"}`, "danger");
+        return;
+      }
     }
 
-    // Reset Form
     setEditingId(null);
     setShowForm(false);
     setFormModel("");

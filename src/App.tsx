@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { submitRegistration, type RegistrationInput } from "./lib/registration";
 import { signInWithPassword, signOut, getCurrentProfile, updateProfileStatus } from "./lib/supabase";
 import { loadAppData, loadProfiles, type WilayaRow } from "./lib/dataLoader";
-import { createFreightOffer } from "./lib/freightOffers";
+import { createFreightOffer, submitProposal } from "./lib/freightOffers";
 import { adaptSupabaseProfile, type SupabaseProfileRow } from "./lib/profileAdapter";
 import { 
   MOCK_OFFRES, 
@@ -1204,7 +1204,7 @@ switch (user.profil) {
   };
 
   // Soumettre proposition et faire le MULTICRITÈRE AUTOMATIQUE de compatibilité (PDF Section 3.4)
-  const handlePublishBid = (e: React.FormEvent) => {
+  const handlePublishBid = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser || !selectedOffreForBid) return;
 
@@ -1277,22 +1277,41 @@ switch (user.profil) {
       return;
     }
 
-    // Si tout est ok : on crée la proposition
-    const newProp: PropositionPrix = {
-      id: "prop-" + Date.now(),
-      offreId: selectedOffreForBid.id,
-      transporteurId: currentUser.id,
-      transporteurRaisonSociale: currentUser.raisonSociale,
-      moyenId: linkedMoyen.id,
-      prixPropose: Number(bidPrice),
-      commentaire: bidCommentaire,
-      status: "En attente",
-    };
+    // Si tout est ok : insert Supabase puis state local
+    const offerIdNum = Number(selectedOffreForBid.id);
+    const vehicleIdNum = Number(linkedMoyen.id);
+    if (!Number.isFinite(offerIdNum)) {
+      triggerSystemLog("ID offre invalide (offre non issue de Supabase).", "danger");
+      return;
+    }
+    if (!Number.isFinite(vehicleIdNum)) {
+      triggerSystemLog("ID véhicule invalide. Enregistrez d'abord le camion en base (pas un id local moyen-...).", "danger");
+      return;
+    }
 
-    const updated = [...propositions, newProp];
-    saveState(undefined, undefined, undefined, updated);
-    setSelectedOffreForBid(null);
-    triggerSystemLog(`Votre soumission de tarif (${bidPrice.toLocaleString()} DZD) est acceptée par l'algorithme NETLOG !`, "success");
+    try {
+      const inserted = await submitProposal({
+        offerId: offerIdNum,
+        vehicleId: vehicleIdNum,
+        prixPropose: Number(bidPrice),
+        message: bidCommentaire || undefined,
+      });
+      const newProp: PropositionPrix = {
+        id: String(inserted.id),
+        offreId: selectedOffreForBid.id,
+        transporteurId: currentUser.id,
+        transporteurRaisonSociale: currentUser.raisonSociale,
+        moyenId: linkedMoyen.id,
+        prixPropose: Number(bidPrice),
+        commentaire: bidCommentaire,
+        status: "En attente",
+      };
+      saveState(undefined, undefined, undefined, [...propositions, newProp]);
+      setSelectedOffreForBid(null);
+      triggerSystemLog(`Proposition ${newProp.id} enregistrée en base (${bidPrice.toLocaleString()} DZD).`, "success");
+    } catch (err: any) {
+      triggerSystemLog(`Échec proposition : ${err?.message ?? "erreur"}`, "danger");
+    }
   };
 
   // Changer l'état de cargaison (Chargé → Déchargé)

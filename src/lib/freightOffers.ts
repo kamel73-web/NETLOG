@@ -124,6 +124,47 @@ export async function listOpenOffers(filters?: { wilayaDepart?: number }) {
   return data;
 }
 
+
+export interface CreateVehicleInput {
+  type: string;
+  immatriculation: string;
+  capaciteKg?: number;
+  wilayaBase?: number;
+  isAvailable?: boolean;
+}
+
+export async function createVehicle(input: CreateVehicleInput) {
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+  if (sessionError) throw new Error(`Session: ${sessionError.message}`);
+  const userId = session?.user?.id;
+  if (!userId) throw new Error('Utilisateur non authentifié dans Supabase. La session est absente.');
+
+  const payload = {
+    transporteur_id: userId,
+    type: input.type,
+    immatriculation: input.immatriculation,
+    capacite_kg: input.capaciteKg,
+    wilaya_base: input.wilayaBase,
+    is_available: input.isAvailable ?? true,
+  };
+  console.log('[NETLOG] INSERT vehicles', payload);
+
+  const { data, error } = await supabase
+    .from('vehicles')
+    .insert(payload)
+    .select()
+    .single();
+
+  console.log('[NETLOG] Résultat INSERT vehicles', { data, error });
+
+  if (error) throw new Error(`Création véhicule échouée: ${error.message}`);
+  if (!data) throw new Error('Véhicule: aucune donnée retournée');
+  return data;
+}
+
 export async function submitProposal(params: {
   offerId: number;
   vehicleId?: number;
@@ -131,24 +172,34 @@ export async function submitProposal(params: {
   prixPropose: number;
   message?: string;
 }) {
-  const { data: session } = await supabase.auth.getSession();
-  const userId = session.session?.user.id;
-  if (!userId) throw new Error('Utilisateur non authentifié');
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+  if (sessionError) throw new Error(`Session: ${sessionError.message}`);
+  const userId = session?.user?.id;
+  if (!userId) throw new Error('Utilisateur non authentifié dans Supabase. La session est absente.');
+
+  const payload = {
+    offer_id: params.offerId,
+    transporteur_id: userId,
+    vehicle_id: params.vehicleId,
+    chauffeur_id: params.chauffeurId,
+    prix_propose: params.prixPropose,
+    message: params.message,
+  };
+  console.log('[NETLOG] INSERT proposals', payload);
 
   const { data, error } = await supabase
     .from('proposals')
-    .insert({
-      offer_id: params.offerId,
-      transporteur_id: userId,
-      vehicle_id: params.vehicleId,
-      chauffeur_id: params.chauffeurId,
-      prix_propose: params.prixPropose,
-      message: params.message,
-    })
+    .insert(payload)
     .select()
     .single();
 
+  console.log('[NETLOG] Résultat INSERT proposals', { data, error });
+
   if (error) throw new Error(`Envoi de la proposition échoué: ${error.message}`);
+  if (!data) throw new Error('Proposition: aucune donnée retournée');
   return data;
 }
 
