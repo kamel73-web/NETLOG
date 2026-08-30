@@ -206,9 +206,27 @@ export async function submitProposal(params: {
 export async function acceptProposal(params: { offerId: number; proposalId: number }) {
   console.log('[NETLOG] acceptProposal', params);
 
+  // Charger la proposition pour récupérer transporteur_id / vehicle_id
+  const { data: prop, error: propLoadError } = await supabase
+    .from('proposals')
+    .select('id, offer_id, transporteur_id, vehicle_id, chauffeur_id')
+    .eq('id', params.proposalId)
+    .single();
+  if (propLoadError || !prop) {
+    throw new Error(`Proposition introuvable: ${propLoadError?.message ?? 'sans données'}`);
+  }
+
+  const offerUpdate: Record<string, unknown> = {
+    status: 'attribuee',
+    transporteur_id: prop.transporteur_id,
+  };
+  // Colonnes optionnelles selon schéma — ignorées si absentes côté DB via erreur claire
+  if (prop.vehicle_id != null) offerUpdate.vehicle_id = prop.vehicle_id;
+  if (prop.chauffeur_id != null) offerUpdate.chauffeur_id = prop.chauffeur_id;
+
   const { error: offerError } = await supabase
     .from('freight_offers')
-    .update({ status: 'attribuee' })
+    .update(offerUpdate)
     .eq('id', params.offerId);
   if (offerError) throw new Error(`Mise à jour de l'offre échouée: ${offerError.message}`);
 
@@ -218,7 +236,6 @@ export async function acceptProposal(params: { offerId: number; proposalId: numb
     .eq('id', params.proposalId);
   if (proposalError) throw new Error(`Mise à jour de la proposition échouée: ${proposalError.message}`);
 
-  // Refuser les autres propositions de la même offre
   const { error: rejectError } = await supabase
     .from('proposals')
     .update({ status: 'refusee' })
@@ -228,5 +245,5 @@ export async function acceptProposal(params: { offerId: number; proposalId: numb
     console.warn('[NETLOG] refus autres propositions:', rejectError.message);
   }
 
-  console.log('[NETLOG] acceptProposal OK');
+  console.log('[NETLOG] acceptProposal OK', { transporteur_id: prop.transporteur_id });
 }
