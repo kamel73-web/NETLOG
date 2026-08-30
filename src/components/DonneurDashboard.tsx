@@ -29,6 +29,14 @@ import {
 } from "lucide-react";
 import { OffreStatus, ProfileType, MoyenType, Facture, FactureStatus, DevisOfficiel } from "../types";
 import DevisModule from "./DevisModule";
+import { createFreightOffer } from "../lib/freightOffers";
+
+
+function wilayaCodeFromLabel(label: string): number | null {
+  const m = label.match(/^(\d{1,2})\s*-/);
+  if (!m) return null;
+  return parseInt(m[1], 10);
+}
 
 const ALGERIAN_WILAYAS = [
   "01 - Adrar", "02 - Chlef", "03 - Laghouat", "04 - Oum El Bouaghi", "05 - Batna",
@@ -184,37 +192,108 @@ export default function DonneurDashboard({
   ];
 
   // Handler for publishing a new offer
-  const handlePublishOffre = (e: React.FormEvent) => {
+  const handlePublishOffre = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validations
     if (!formDepartDetails || !formArriveeDetails || !formNature || !formDateEnlevement) {
-      triggerSystemLog(lang === "ar" ? "يرجى ملء جميع الحقول الإلزامية " : "Veuillez remplir tous les champs requis d'adresse, marchandise et date.", "danger");
+      triggerSystemLog(
+        lang === "ar"
+          ? "يرجى ملء جميع الحقول الإلزامية "
+          : "Veuillez remplir tous les champs requis d'adresse, marchandise et date.",
+        "danger"
+      );
       return;
     }
 
     if (formTarifMode === "fixe" && !formMontantFixe) {
-      triggerSystemLog(lang === "ar" ? "يرجى إدخال مبلغ التعريفة الثابتة" : "Veuillez saisir un montant pour le tarif fixe.", "danger");
+      triggerSystemLog(
+        lang === "ar" ? "يرجى إدخال مبلغ التعريفة الثابتة" : "Veuillez saisir un montant pour le tarif fixe.",
+        "danger"
+      );
       return;
     }
 
-    const newRefId = `OFF-2025-${Math.floor(1000 + Math.random() * 9000)}`;
+    const wilayaDepart = wilayaCodeFromLabel(formDepartWilaya);
+    const wilayaArrivee = wilayaCodeFromLabel(formArriveeWilaya);
+    if (wilayaDepart == null || wilayaArrivee == null) {
+      triggerSystemLog("Wilaya de départ ou d'arrivée invalide.", "danger");
+      return;
+    }
+
+    const departName = formDepartWilaya.replace(/^\d+\s*-\s*/, "");
+    const arriveeName = formArriveeWilaya.replace(/^\d+\s*-\s*/, "");
+    const prixPropose = formTarifMode === "fixe" ? Number(formMontantFixe) : 0;
+    const poidsTonnes = Number(formPoids) || 10;
+    const commentaire = formRemarques || formInstructionsChargement || undefined;
+
+    // Édition : pas d'API update → local uniquement pour l'instant
+    if (editingOffreId) {
+      const updatedOffres = offres.map((o) =>
+        o.id === editingOffreId
+          ? {
+              ...o,
+              depart: departName,
+              arrivee: arriveeName,
+              departDetails: formDepartDetails,
+              arriveeDetails: formArriveeDetails,
+              dateChargement: formDateEnlevement,
+              dateLivraison: formDateLimiteEnlevement || formDateEnlevement,
+              poids: poidsTonnes,
+              marchandise: formNature,
+              moyenExige: formCamionType,
+              nombreVoyages: Number(formNombreVoyages) || 1,
+              prixFixe: formTarifMode === "fixe" ? prixPropose : undefined,
+              commentaire,
+            }
+          : o
+      );
+      saveState(undefined, undefined, updatedOffres);
+      triggerSystemLog(lang === "ar" ? "تم تعديل العرض بنجاح" : "Offre de fret modifiée avec succès !", "success");
+      setEditingOffreId(null);
+      setShowCreateModal(false);
+      return;
+    }
+
+    let insertedId: string;
+    let codeConfirmation: string;
+    try {
+      const inserted = await createFreightOffer({
+        wilayaDepart,
+        wilayaArrivee,
+        pointRepereDepart: formDepartDetails,
+        pointRepereArrivee: formArriveeDetails,
+        description: commentaire,
+        poidsKg: poidsTonnes * 1000,
+        typeMarchandise: formNature,
+        prixPropose,
+        paymentMethod: "cash",
+        dateEnlevementSouhaitee: formDateEnlevement,
+        typeMoyenExige: formCamionType,
+        nombreVoyages: Number(formNombreVoyages) || 1,
+      });
+      insertedId = String(inserted.id);
+      codeConfirmation = inserted.code_confirmation ?? String(Math.floor(1000 + Math.random() * 9000));
+    } catch (err: any) {
+      triggerSystemLog(`Échec de la publication : ${err?.message ?? "erreur inconnue"}`, "danger");
+      return;
+    }
+
     const newOffre = {
-      id: newRefId,
+      id: insertedId,
       donneurId: currentUser?.id || "DO-DEFAULT",
       donneurRaisonSociale: currentUser?.raisonSociale || "SARL BATIMEX",
-      depart: formDepartWilaya.replace(/^\d+\s*-\s*/, ""),
-      arrivee: formArriveeWilaya.replace(/^\d+\s*-\s*/, ""),
+      depart: departName,
+      arrivee: arriveeName,
       departDetails: formDepartDetails,
       arriveeDetails: formArriveeDetails,
       dateChargement: formDateEnlevement,
       dateLivraison: formDateLimiteEnlevement || formDateEnlevement,
-      poids: Number(formPoids) || 10,
+      poids: poidsTonnes,
       longueurExigee: 13.6,
       marchandise: formNature,
       moyenExige: formCamionType,
       nombreVoyages: Number(formNombreVoyages) || 1,
-      prixFixe: formTarifMode === "fixe" ? Number(formMontantFixe) : undefined,
+      prixFixe: formTarifMode === "fixe" ? prixPropose : undefined,
       budgetMaxLibre: formTarifMode === "libre" ? Number(formBudgetMaxLibre) : undefined,
       tarifMode: formTarifMode,
       categorie: formCategorie,
@@ -233,28 +312,17 @@ export default function DonneurDashboard({
       instructionsChargement: formInstructionsChargement,
       assuranceSouhaitee: formAssuranceSouhaitee,
       bonCommande: formBonCommande,
-      commentaire: formRemarques || formInstructionsChargement,
+      commentaire,
       status: OffreStatus.Publie,
-      codeConfirmation: Math.floor(1000 + Math.random() * 9000).toString(),
-      dateCreation: new Date().toISOString().split("T")[0]
+      codeConfirmation,
+      dateCreation: new Date().toISOString().split("T")[0],
     };
 
-    let updatedOffres = [...offres];
-    if (editingOffreId) {
-      updatedOffres = offres.map(o => o.id === editingOffreId ? { ...o, ...newOffre, id: editingOffreId } : o);
-      triggerSystemLog(lang === "ar" ? "تم تعديل العرض بنجاح" : "Offre de fret modifiée avec succès !", "success");
-      setEditingOffreId(null);
-      setShowCreateModal(false);
-    } else {
-      updatedOffres = [newOffre, ...offres];
-      setPublishedRef(newRefId);
-      setSuccessPublishMsg(`✅ Offre publiée ! Référence : ${newRefId}. Les transporteurs peuvent déjà consulter votre offre.`);
-      triggerSystemLog(lang === "ar" ? "تم نشر العرض بنجاح على البورصة" : "Offre publiée instantanément !", "success");
-    }
+    saveState(undefined, undefined, [newOffre, ...offres]);
+    setPublishedRef(insertedId);
+    setSuccessPublishMsg(`✅ Offre publiée ! Référence : ${insertedId}. Visible en base.`);
+    triggerSystemLog(lang === "ar" ? "تم نشر العرض بنجاح على البورصة" : "Offre publiée en base.", "success");
 
-    saveState(undefined, undefined, updatedOffres);
-
-    // Reset Form fields
     setFormDepartDetails("");
     setFormArriveeDetails("");
     setFormNature("");
