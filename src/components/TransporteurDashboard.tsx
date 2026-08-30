@@ -1150,8 +1150,18 @@ export default function TransporteurDashboard({
                             </button>
 
                             {linkedBid ? (
-                              <span className="bg-emerald-50 border border-emerald-300 text-[#085041] px-3.5 py-1.5 text-xs font-black rounded-lg">
-                                Proposition envoyée ⏳
+                              <span className={
+                                linkedBid.status === "Accepté"
+                                  ? "bg-emerald-50 border border-emerald-300 text-[#085041] px-3.5 py-1.5 text-xs font-black rounded-lg"
+                                  : linkedBid.status === "Rejeté"
+                                  ? "bg-rose-50 border border-rose-200 text-rose-700 px-3.5 py-1.5 text-xs font-black rounded-lg"
+                                  : "bg-amber-50 border border-amber-200 text-amber-800 px-3.5 py-1.5 text-xs font-black rounded-lg"
+                              }>
+                                {linkedBid.status === "Accepté"
+                                  ? "Acceptée ✅"
+                                  : linkedBid.status === "Rejeté"
+                                  ? "Refusée"
+                                  : "Proposition envoyée ⏳"}
                               </span>
                             ) : (
                               <button
@@ -1227,8 +1237,18 @@ export default function TransporteurDashboard({
                           </button>
 
                           {linkedBid ? (
-                            <span className="bg-slate-100 text-slate-500 px-3 py-1.5 text-xs font-bold rounded-lg block">
-                              Proposé ⏳
+                            <span className={
+                              linkedBid.status === "Accepté"
+                                ? "bg-emerald-50 text-[#085041] px-3 py-1.5 text-xs font-bold rounded-lg block"
+                                : linkedBid.status === "Rejeté"
+                                ? "bg-rose-50 text-rose-700 px-3 py-1.5 text-xs font-bold rounded-lg block"
+                                : "bg-slate-100 text-slate-500 px-3 py-1.5 text-xs font-bold rounded-lg block"
+                            }>
+                              {linkedBid.status === "Accepté"
+                                ? "Acceptée ✅"
+                                : linkedBid.status === "Rejeté"
+                                ? "Refusée"
+                                : "Proposé ⏳"}
                             </span>
                           ) : isCompatible ? (
                             <button

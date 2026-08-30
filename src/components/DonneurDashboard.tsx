@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { OffreStatus, ProfileType, MoyenType, Facture, FactureStatus, DevisOfficiel } from "../types";
 import DevisModule from "./DevisModule";
-import { createFreightOffer } from "../lib/freightOffers";
+import { createFreightOffer, acceptProposal } from "../lib/freightOffers";
 
 
 function wilayaCodeFromLabel(label: string): number | null {
@@ -392,7 +392,21 @@ export default function DonneurDashboard({
   };
 
   // Handler for proposal accept
-  const handleAcceptProposal = (prop: any) => {
+  const handleAcceptProposal = async (prop: any) => {
+    const offerIdNum = Number(prop.offreId);
+    const proposalIdNum = Number(prop.id);
+    if (!Number.isFinite(offerIdNum) || !Number.isFinite(proposalIdNum)) {
+      triggerSystemLog("IDs offre/proposition invalides (non numériques).", "danger");
+      return;
+    }
+
+    try {
+      await acceptProposal({ offerId: offerIdNum, proposalId: proposalIdNum });
+    } catch (err: any) {
+      triggerSystemLog(`Échec acceptation : ${err?.message ?? "erreur"}`, "danger");
+      return;
+    }
+
     const updatedProps = propositions.map(p => {
       if (p.id === prop.id) return { ...p, status: "Accepté" as const };
       if (p.offreId === prop.offreId) return { ...p, status: "Rejeté" as const };
@@ -401,8 +415,8 @@ export default function DonneurDashboard({
 
     const updatedOffres = offres.map(o => {
       if (o.id === prop.offreId) {
-        return { 
-          ...o, 
+        return {
+          ...o,
           status: OffreStatus.Attribue,
           transporteurId: prop.transporteurId,
           transporteurRaisonSociale: prop.transporteurRaisonSociale,
@@ -412,7 +426,6 @@ export default function DonneurDashboard({
       return o;
     });
 
-    // Create custom invoice
     const newInvoice = {
       id: `FAC-${2025}-${Math.floor(100 + Math.random() * 900)}`,
       offreId: prop.offreId,
@@ -423,8 +436,13 @@ export default function DonneurDashboard({
       dateEmission: new Date().toISOString().split("T")[0],
     };
 
-    saveState(undefined, undefined, updatedOffres, updatedProps, [...factures, newInvoice]);
-    triggerSystemLog(lang === "ar" ? "تم قبول العرض بنجاح وجاري إعداد عقد النقل" : `Offre attribuée à ${prop.transporteurRaisonSociale} · Tarif convenu: ${prop.prixPropose.toLocaleString()} DA`, "success");
+    saveState(undefined, undefined, updatedOffres, updatedProps, [...(factures || []), newInvoice]);
+    triggerSystemLog(
+      lang === "ar"
+        ? "تم قبول العرض بنجاح وجاري إعداد عقد النقل"
+        : `Offre attribuée à ${prop.transporteurRaisonSociale} · Tarif convenu: ${prop.prixPropose.toLocaleString()} DA`,
+      "success"
+    );
     setSelectedOffreForProps(null);
   };
 

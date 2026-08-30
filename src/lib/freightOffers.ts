@@ -204,6 +204,8 @@ export async function submitProposal(params: {
 }
 
 export async function acceptProposal(params: { offerId: number; proposalId: number }) {
+  console.log('[NETLOG] acceptProposal', params);
+
   const { error: offerError } = await supabase
     .from('freight_offers')
     .update({ status: 'attribuee' })
@@ -215,4 +217,16 @@ export async function acceptProposal(params: { offerId: number; proposalId: numb
     .update({ status: 'acceptee' })
     .eq('id', params.proposalId);
   if (proposalError) throw new Error(`Mise à jour de la proposition échouée: ${proposalError.message}`);
+
+  // Refuser les autres propositions de la même offre
+  const { error: rejectError } = await supabase
+    .from('proposals')
+    .update({ status: 'refusee' })
+    .eq('offer_id', params.offerId)
+    .neq('id', params.proposalId);
+  if (rejectError) {
+    console.warn('[NETLOG] refus autres propositions:', rejectError.message);
+  }
+
+  console.log('[NETLOG] acceptProposal OK');
 }
