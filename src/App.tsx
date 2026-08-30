@@ -844,20 +844,45 @@ export default function App() {
       console.error("Erreur rafraîchissement profils après connexion:", err);
     });
 
-    // Route to dashboard
-    if (user.profil === ProfileType.DonneurOrdre) {
-      setCurrentTab("donneur");
-    } else if (user.profil === ProfileType.Transporteur) {
-      setCurrentTab("transporteur");
-    } else if (user.profil === ProfileType.Chauffeur) {
-      setCurrentTab("chauffeur");
-    } else if (user.profil === ProfileType.Commercial) {
-      setCurrentTab("commercial");
-    } else if (user.profil === ProfileType.Admin) {
-      setCurrentTab("admin");
-    } else {
-      setCurrentTab("accueil");
-    }
+    // Route vers le dashboard correspondant au profil connecté
+switch (user.profil) {
+  case ProfileType.DonneurOrdre:
+    setCurrentTab("donneur");
+    break;
+
+  case ProfileType.Transporteur:
+    setCurrentTab("transporteur");
+    break;
+
+  case ProfileType.Chauffeur:
+    setCurrentTab("chauffeur");
+    break;
+
+  case ProfileType.Commercial:
+    setCurrentTab("commercial");
+    break;
+
+  case ProfileType.Commissionnaire:
+    setCurrentTab("commissionnaire");
+    break;
+
+  case ProfileType.Manutentionnaire:
+    setCurrentTab("manutentionnaire");
+    break;
+
+  case ProfileType.Stockage:
+    setCurrentTab("stockage");
+    break;
+
+  case ProfileType.Admin:
+    setCurrentTab("admin");
+    break;
+
+  default:
+    console.error("[NETLOG] Profil sans dashboard :", user.profil);
+    setCurrentTab("accueil");
+    break;
+}
 
     triggerSystemLog(`Bienvenue de retour, ${user.prenom} !`, "success");
   };
@@ -995,8 +1020,26 @@ export default function App() {
 
   // --- ACTIONS DONNEUR D'ORDRE ---
   const handleCreateOffre = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentUser) return;
+  e.preventDefault();
+
+  console.log("[NETLOG] handleCreateOffre déclenché", {
+    currentUserId: currentUser?.id,
+    currentUserProfil: currentUser?.profil,
+    formDepart,
+    formArrivee,
+    formPoids,
+    formMarchandise,
+    formPrixFixe,
+  });
+
+  if (!currentUser) {
+    console.error("[NETLOG] Publication refusée : currentUser est null");
+    triggerSystemLog(
+      "Impossible de publier : aucun utilisateur connecté.",
+      "danger"
+    );
+    return;
+  }
 
     // Code de confirmation aléatoire pour le déchargement
     const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
@@ -4117,10 +4160,20 @@ export default function App() {
         {currentTab === "publier" && (() => {
           const isDO = currentUser?.profil === ProfileType.DonneurOrdre;
 
-          const handleQuickPublishOfferSubmit = (e: React.FormEvent) => {
+          const handleQuickPublishOfferSubmit = async (e: React.FormEvent) => {
             e.preventDefault();
             if (!isDO) {
               triggerSystemLog("Interdit : Vous devez être connecté en tant que Donneur d'Ordre pour poster une offre.", "danger");
+              return;
+            }
+
+            // freight_offers.wilaya_depart / wilaya_arrivee attendent un code
+            // numérique (référence à wilayas.code, chargées depuis Supabase) ;
+            // ce formulaire manipule des noms de wilaya (ex: "Alger").
+            const wilayaDepartObj = wilayas.find(w => w.fr === pubDepart || w.ar === pubDepart);
+            const wilayaArriveeObj = wilayas.find(w => w.fr === pubArrivee || w.ar === pubArrivee);
+            if (!wilayaDepartObj || !wilayaArriveeObj) {
+              triggerSystemLog("Wilaya non reconnue. Vérifiez votre saisie.", "danger");
               return;
             }
 
@@ -4146,12 +4199,32 @@ export default function App() {
               dateCreation: new Date().toISOString()
             };
 
-            const updatedOffres = [newOffer, ...offres];
-            saveState(undefined, undefined, updatedOffres);
-            triggerSystemLog(`Félicitations ! Votre offre de fret ${newId} (Axe: ${pubDepart} ➔ ${pubArrivee}) est publiée en direct sur la bourse de fret !`, "success");
-            
-            // Redirect to main listing!
-            setCurrentTab("accueil");
+            try {
+              const inserted = await createFreightOffer({
+                wilayaDepart: wilayaDepartObj.code,
+                wilayaArrivee: wilayaArriveeObj.code,
+                pointRepereDepart: `Entrepôt principal de ${pubDepart}`,
+                pointRepereArrivee: `Dépôt client ${pubArrivee}`,
+                description: pubCommentaire || "Acheminement rapide conforme aux normes NETLOG d'Algérie.",
+                poidsKg: pubPoids ? Math.round(Number(pubPoids) * 1000) : undefined,
+                typeMarchandise: pubMarchandise,
+                // prix_propose est NOT NULL côté base : 0 signifie "prix à négocier"
+                prixPropose: pubPrix ?? 0,
+                paymentMethod: "cash",
+                dateEnlevementSouhaitee: new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0],
+              });
+
+              newOffer.id = String(inserted.id);
+
+              setOffres(prev => [newOffer, ...prev]);
+              triggerSystemLog(`Félicitations ! Votre offre de fret ${newOffer.id} (Axe: ${pubDepart} ➔ ${pubArrivee}) est publiée en direct sur la bourse de fret !`, "success");
+              setCurrentTab("accueil");
+
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : "Erreur inconnue";
+              console.error("handleQuickPublishOfferSubmit:", msg);
+              triggerSystemLog(`Erreur lors de la publication : ${msg}`, "danger");
+            }
           };
 
           return (
