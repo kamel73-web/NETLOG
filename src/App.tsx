@@ -4212,6 +4212,8 @@ switch (user.profil) {
                 prixPropose: pubPrix ?? 0,
                 paymentMethod: "cash",
                 dateEnlevementSouhaitee: new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0],
+                typeMoyenExige: pubMoyen,
+                nombreVoyages: 1,
               });
 
               newOffer.id = String(inserted.id);

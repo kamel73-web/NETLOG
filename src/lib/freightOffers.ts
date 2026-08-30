@@ -17,6 +17,8 @@ export interface CreateFreightOfferInput {
   prixPropose: number;
   paymentMethod: 'cash' | 'satim' | 'cib' | 'baridimob';
   dateEnlevementSouhaitee?: string;
+  typeMoyenExige?: string;
+  nombreVoyages?: number;
 }
 
 export async function createFreightOffer(input: CreateFreightOfferInput) {
@@ -65,6 +67,8 @@ export async function createFreightOffer(input: CreateFreightOfferInput) {
     prix_propose: input.prixPropose,
     payment_method: input.paymentMethod,
     date_enlevement_souhaitee: input.dateEnlevementSouhaitee,
+    type_moyen_exige: input.typeMoyenExige,
+    nombre_voyages: input.nombreVoyages,
   };
 
   console.log("[NETLOG] INSERT freight_offers", payload);

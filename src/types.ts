@@ -139,6 +139,10 @@ export interface UserProfile {
   transporteurParentId?: string;
   disponibiliteChauffeur?: "Disponible" | "Indisponible" | "En route";
   positionChauffeur?: string;
+  // Champs métier variables selon le rôle (secteur, type d'engins,
+  // wilaya d'activité spécifique...), stockés en jsonb côté Supabase
+  // (profiles.metadata) plutôt qu'en colonnes dédiées pour chaque rôle.
+  metadata?: Record<string, any>;
 }
 
 export enum OffreStatus {
