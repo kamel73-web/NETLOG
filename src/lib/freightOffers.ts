@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { createMissionFromProposal } from './missions';
 
 export interface CreateFreightOfferInput {
   wilayaDepart: number;
@@ -415,6 +416,19 @@ export async function acceptProposal(params: {
   // ============================================================
   // 7. Journalisation finale
   // ============================================================
+
+
+  // Créer la mission terrain (source de vérité chargement/déchargement)
+  try {
+    await createMissionFromProposal({
+      offerId: params.offerId,
+      transporteurId: prop.transporteur_id,
+      vehicleId: prop.vehicle_id ?? null,
+      chauffeurId: prop.chauffeur_id ?? null,
+    });
+  } catch (missionErr: any) {
+    console.warn('[NETLOG] createMissionFromProposal:', missionErr?.message ?? missionErr);
+  }
 
   console.log('[NETLOG] acceptProposal OK', {
     offerId: params.offerId,

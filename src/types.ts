@@ -11,7 +11,8 @@ export enum ProfileType {
   Stockage = "Espace de stockage",
   Commercial = "Commercial BVF",
   Admin = "Administrateur NETLOG",
-  Chauffeur = "Chauffeur"
+  Chauffeur = "Chauffeur",
+  OperateurQuai = "Opérateur de quai",
 }
 /**
  * Rôles métier du modèle pivot NETLOG.

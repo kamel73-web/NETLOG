@@ -10,6 +10,7 @@ const ROLE_TO_PROFILE_TYPE: Record<string, ProfileType> = {
   commissionnaire: ProfileType.Commissionnaire,
   manutentionnaire: ProfileType.Manutentionnaire,
   stockage: ProfileType.Stockage,
+  operateur_quai: ProfileType.OperateurQuai,
 };
 
 export interface SupabaseProfileRow {
