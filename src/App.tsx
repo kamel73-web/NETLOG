@@ -3395,6 +3395,71 @@ export default function App() {
 
           </div>
         )}
+            {/* ESPACE DONNEUR D'ORDRE */}
+{currentTab === "donneur" && currentUser?.profil === ProfileType.DonneurOrdre && (
+  <DonneurDashboard
+    currentUser={currentUser}
+    setCurrentUser={setCurrentUser}
+    lang={lang}
+    t={t}
+    saveState={saveState}
+    offres={offres}
+    propositions={propositions}
+    factures={factures}
+    devis={devis}
+    counters={counters}
+    incrementCounter={incrementCounter}
+    users={users}
+    triggerSystemLog={triggerSystemLog}
+    setActiveContractDoc={setActiveContractDoc}
+    translateCity={translateCity}
+    translateMoyenType={translateMoyenType}
+    translateMarchandise={translateMarchandise}
+    setCurrentTab={setCurrentTab}
+  />
+)}
+
+{/* ESPACE TRANSPORTEUR */}
+{currentTab === "transporteur" && currentUser?.profil === ProfileType.Transporteur && (
+  <TransporteurDashboard
+    currentUser={currentUser}
+    setCurrentUser={setCurrentUser}
+    lang={lang}
+    t={t}
+    moyens={moyens}
+    saveState={saveState}
+    offres={offres}
+    propositions={propositions}
+    factures={factures}
+    devis={devis}
+    counters={counters}
+    incrementCounter={incrementCounter}
+    users={users}
+    initiateBid={initiateBid}
+    triggerSystemLog={triggerSystemLog}
+    setActiveContractDoc={setActiveContractDoc}
+    translateCity={translateCity}
+    translateMoyenType={translateMoyenType}
+    translateMarchandise={translateMarchandise}
+    setCurrentTab={setCurrentTab}
+  />
+)}
+
+{/* ESPACE CHAUFFEUR */}
+{currentTab === "chauffeur" && currentUser?.profil === ProfileType.Chauffeur && (
+  <ChauffeurDashboard
+    currentUser={currentUser}
+    setCurrentUser={setCurrentUser}
+    offres={offres}
+    users={users}
+    saveState={saveState}
+    lang={lang}
+    t={t}
+    triggerSystemLog={triggerSystemLog}
+    translateCity={translateCity}
+    translateMarchandise={translateMarchandise}
+  />
+)}
         {/* ----------------- TAB: ESPACE COMMERCIAL BVF (PROFIL 3) ----------------- */}
         {currentTab === "commercial" && currentUser?.profil === ProfileType.Commercial && (
           <CommercialDashboard
