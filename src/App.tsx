@@ -869,14 +869,19 @@ export default function App() {
     setLoginEmail("");
     setLoginPassword("");
 
-    // ⚠️ loadAppData() (donc `users`) a été chargé au montage de la page,
-    // AVANT toute authentification — à ce moment-là, RLS ne renvoyait
-    // rien (session anonyme). Sans ce rafraîchissement, un Admin qui se
-    // connecte en session fraîche (ex. navigation privée) voit une liste
-    // de comptes vide malgré une connexion réussie.
-    loadProfiles().then(setUsers).catch((err) => {
-      console.error("Erreur rafraîchissement profils après connexion:", err);
-    });
+    // Recharger TOUTES les données avec la session authentifiée.
+    // Au montage, loadAppData() tournait sans JWT → listes vides (RLS).
+    try {
+      const data = await loadAppData();
+      setUsers(data.profiles);
+      setMoyens(data.vehicles);
+      setOffres(data.offers);
+      setPropositions(data.proposals);
+      setFactures(data.invoices);
+    } catch (err) {
+      console.error("Erreur rafraîchissement données après connexion:", err);
+      triggerSystemLog("Connexion OK mais échec du chargement des données.", "danger");
+    }
 
     // Route to dashboard
     if (user.profil === ProfileType.DonneurOrdre) {
