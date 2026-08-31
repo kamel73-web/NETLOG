@@ -29,7 +29,8 @@ import {
 } from "lucide-react";
 import { OffreStatus, ProfileType, MoyenType, Facture, FactureStatus, DevisOfficiel } from "../types";
 import DevisModule from "./DevisModule";
-import { createFreightOffer, acceptProposal } from "../lib/freightOffers";
+import { createFreightOffer, acceptProposal } from "../lib/freightOffers"
+import { getMissionIdByOfferId, validateLoading, validateUnload } from "../lib/missions";
 
 
 function wilayaCodeFromLabel(label: string): number | null {
@@ -447,13 +448,26 @@ export default function DonneurDashboard({
   };
 
   // Handler for declaring shipment load
-  const handleConfirmLoading = (offre: any) => {
-    const updatedOffres = offres.map(o => {
-      if (o.id === offre.id) return { ...o, status: OffreStatus.Charge };
-      return o;
-    });
-    saveState(undefined, undefined, updatedOffres);
-    triggerSystemLog(`Cargaison confirmée chargée à bord pour le trajet vers ${offre.arrivee}!`, "success");
+  const handleConfirmLoading = async (offre: any) => {
+    const offerIdNum = Number(offre.id);
+    if (!Number.isFinite(offerIdNum)) {
+      triggerSystemLog("ID offre invalide.", "danger");
+      return;
+    }
+    try {
+      const missionId = await getMissionIdByOfferId(offerIdNum);
+      await validateLoading(missionId);
+      const updated = offres.map(o =>
+        o.id === offre.id ? { ...o, status: OffreStatus.Charge } : o
+      );
+      saveState(undefined, undefined, updated);
+      triggerSystemLog(
+        lang === "ar" ? "تم تأكيد التحميل" : "Chargement confirmé (mission en route).",
+        "success"
+      );
+    } catch (err: any) {
+      triggerSystemLog(`Échec validation chargement : ${err?.message ?? "erreur"}`, "danger");
+    }
   };
 
   // Helper code validation 

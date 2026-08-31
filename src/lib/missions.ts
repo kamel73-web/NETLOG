@@ -33,6 +33,20 @@ export async function createMissionFromProposal(params: {
   return data;
 }
 
+
+export async function getMissionIdByOfferId(offerId: number): Promise<number> {
+  const { data, error } = await supabase
+    .from('missions')
+    .select('id')
+    .eq('offer_id', offerId)
+    .order('id', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(`Mission introuvable: ${error.message}`);
+  if (!data?.id) throw new Error(`Aucune mission pour l'offre ${offerId}`);
+  return Number(data.id);
+}
+
 export async function validateLoading(missionId: number, reserves?: string) {
   const payload: Record<string, unknown> = { status: 'en_route' };
   if (reserves?.trim()) payload.reserves_chargement = reserves.trim();

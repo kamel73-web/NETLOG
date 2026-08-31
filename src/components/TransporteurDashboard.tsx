@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { MoyenType, OffreStatus, ProfileType, DevisOfficiel, Facture, FactureStatus, ReglementMode } from "../types"
 import { createVehicle } from "../lib/freightOffers";
+import { getMissionIdByOfferId, validateLoading, validateUnload } from "../lib/missions";
 import DevisModule from "./DevisModule";
 
 // Standard list of Algerian Wilayas
@@ -399,9 +400,24 @@ export default function TransporteurDashboard({
     setMissionConfirming({ id: offreId, nextStatus, label });
   };
 
-  const executeStatusTransition = () => {
+  const executeStatusTransition = async () => {
     if (!missionConfirming) return;
     const { id, nextStatus } = missionConfirming;
+
+    const offerIdNum = Number(id);
+    if (id !== "mock" && Number.isFinite(offerIdNum)) {
+      try {
+        const missionId = await getMissionIdByOfferId(offerIdNum);
+        if (nextStatus === OffreStatus.Charge) {
+          await validateLoading(missionId);
+        } else if (nextStatus === OffreStatus.Decharge) {
+          await validateUnload(missionId);
+        }
+      } catch (err: any) {
+        triggerSystemLog(`Échec validation mission : ${err?.message ?? "erreur"}`, "danger");
+        return;
+      }
+    }
 
     const updatedOffres = offres.map(o => {
       if (o.id === id) {
@@ -413,7 +429,6 @@ export default function TransporteurDashboard({
     saveState(undefined, undefined, updatedOffres);
     triggerSystemLog(`Statut de la mission mis à jour : ${nextStatus} !`, "success");
 
-    // Envoi de la notification de réserves par SMS et E-mail au DO
     if (id !== "mock") {
       if (nextStatus === OffreStatus.Charge) {
         onNotifyDO?.(id, "chargement");

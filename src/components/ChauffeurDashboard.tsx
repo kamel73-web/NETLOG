@@ -14,6 +14,7 @@ import {
   Info
 } from "lucide-react";
 import { OffreFret, OffreStatus, UserProfile, ProfileType } from "../types";
+import { getMissionIdByOfferId, validateLoading, validateUnload } from "../lib/missions";
 
 interface ChauffeurDashboardProps {
   currentUser: UserProfile;
@@ -157,82 +158,80 @@ export default function ChauffeurDashboard({
   };
 
   // Handle Loading confirmation
-  const handleConfirmLoading = (offreId: string, reservesText?: string) => {
-    const updatedOffres = offres.map(o => {
-      if (o.id === offreId) {
-        return {
-          ...o,
-          status: OffreStatus.Charge,
-          reservesChargement: reservesText || undefined
-        };
-      }
-      return o;
-    });
-
-    const updatedUsers = users.map(u => {
-      if (u.id === currentUser.id) {
-        return {
-          ...u,
-          disponibiliteChauffeur: "En route" as const
-        };
-      }
-      return u;
-    });
-
-    const updatedSelf = {
-      ...currentUser,
-      disponibiliteChauffeur: "En route" as const
-    };
-
-    setCurrentUser(updatedSelf);
-    setDispoState("En route");
-    setLoadingConfirmId(null);
-    setLoadingReserves("");
-    setHasLoadingReserves(false);
-    saveState(updatedUsers, undefined, updatedOffres);
-    
-    const successMsg = lang === "ar"
-      ? "تأكيد التحميل بنجاح ! حمولة الشاحنة مغادرة الآن."
-      : "Chargement validé avec succès ! Véhicule en route.";
-    triggerSystemLog(successMsg, "success");
+  const handleConfirmLoading = async (offreId: string, reservesText?: string) => {
+    const offerIdNum = Number(offreId);
+    if (!Number.isFinite(offerIdNum)) {
+      triggerSystemLog(lang === "ar" ? "معرف غير صالح" : "ID offre invalide.", "danger");
+      return;
+    }
+    try {
+      const missionId = await getMissionIdByOfferId(offerIdNum);
+      await validateLoading(missionId, reservesText);
+      const updated = offres.map(o => {
+        if (o.id === offreId) {
+          return {
+            ...o,
+            status: OffreStatus.Charge,
+            reservesChargement: reservesText || undefined
+          };
+        }
+        return o;
+      });
+      saveState(undefined, undefined, updated);
+      setLoadingConfirmId(null);
+      setLoadingReserves("");
+      setHasLoadingReserves(false);
+      triggerSystemLog(
+        lang === "ar" ? "تم تأكيد التحميل" : "Chargement validé avec succès ! Véhicule en route.",
+        "success"
+      );
+    } catch (err: any) {
+      triggerSystemLog(`Échec chargement : ${err?.message ?? "erreur"}`, "danger");
+    }
   };
 
   // Handle Unloading confirmation (requires confirmation code checking)
-  const handleConfirmUnloading = (e: React.FormEvent, offer: OffreFret) => {
+  const handleConfirmUnloading = async (e: React.FormEvent, offer: OffreFret) => {
     e.preventDefault();
-
     if (enteredOtpCode.trim() !== offer.codeConfirmation) {
       triggerSystemLog(
         lang === "ar"
-          ? "رمز تسليم خاطئ ! يرجى مراجعة العميل المستلم للحصول على الرمز الصحيح."
+          ? "رمز التأكيد غير صحيح"
           : "Code de confirmation incorrect ! Veuillez demander le bon code au client destinataire.",
         "danger"
       );
       return;
     }
-
-    const updatedOffres = offres.map(o => {
-      if (o.id === offer.id) {
-        return {
-          ...o,
-          status: OffreStatus.Decharge,
-          reservesLivraison: hasUnloadingReserves ? unloadingReserves.trim() : undefined,
-          reserves: hasUnloadingReserves ? unloadingReserves.trim() : undefined
-        };
-      }
-      return o;
-    });
-
-    saveState(undefined, undefined, updatedOffres);
-    setConfirmingOffreId(null);
-    setEnteredOtpCode("");
-    setUnloadingReserves("");
-    setHasUnloadingReserves(false);
-    
-    const successMsg = lang === "ar"
-      ? "تم تأكيد التسليم بنجاح وإغلاق الرحلة !"
-      : "Livraison validée avec succès ! Le déchargement est clos.";
-    triggerSystemLog(successMsg, "success");
+    const offerIdNum = Number(offer.id);
+    if (!Number.isFinite(offerIdNum)) {
+      triggerSystemLog("ID offre invalide.", "danger");
+      return;
+    }
+    try {
+      const missionId = await getMissionIdByOfferId(offerIdNum);
+      await validateUnload(missionId, hasUnloadingReserves ? unloadingReserves.trim() : undefined);
+      const updated = offres.map(o => {
+        if (o.id === offer.id) {
+          return {
+            ...o,
+            status: OffreStatus.Decharge,
+            reserves: hasUnloadingReserves ? unloadingReserves.trim() : o.reserves
+          };
+        }
+        return o;
+      });
+      saveState(undefined, undefined, updated);
+      setConfirmingOffreId(null);
+      setEnteredOtpCode("");
+      setUnloadingReserves("");
+      setHasUnloadingReserves(false);
+      triggerSystemLog(
+        lang === "ar" ? "تم تأكيد التسليم" : "Livraison validée avec succès ! Le déchargement est clos.",
+        "success"
+      );
+    } catch (err: any) {
+      triggerSystemLog(`Échec déchargement : ${err?.message ?? "erreur"}`, "danger");
+    }
   };
 
   return (
