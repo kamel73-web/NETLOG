@@ -1130,16 +1130,29 @@ export default function App() {
 
   // --- ACTIONS TRANSPORTEUR / PRESTATAIRE ---
   // Ajouter un moyen de transport à son parc
-  const handleAddMoyen = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentUser) return;
-    if (!moyenMarque || !moyenImmatriculation) {
-      triggerSystemLog("Veuillez renseigner la marque et l'immatriculation.", "danger");
-      return;
-    }
+  const handleAddMoyen = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (!currentUser) return;
+
+  if (!moyenMarque || !moyenImmatriculation) {
+    triggerSystemLog(
+      "Veuillez renseigner la marque et l'immatriculation.",
+      "danger"
+    );
+    return;
+  }
+
+  try {
+    const vehicle = await createVehicle({
+      type: moyenType,
+      immatriculation: moyenImmatriculation,
+      capaciteKg: Math.round(Number(moyenPoids) * 1000),
+      isAvailable: true,
+    });
 
     const newMoyen: MoyenTransport = {
-      id: "moyen-" + Date.now(),
+      id: String(vehicle.id),
       transporteurId: currentUser.id,
       type: moyenType,
       marque: moyenMarque,
@@ -1149,11 +1162,28 @@ export default function App() {
     };
 
     const updated = [...moyens, newMoyen];
+
+    setMoyens(updated);
     saveState(undefined, updated);
-    triggerSystemLog(`Véhicule ${moyenMarque} ajouté avec succès à votre parc !`, "success");
+
+    triggerSystemLog(
+      `Véhicule ${moyenMarque} ajouté avec succès à votre parc !`,
+      "success"
+    );
+
     setMoyenMarque("");
     setMoyenImmatriculation("");
-  };
+  } catch (error) {
+    console.error("[NETLOG] Création véhicule:", error);
+
+    triggerSystemLog(
+      error instanceof Error
+        ? error.message
+        : "Échec de création du véhicule.",
+      "danger"
+    );
+  }
+};
 
   // Supprimer un moyen
   const handleDeleteMoyen = (id: string) => {
