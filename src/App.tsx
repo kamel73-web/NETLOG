@@ -6,6 +6,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { submitRegistration, type RegistrationInput } from "./lib/registration";
 import { supabase, signInWithPassword, signOut, getCurrentProfile, updateProfileStatus } from "./lib/supabase";
+import {
+  createFreightOffer,
+  listOpenOffers,
+  submitProposal,
+  acceptProposal,
+} from "./lib/freightOffers";
 import { loadAppData, loadProfiles, type CommuneRow } from "./lib/dataLoader";
 import { adaptSupabaseProfile, type SupabaseProfileRow } from "./lib/profileAdapter";
 import { 
