@@ -5,9 +5,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { submitRegistration, type RegistrationInput } from "./lib/registration";
-import { signInWithPassword, signOut, getCurrentProfile, updateProfileStatus } from "./lib/supabase";
-import { loadAppData, loadProfiles, type WilayaRow } from "./lib/dataLoader";
-import { createFreightOffer, submitProposal } from "./lib/freightOffers";
+import { supabase, signInWithPassword, signOut, getCurrentProfile, updateProfileStatus } from "./lib/supabase";
+import { loadAppData, loadProfiles, type CommuneRow } from "./lib/dataLoader";
 import { adaptSupabaseProfile, type SupabaseProfileRow } from "./lib/profileAdapter";
 import { 
   MOCK_OFFRES, 
@@ -34,9 +33,6 @@ import ChauffeurDashboard from "./components/ChauffeurDashboard";
 import DonneurDashboard from "./components/DonneurDashboard";
 import CommercialDashboard from "./components/CommercialDashboard";
 import AdminDashboard from "./components/AdminDashboard";
-import CommissionnaireDashboard from "./components/CommissionnaireDashboard";
-import ManutentionnaireDashboard from "./components/ManutentionnaireDashboard";
-import StockageDashboard from "./components/StockageDashboard";
 import LeafletMap from "./components/LeafletMap";
 import { 
   Truck, 
@@ -77,21 +73,67 @@ import {
 import ContractDocument from "./components/ContractDocument";
 import { translations, LangType, translateMoyenType, translateCity, translateMarchandise, translateCommentaire } from "./translations";
 
-// wilayas était auparavant un tableau de 58 entrées codées en dur ici.
-// Retiré : les wilayas sont désormais chargées depuis la table Supabase
-// `wilayas` (voir lib/dataLoader.ts → loadWilayas), pour n'avoir qu'une
-// seule source de vérité. Le mode hors-ligne ne concerne que l'interface
-// chauffeur (volontairement minimale), donc garder cette liste dupliquée
-// côté client pour tout le reste de l'app n'était pas justifié.
+const WILAYAS = [
+  { code: "01", fr: "Adrar", ar: "أدرار" },
+  { code: "02", fr: "Chlef", ar: "الشلف" },
+  { code: "03", fr: "Laghouat", ar: "الأغواط" },
+  { code: "04", fr: "Oum El Bouaghi", ar: "أم البواقي" },
+  { code: "05", fr: "Batna", ar: "باتنة" },
+  { code: "06", fr: "Béjaïa", ar: "bajaia بجاية" }, // support direct searches
+  { code: "07", fr: "Biskra", ar: "بسكرة" },
+  { code: "08", fr: "Béchar", ar: "بشار" },
+  { code: "09", fr: "Blida", ar: "البليدة" },
+  { code: "10", fr: "Bouira", ar: "البويرة" },
+  { code: "11", fr: "Tamanrasset", ar: "تمنراست" },
+  { code: "12", fr: "Tébessa", ar: "تبسة" },
+  { code: "13", fr: "Tlemcen", ar: "تلمسان" },
+  { code: "14", fr: "Tiaret", ar: "تيارت" },
+  { code: "15", fr: "Tizi Ouzou", ar: "تيزي وزو" },
+  { code: "16", fr: "Alger", ar: "الجزائر العاصمة" },
+  { code: "17", fr: "Djelfa", ar: "الجلفة" },
+  { code: "18", fr: "Jijel", ar: "جيجل" },
+  { code: "19", fr: "Sétif", ar: "سطيف" },
+  { code: "20", fr: "Saïda", ar: "سعيدة" },
+  { code: "21", fr: "Skikda", ar: "سكيكدة" },
+  { code: "22", fr: "Sidi Bel Abbès", ar: "سيدي بلعباس" },
+  { code: "23", fr: "Annaba", ar: "عنابة" },
+  { code: "24", fr: "Guelma", ar: "قالمة" },
+  { code: "25", fr: "Constantine", ar: "قسنطينة" },
+  { code: "26", fr: "Médéa", ar: "المدية" },
+  { code: "27", fr: "Mostaganem", ar: "مستغانم" },
+  { code: "28", fr: "M'Sila", ar: "المسيلة" },
+  { code: "29", fr: "Mascara", ar: "معسكر" },
+  { code: "30", fr: "Ouargla", ar: "ورقلة" },
+  { code: "31", fr: "Oran", ar: "وهران" },
+  { code: "32", fr: "El Bayadh", ar: "البيض" },
+  { code: "33", fr: "Illizi", ar: "إليزي" },
+  { code: "34", fr: "Bordj Bou Arréridj", ar: "برج بوعريريج" },
+  { code: "35", fr: "Boumerdès", ar: "بومرداس" },
+  { code: "36", fr: "El Tarf", ar: "الطارف" },
+  { code: "37", fr: "Tindouf", ar: "تندوف" },
+  { code: "38", fr: "Tissemsilt", ar: "تيسمسيلت" },
+  { code: "39", fr: "El Oued", ar: "الوادي" },
+  { code: "40", fr: "Khenchela", ar: "خنشلة" },
+  { code: "41", fr: "Souk Ahras", ar: "سوق أهراس" },
+  { code: "42", fr: "Tipaza", ar: "تيبازة" },
+  { code: "43", fr: "Mila", ar: "ميلة" },
+  { code: "44", fr: "Aïn Defla", ar: "عين الدفلى" },
+  { code: "45", fr: "Naâma", ar: "النعامة" },
+  { code: "46", fr: "Aïn Témouchent", ar: "عين تموشنت" },
+  { code: "47", fr: "Ghardaïa", ar: "غرداية" },
+  { code: "48", fr: "Relizane", ar: "غليزان" },
+  { code: "49", fr: "El M'Ghair", ar: "المغير" },
+  { code: "50", fr: "Touggourt", ar: "تقرت" },
+  { code: "51", fr: "Ouled Djellal", ar: "أولاد جلال" },
+  { code: "52", fr: "Béni Abbès", ar: "بني عباس" },
+  { code: "53", fr: "In Salah", ar: "عين صالح" },
+  { code: "54", fr: "In Guezzam", ar: "عين قزام" },
+  { code: "55", fr: "Djanet", ar: "جانت" },
+  { code: "56", fr: "Sidi Khaled", ar: "سيدي خالد" },
+  { code: "57", fr: "El Meniaa", ar: "المنيعة" },
+  { code: "58", fr: "Hassi Messaoud", ar: "حاسي مسعود" }
+];
 
-// filterCitySuggestions() et l'import COMMUNES (2238 lignes dans
-// communesData.ts) ont été retirés : cette fonction n'était appelée
-// nulle part dans toute l'application (vérifié sur l'ensemble de src/).
-// C'était du poids mort pur dans le bundle JS. Si une autocomplétion de
-// commune est nécessaire un jour, elle doit interroger la table
-// `communes` de Supabase à la demande (filtrée par wilaya_code), pas
-// recharger une copie statique de 1500+ lignes dans le bundle.
-// → Fichier src/communesData.ts à supprimer du dépôt.
 
 // Helper for dynamic password strength indicator
 const getPasswordStrength = (pwd: string) => {
@@ -244,6 +286,7 @@ export default function App() {
 
   // --- ÉTATS ---
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [communesSupabase, setCommunesSupabase] = useState<CommuneRow[]>([]);
   const [moyens, setMoyens] = useState<MoyenTransport[]>([]);
   const [offres, setOffres] = useState<OffreFret[]>([]);
   const [propositions, setPropositions] = useState<PropositionPrix[]>([]);
@@ -292,9 +335,6 @@ export default function App() {
 
   // Utilisateur connecté simulé
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  // Wilayas chargées depuis Supabase (table `wilayas`) — plus de copie
-  // codée en dur. Vide au tout premier rendu, peuplée par loadAppData().
-  const [wilayas, setWilayas] = useState<WilayaRow[]>([]);
 
   // Vue courante : "accueil" | "donneur" | "transporteur" | "simulation" | "facture"
   const [currentTab, setCurrentTab] = useState<string>("accueil");
@@ -379,16 +419,11 @@ export default function App() {
   const [recrutWilaya, setRecrutWilaya] = useState("Oran");
   const [regCommSource, setRegCommSource] = useState("");
 
-  // Champs spécifiques Manutentionnaire (section 30 du CDC)
+  // Champs spécifiques Manutentionnaire
   const [regManRaisonSociale, setRegManRaisonSociale] = useState("");
   const [regManRC, setRegManRC] = useState("");
   const [regManTypesEngins, setRegManTypesEngins] = useState<string[]>(["Chariot élévateur"]);
   const [regManWilayaActivite, setRegManWilayaActivite] = useState("Alger");
-
-  // Champs spécifiques Transitaire/Commissionnaire (section 8-9 du CDC)
-  const [regTCRaisonSociale, setRegTCRaisonSociale] = useState("");
-  const [regTCRC, setRegTCRC] = useState("");
-  const [regTCWilayaActivite, setRegTCWilayaActivite] = useState("Alger");
 
   // États pour gérer l'affichage de notre magnifique écran de connexion / inscription
   const [guestMode, setGuestMode] = useState(false);
@@ -565,13 +600,12 @@ export default function App() {
 
   // --- INITIALISATION DEPUIS SUPABASE ---
   useEffect(() => {
-    loadAppData().then(({ profiles, vehicles, offers, proposals, invoices, currentUser: supabaseUser, wilayas: wilayasData }) => {
+    loadAppData().then(({ profiles, vehicles, offers, proposals, invoices, currentUser: supabaseUser }) => {
       setUsers(profiles);
       setMoyens(vehicles);
       setOffres(offers);
       setPropositions(proposals);
       setFactures(invoices);
-      setWilayas(wilayasData);
 
       // Session active : priorité à Supabase, sinon localStorage legacy
       if (supabaseUser) {
@@ -844,45 +878,20 @@ export default function App() {
       console.error("Erreur rafraîchissement profils après connexion:", err);
     });
 
-    // Route vers le dashboard correspondant au profil connecté
-switch (user.profil) {
-  case ProfileType.DonneurOrdre:
-    setCurrentTab("donneur");
-    break;
-
-  case ProfileType.Transporteur:
-    setCurrentTab("transporteur");
-    break;
-
-  case ProfileType.Chauffeur:
-    setCurrentTab("chauffeur");
-    break;
-
-  case ProfileType.Commercial:
-    setCurrentTab("commercial");
-    break;
-
-  case ProfileType.Commissionnaire:
-    setCurrentTab("commissionnaire");
-    break;
-
-  case ProfileType.Manutentionnaire:
-    setCurrentTab("manutentionnaire");
-    break;
-
-  case ProfileType.Stockage:
-    setCurrentTab("stockage");
-    break;
-
-  case ProfileType.Admin:
-    setCurrentTab("admin");
-    break;
-
-  default:
-    console.error("[NETLOG] Profil sans dashboard :", user.profil);
-    setCurrentTab("accueil");
-    break;
-}
+    // Route to dashboard
+    if (user.profil === ProfileType.DonneurOrdre) {
+      setCurrentTab("donneur");
+    } else if (user.profil === ProfileType.Transporteur) {
+      setCurrentTab("transporteur");
+    } else if (user.profil === ProfileType.Chauffeur) {
+      setCurrentTab("chauffeur");
+    } else if (user.profil === ProfileType.Commercial) {
+      setCurrentTab("commercial");
+    } else if (user.profil === ProfileType.Admin) {
+      setCurrentTab("admin");
+    } else {
+      setCurrentTab("accueil");
+    }
 
     triggerSystemLog(`Bienvenue de retour, ${user.prenom} !`, "success");
   };
@@ -1019,65 +1028,15 @@ switch (user.profil) {
   };
 
   // --- ACTIONS DONNEUR D'ORDRE ---
-  const handleCreateOffre = async (e: React.FormEvent) => {
-  e.preventDefault();
-
-  console.log("[NETLOG] handleCreateOffre déclenché", {
-    currentUserId: currentUser?.id,
-    currentUserProfil: currentUser?.profil,
-    formDepart,
-    formArrivee,
-    formPoids,
-    formMarchandise,
-    formPrixFixe,
-  });
-
-  if (!currentUser) {
-    console.error("[NETLOG] Publication refusée : currentUser est null");
-    triggerSystemLog(
-      "Impossible de publier : aucun utilisateur connecté.",
-      "danger"
-    );
-    return;
-  }
+  const handleCreateOffre = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) return;
 
     // Code de confirmation aléatoire pour le déchargement
     const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
 
-    // freight_offers.wilaya_depart / wilaya_arrivee attendent un code
-    // numérique (référence à wilayas.code) ; le formulaire local manipule
-    // des noms de wilaya (ex: "Alger") — on retrouve l'entrée correspondante.
-    const wilayaDepartObj = wilayas.find(w => w.fr === formDepart);
-    const wilayaArriveeObj = wilayas.find(w => w.fr === formArrivee);
-    if (!wilayaDepartObj || !wilayaArriveeObj) {
-      triggerSystemLog("Wilaya de départ ou d'arrivée invalide.", "danger");
-      return;
-    }
-
-    let insertedId: string | number = "offre-" + Date.now();
-    try {
-      const inserted = await createFreightOffer({
-        wilayaDepart: wilayaDepartObj.code,
-        wilayaArrivee: wilayaArriveeObj.code,
-        pointRepereDepart: formDepartDetails || undefined,
-        pointRepereArrivee: formArriveeDetails || undefined,
-        description: formCommentaire || undefined,
-        poidsKg: formPoids ? Number(formPoids) : undefined,
-        typeMarchandise: formMarchandise || undefined,
-        // prix_propose est NOT NULL côté base : 0 signifie "prix à négocier"
-        // quand le donneur d'ordre n'a pas fixé de prix.
-        prixPropose: formPrixFixe ? Number(formPrixFixe) : 0,
-        paymentMethod: "cash",
-        dateEnlevementSouhaitee: formDateChargement || undefined,
-      });
-      insertedId = inserted.id;
-    } catch (err: any) {
-      triggerSystemLog(`Échec de la publication de l'offre : ${err.message}`, "danger");
-      return;
-    }
-
     const newOffre: OffreFret = {
-      id: String(insertedId),
+      id: "offre-" + Date.now(),
       donneurId: currentUser.id,
       donneurRaisonSociale: currentUser.raisonSociale,
       depart: formDepart,
@@ -1204,7 +1163,7 @@ switch (user.profil) {
   };
 
   // Soumettre proposition et faire le MULTICRITÈRE AUTOMATIQUE de compatibilité (PDF Section 3.4)
-  const handlePublishBid = async (e: React.FormEvent) => {
+  const handlePublishBid = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser || !selectedOffreForBid) return;
 
@@ -1277,41 +1236,22 @@ switch (user.profil) {
       return;
     }
 
-    // Si tout est ok : insert Supabase puis state local
-    const offerIdNum = Number(selectedOffreForBid.id);
-    const vehicleIdNum = Number(linkedMoyen.id);
-    if (!Number.isFinite(offerIdNum)) {
-      triggerSystemLog("ID offre invalide (offre non issue de Supabase).", "danger");
-      return;
-    }
-    if (!Number.isFinite(vehicleIdNum)) {
-      triggerSystemLog("ID véhicule invalide. Enregistrez d'abord le camion en base (pas un id local moyen-...).", "danger");
-      return;
-    }
+    // Si tout est ok : on crée la proposition
+    const newProp: PropositionPrix = {
+      id: "prop-" + Date.now(),
+      offreId: selectedOffreForBid.id,
+      transporteurId: currentUser.id,
+      transporteurRaisonSociale: currentUser.raisonSociale,
+      moyenId: linkedMoyen.id,
+      prixPropose: Number(bidPrice),
+      commentaire: bidCommentaire,
+      status: "En attente",
+    };
 
-    try {
-      const inserted = await submitProposal({
-        offerId: offerIdNum,
-        vehicleId: vehicleIdNum,
-        prixPropose: Number(bidPrice),
-        message: bidCommentaire || undefined,
-      });
-      const newProp: PropositionPrix = {
-        id: String(inserted.id),
-        offreId: selectedOffreForBid.id,
-        transporteurId: currentUser.id,
-        transporteurRaisonSociale: currentUser.raisonSociale,
-        moyenId: linkedMoyen.id,
-        prixPropose: Number(bidPrice),
-        commentaire: bidCommentaire,
-        status: "En attente",
-      };
-      saveState(undefined, undefined, undefined, [...propositions, newProp]);
-      setSelectedOffreForBid(null);
-      triggerSystemLog(`Proposition ${newProp.id} enregistrée en base (${bidPrice.toLocaleString()} DZD).`, "success");
-    } catch (err: any) {
-      triggerSystemLog(`Échec proposition : ${err?.message ?? "erreur"}`, "danger");
-    }
+    const updated = [...propositions, newProp];
+    saveState(undefined, undefined, undefined, updated);
+    setSelectedOffreForBid(null);
+    triggerSystemLog(`Votre soumission de tarif (${bidPrice.toLocaleString()} DZD) est acceptée par l'algorithme NETLOG !`, "success");
   };
 
   // Changer l'état de cargaison (Chargé → Déchargé)
@@ -2560,50 +2500,6 @@ switch (user.profil) {
                                 </span>
                               </div>
                             </div>
-
-                            {/* Option 4: Manutentionnaire */}
-                            <div 
-                              onClick={() => setRegProfil(ProfileType.Manutentionnaire)}
-                              className={`p-3 rounded-2xl border-2 transition-all flex items-center gap-3 cursor-pointer ${
-                                regProfil === ProfileType.Manutentionnaire 
-                                  ? "border-[#1D9E75] bg-[#E1F5EE]/40" 
-                                  : "border-slate-100 bg-slate-50/60 hover:border-slate-200"
-                              }`}
-                            >
-                              <span className="text-2xl pt-1">🏗️</span>
-                              <div className="flex-1">
-                                <strong className="text-xs text-slate-850 block font-extrabold">
-                                  {lang === "ar" ? "مقاول مناولة (رافعات، شاحنات رفع)" : "Manutentionnaire (Engins de levage)"}
-                                </strong>
-                                <span className="text-[10px] text-slate-500 font-semibold block">
-                                  {lang === "ar"
-                                    ? "مقدمو خدمات الرفع والمناولة: رافعات، شاحنات شوكية، جرافات، نصابات."
-                                    : "Prestataires de manutention : grues, chariots élévateurs, pelles, nacelles."}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Option 5: Commissionnaire */}
-                            <div 
-                              onClick={() => setRegProfil(ProfileType.Commissionnaire)}
-                              className={`p-3 rounded-2xl border-2 transition-all flex items-center gap-3 cursor-pointer ${
-                                regProfil === ProfileType.Commissionnaire 
-                                  ? "border-[#1D9E75] bg-[#E1F5EE]/40" 
-                                  : "border-slate-100 bg-slate-50/60 hover:border-slate-200"
-                              }`}
-                            >
-                              <span className="text-2xl pt-1">🗂️</span>
-                              <div className="flex-1">
-                                <strong className="text-xs text-slate-850 block font-extrabold">
-                                  {lang === "ar" ? "وسيط / مفوض نقل (répertoire خاص)" : "Transitaire / Commissionnaire en transport"}
-                                </strong>
-                                <span className="text-[10px] text-slate-500 font-semibold block">
-                                  {lang === "ar"
-                                    ? "ينظم عمليات النقل ويدير شبكته الخاصة من الناقلين والمركبات الموثوقة."
-                                    : "Organise les transports et gère son propre répertoire de transporteurs de confiance."}
-                                </span>
-                              </div>
-                            </div>
                           </div>
 
                           <button
@@ -2630,9 +2526,7 @@ switch (user.profil) {
                                   ? (lang === "ar" ? "🏭 طالب شحن / آمر صرف" : "🏭 Donneur d'Ordre") 
                                   : regProfil === ProfileType.Transporteur 
                                     ? (lang === "ar" ? "🚛 ناقل بري محترف" : "🚛 Transporteur Routier") 
-                                    : regProfil === ProfileType.Manutentionnaire
-                                      ? (lang === "ar" ? "🏗️ مقاول مناولة" : "🏗️ Manutentionnaire")
-                                      : (lang === "ar" ? "💼 وكيل تجاري" : "💼 Agent Commercial")}
+                                    : (lang === "ar" ? "💼 وكيل تجاري" : "💼 Agent Commercial")}
                               </strong>
                             </div>
                             <button
@@ -2705,7 +2599,7 @@ switch (user.profil) {
                                   value={regWilaya} onChange={(e) => setRegWilaya(e.target.value)}
                                   className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
                                 >
-                                  {wilayas.map(w => (
+                                  {WILAYAS.map(w => (
                                     <option key={w.code} value={lang === "ar" ? w.ar : w.fr}>
                                       {lang === "ar" ? w.ar : w.fr}
                                     </option>
@@ -2939,7 +2833,7 @@ switch (user.profil) {
                                     value={regTransWilayaActivite} onChange={(e) => setRegTransWilayaActivite(e.target.value)}
                                     className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
                                   >
-                                    {wilayas.map(w => (
+                                    {WILAYAS.map(w => (
                                       <option key={w.code} value={lang === "ar" ? w.ar : w.fr}>
                                         {lang === "ar" ? w.ar : w.fr}
                                       </option>
@@ -3010,7 +2904,7 @@ switch (user.profil) {
                                     value={regCommWilayaInterv} onChange={(e) => setRegCommWilayaInterv(e.target.value)}
                                     className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
                                   >
-                                    {wilayas.map(w => (
+                                    {WILAYAS.map(w => (
                                       <option key={w.code} value={lang === "ar" ? w.ar : w.fr}>
                                         {lang === "ar" ? w.ar : w.fr}
                                       </option>
@@ -3046,120 +2940,6 @@ switch (user.profil) {
                                     className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700"
                                   />
                                 </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Cas 2D : CHAMPS SPÉCIFIQUES POUR LE MANUTENTIONNAIRE */}
-                          {regProfil === ProfileType.Manutentionnaire && (
-                            <div className="space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                              <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest block border-b pb-1">
-                                {lang === "ar" ? "معلومات نشاط المناولة" : "Informations d'activité de manutention"}
-                              </span>
-
-                              <div className="grid grid-cols-2 gap-2.5">
-                                <div>
-                                  <label className="block text-[10px] text-slate-500 mb-0.5">
-                                    {lang === "ar" ? "الاسم التجاري *" : "Raison sociale *"}
-                                  </label>
-                                  <input
-                                    type="text" required placeholder={lang === "ar" ? "مثال: مناولة الجزائر" : "ex: Manutention Alger SARL"}
-                                    value={regManRaisonSociale} onChange={(e) => setRegManRaisonSociale(e.target.value)}
-                                    className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-[10px] text-slate-500 mb-0.5">
-                                    {lang === "ar" ? "رقم السجل التجاري (RC) *" : "N° Registre de Commerce (RC) *"}
-                                  </label>
-                                  <input
-                                    type="text" required placeholder="ex: 16/00-0943521B21"
-                                    value={regManRC} onChange={(e) => setRegManRC(e.target.value)}
-                                    className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 font-mono"
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="grid grid-cols-2 gap-2.5">
-                                <div>
-                                  <label className="block text-[10px] text-slate-500 mb-0.5">
-                                    {lang === "ar" ? "نوع العتاد المتوفر *" : "Type d'engin principal *"}
-                                  </label>
-                                  <select
-                                    value={regManTypesEngins[0]} onChange={(e) => setRegManTypesEngins([e.target.value])}
-                                    className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
-                                  >
-                                    <option value="Grue">{lang === "ar" ? "رافعة" : "Grue"}</option>
-                                    <option value="Chariot élévateur">{lang === "ar" ? "شاحنة شوكية" : "Chariot élévateur"}</option>
-                                    <option value="Pelle">{lang === "ar" ? "حفارة" : "Pelle"}</option>
-                                    <option value="Chargeuse">{lang === "ar" ? "جرافة" : "Chargeuse"}</option>
-                                    <option value="Nacelle">{lang === "ar" ? "نصاب" : "Nacelle"}</option>
-                                    <option value="Autre">{lang === "ar" ? "أخرى" : "Autre"}</option>
-                                  </select>
-                                </div>
-                                <div>
-                                  <label className="block text-[10px] text-slate-500 mb-0.5">
-                                    {lang === "ar" ? "ولاية النشاط الرئيسية *" : "Wilaya d'activité principale *"}
-                                  </label>
-                                  <select
-                                    value={regManWilayaActivite} onChange={(e) => setRegManWilayaActivite(e.target.value)}
-                                    className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
-                                  >
-                                    {wilayas.map(w => (
-                                      <option key={w.code} value={lang === "ar" ? w.ar : w.fr}>
-                                        {lang === "ar" ? w.ar : w.fr}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Cas 2E : CHAMPS SPÉCIFIQUES POUR LE COMMISSIONNAIRE */}
-                          {regProfil === ProfileType.Commissionnaire && (
-                            <div className="space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                              <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest block border-b pb-1">
-                                {lang === "ar" ? "معلومات نشاط الوساطة" : "Informations d'activité Transitaire/Commissionnaire"}
-                              </span>
-
-                              <div className="grid grid-cols-2 gap-2.5">
-                                <div>
-                                  <label className="block text-[10px] text-slate-500 mb-0.5">
-                                    {lang === "ar" ? "الاسم التجاري *" : "Raison sociale *"}
-                                  </label>
-                                  <input
-                                    type="text" required placeholder={lang === "ar" ? "مثال: وساطة الجزائر" : "ex: Transit Alger SARL"}
-                                    value={regTCRaisonSociale} onChange={(e) => setRegTCRaisonSociale(e.target.value)}
-                                    className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-[10px] text-slate-500 mb-0.5">
-                                    {lang === "ar" ? "رقم السجل التجاري (RC) *" : "N° Registre de Commerce (RC) *"}
-                                  </label>
-                                  <input
-                                    type="text" required placeholder="ex: 16/00-0943521B21"
-                                    value={regTCRC} onChange={(e) => setRegTCRC(e.target.value)}
-                                    className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 font-mono"
-                                  />
-                                </div>
-                              </div>
-
-                              <div>
-                                <label className="block text-[10px] text-slate-500 mb-0.5">
-                                  {lang === "ar" ? "ولاية النشاط الرئيسية *" : "Wilaya d'activité principale *"}
-                                </label>
-                                <select
-                                  value={regTCWilayaActivite} onChange={(e) => setRegTCWilayaActivite(e.target.value)}
-                                  className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
-                                >
-                                  {wilayas.map(w => (
-                                    <option key={w.code} value={lang === "ar" ? w.ar : w.fr}>
-                                      {lang === "ar" ? w.ar : w.fr}
-                                    </option>
-                                  ))}
-                                </select>
                               </div>
                             </div>
                           )}
@@ -3278,7 +3058,7 @@ switch (user.profil) {
                     className="w-full pl-8 pr-3 py-2.5 bg-white border border-[#E5E7EB] rounded-[8px] text-xs font-bold text-slate-700 focus:outline-none focus:border-[#1D9E75] cursor-pointer"
                   >
                     <option value="Tous">Toutes les wilayas (Départ) ▼</option>
-                    {[...wilayas].sort((a,b) => a.fr.localeCompare(b.fr)).map(w => (
+                    {[...WILAYAS].sort((a,b) => a.fr.localeCompare(b.fr)).map(w => (
                       <option key={w.code} value={w.fr}>{w.fr}</option>
                     ))}
                   </select>
@@ -3295,7 +3075,7 @@ switch (user.profil) {
                     className="w-full pl-8 pr-3 py-2.5 bg-white border border-[#E5E7EB] rounded-[8px] text-xs font-bold text-slate-700 focus:outline-none focus:border-[#1D9E75] cursor-pointer"
                   >
                     <option value="Tous">Toutes les wilayas (Arrivée) ▼</option>
-                    {[...wilayas].sort((a,b) => a.fr.localeCompare(b.fr)).map(w => (
+                    {[...WILAYAS].sort((a,b) => a.fr.localeCompare(b.fr)).map(w => (
                       <option key={w.code} value={w.fr}>{w.fr}</option>
                     ))}
                   </select>
@@ -3610,73 +3390,6 @@ switch (user.profil) {
 
           </div>
         )}
-
-        {/* ----------------- TAB: ESPACE DONNEUR D'ORDRE (PROFIL 1) ----------------- */}
-        {currentTab === "donneur" && currentUser?.profil === ProfileType.DonneurOrdre && (
-          <DonneurDashboard
-            currentUser={currentUser}
-            setCurrentUser={setCurrentUser}
-            lang={lang}
-            t={t}
-            saveState={saveState}
-            offres={offres}
-            propositions={propositions}
-            factures={factures}
-            devis={devis}
-            counters={counters}
-            incrementCounter={incrementCounter}
-            users={users}
-            triggerSystemLog={triggerSystemLog}
-            setActiveContractDoc={setActiveContractDoc}
-            translateCity={translateCity}
-            translateMoyenType={translateMoyenType}
-            translateMarchandise={translateMarchandise}
-            setCurrentTab={setCurrentTab}
-          />
-        )}
-
-        {/* ----------------- TAB: ESPACE TRANSPORTEUR (PROFIL 2) ----------------- */}
-        {currentTab === "transporteur" && currentUser?.profil === ProfileType.Transporteur && (
-          <TransporteurDashboard
-            currentUser={currentUser}
-            setCurrentUser={setCurrentUser}
-            lang={lang}
-            t={t}
-            moyens={moyens}
-            saveState={saveState}
-            offres={offres}
-            propositions={propositions}
-            factures={factures}
-            devis={devis}
-            counters={counters}
-            incrementCounter={incrementCounter}
-            users={users}
-            initiateBid={initiateBid}
-            triggerSystemLog={triggerSystemLog}
-            setActiveContractDoc={setActiveContractDoc}
-            translateCity={translateCity}
-            translateMoyenType={translateMoyenType}
-            translateMarchandise={translateMarchandise}
-            setCurrentTab={setCurrentTab}
-          />
-        )}
-
-        {/* ----------------- TAB: ESPACE CHAUFFEUR (PROFIL 6) ----------------- */}
-        {currentTab === "chauffeur" && currentUser?.profil === ProfileType.Chauffeur && (
-          <ChauffeurDashboard
-            currentUser={currentUser}
-            setCurrentUser={setCurrentUser}
-            offres={offres}
-            users={users}
-            saveState={saveState}
-            lang={lang}
-            t={t}
-            triggerSystemLog={triggerSystemLog}
-            translateCity={translateCity}
-            translateMarchandise={translateMarchandise}
-          />
-        )}
-
         {/* ----------------- TAB: ESPACE COMMERCIAL BVF (PROFIL 3) ----------------- */}
         {currentTab === "commercial" && currentUser?.profil === ProfileType.Commercial && (
           <CommercialDashboard
@@ -3689,47 +3402,6 @@ switch (user.profil) {
             users={users}
             propositions={propositions}
             factures={factures}
-            triggerSystemLog={triggerSystemLog}
-          />
-        )}
-
-        {/* ----------------- TAB: ESPACE COMMISSIONNAIRE / TRANSITAIRE ----------------- */}
-        {currentTab === "commissionnaire" && currentUser?.profil === ProfileType.Commissionnaire && (
-          <CommissionnaireDashboard
-            currentUser={currentUser}
-            setCurrentUser={setCurrentUser}
-            lang={lang}
-            t={t}
-            offres={offres}
-            users={users}
-            moyens={moyens}
-            propositions={propositions}
-            factures={factures}
-            saveState={saveState}
-            triggerSystemLog={triggerSystemLog}
-            setCurrentTab={setCurrentTab}
-          />
-        )}
-
-        {/* ----------------- TAB: ESPACE MANUTENTIONNAIRE ----------------- */}
-        {currentTab === "manutentionnaire" && currentUser?.profil === ProfileType.Manutentionnaire && (
-          <ManutentionnaireDashboard
-            currentUser={currentUser}
-            setCurrentUser={setCurrentUser}
-            lang={lang}
-            t={t}
-            offres={offres}
-            triggerSystemLog={triggerSystemLog}
-          />
-        )}
-
-        {/* ----------------- TAB: ESPACE STOCKAGE ----------------- */}
-        {currentTab === "stockage" && currentUser?.profil === ProfileType.Stockage && (
-          <StockageDashboard
-            currentUser={currentUser}
-            setCurrentUser={setCurrentUser}
-            lang={lang}
-            t={t}
             triggerSystemLog={triggerSystemLog}
           />
         )}
@@ -4179,20 +3851,10 @@ switch (user.profil) {
         {currentTab === "publier" && (() => {
           const isDO = currentUser?.profil === ProfileType.DonneurOrdre;
 
-          const handleQuickPublishOfferSubmit = async (e: React.FormEvent) => {
+          const handleQuickPublishOfferSubmit = (e: React.FormEvent) => {
             e.preventDefault();
             if (!isDO) {
               triggerSystemLog("Interdit : Vous devez être connecté en tant que Donneur d'Ordre pour poster une offre.", "danger");
-              return;
-            }
-
-            // freight_offers.wilaya_depart / wilaya_arrivee attendent un code
-            // numérique (référence à wilayas.code, chargées depuis Supabase) ;
-            // ce formulaire manipule des noms de wilaya (ex: "Alger").
-            const wilayaDepartObj = wilayas.find(w => w.fr === pubDepart || w.ar === pubDepart);
-            const wilayaArriveeObj = wilayas.find(w => w.fr === pubArrivee || w.ar === pubArrivee);
-            if (!wilayaDepartObj || !wilayaArriveeObj) {
-              triggerSystemLog("Wilaya non reconnue. Vérifiez votre saisie.", "danger");
               return;
             }
 
@@ -4218,34 +3880,12 @@ switch (user.profil) {
               dateCreation: new Date().toISOString()
             };
 
-            try {
-              const inserted = await createFreightOffer({
-                wilayaDepart: wilayaDepartObj.code,
-                wilayaArrivee: wilayaArriveeObj.code,
-                pointRepereDepart: `Entrepôt principal de ${pubDepart}`,
-                pointRepereArrivee: `Dépôt client ${pubArrivee}`,
-                description: pubCommentaire || "Acheminement rapide conforme aux normes NETLOG d'Algérie.",
-                poidsKg: pubPoids ? Math.round(Number(pubPoids) * 1000) : undefined,
-                typeMarchandise: pubMarchandise,
-                // prix_propose est NOT NULL côté base : 0 signifie "prix à négocier"
-                prixPropose: pubPrix ?? 0,
-                paymentMethod: "cash",
-                dateEnlevementSouhaitee: new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0],
-                typeMoyenExige: pubMoyen,
-                nombreVoyages: 1,
-              });
-
-              newOffer.id = String(inserted.id);
-
-              setOffres(prev => [newOffer, ...prev]);
-              triggerSystemLog(`Félicitations ! Votre offre de fret ${newOffer.id} (Axe: ${pubDepart} ➔ ${pubArrivee}) est publiée en direct sur la bourse de fret !`, "success");
-              setCurrentTab("accueil");
-
-            } catch (err) {
-              const msg = err instanceof Error ? err.message : "Erreur inconnue";
-              console.error("handleQuickPublishOfferSubmit:", msg);
-              triggerSystemLog(`Erreur lors de la publication : ${msg}`, "danger");
-            }
+            const updatedOffres = [newOffer, ...offres];
+            saveState(undefined, undefined, updatedOffres);
+            triggerSystemLog(`Félicitations ! Votre offre de fret ${newId} (Axe: ${pubDepart} ➔ ${pubArrivee}) est publiée en direct sur la bourse de fret !`, "success");
+            
+            // Redirect to main listing!
+            setCurrentTab("accueil");
           };
 
           return (
@@ -5482,25 +5122,6 @@ switch (user.profil) {
                     )}
                   </div>
 
-                  {/* Option 5: Commissionnaire */}
-                  <div 
-                    onClick={() => setRegProfil(ProfileType.Commissionnaire)}
-                    className={`p-4 rounded-xl border-2 text-center cursor-pointer transition-all space-y-2 relative overflow-hidden select-none ${
-                      regProfil === ProfileType.Commissionnaire 
-                        ? "border-[#1D9E75] bg-[#E1F5EE]/40 ring-1 ring-[#1D9E75]" 
-                        : "border-slate-100 bg-slate-50 hover:border-slate-200"
-                    }`}
-                  >
-                    <div className="text-3xl">🗂️</div>
-                    <h4 className="font-extrabold text-xs text-slate-900">Transitaire / Commissionnaire</h4>
-                    <p className="text-[10px] text-slate-500 leading-normal font-medium">
-                      Organise les transports et gère son propre répertoire de transporteurs de confiance.
-                    </p>
-                    {regProfil === ProfileType.Commissionnaire && (
-                      <span className="absolute top-2 right-2 w-3 h-3 bg-[#1D9E75] rounded-full ring-2 ring-white"></span>
-                    )}
-                  </div>
-
                   {/* La carte "Administrateur NETLOG" déblocable par code secret
                       (Admin@2025 / bvf-admin) a été retirée : un compte admin
                       ne doit jamais pouvoir être créé depuis l'inscription
@@ -5591,9 +5212,9 @@ switch (user.profil) {
                         onChange={(e) => setRegWilaya(e.target.value)}
                         className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs bg-white cursor-pointer font-sans"
                       >
-                        {wilayas.map(w => (
+                        {WILAYAS.map(w => (
                           <option key={w.code} value={w.fr}>
-                            {String(w.code).padStart(2, '0')} - {w.fr} ({w.ar})
+                            {w.code} - {w.fr} ({w.ar})
                           </option>
                         ))}
                       </select>
@@ -5843,7 +5464,7 @@ switch (user.profil) {
                             onChange={(e) => setRegTransWilayaActivite(e.target.value)}
                             className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs bg-white cursor-pointer font-sans"
                           >
-                            {wilayas.map(w => (
+                            {WILAYAS.map(w => (
                               <option key={w.code} value={w.fr}>{w.fr}</option>
                             ))}
                           </select>
@@ -5899,7 +5520,7 @@ switch (user.profil) {
                           onChange={(e) => setRegCommWilayaInterv(e.target.value)}
                           className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs bg-white cursor-pointer font-sans"
                         >
-                          {wilayas.map(w => (
+                          {WILAYAS.map(w => (
                             <option key={w.code} value={w.fr}>{w.fr}</option>
                           ))}
                         </select>
@@ -5959,7 +5580,7 @@ switch (user.profil) {
                           value={regManWilayaActivite} onChange={(e) => setRegManWilayaActivite(e.target.value)}
                           className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs bg-white cursor-pointer"
                         >
-                          {wilayas.map(w => (
+                          {WILAYAS.map(w => (
                             <option key={w.code} value={w.fr}>{w.fr}</option>
                           ))}
                         </select>

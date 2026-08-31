@@ -28,12 +28,12 @@ export interface SupabaseProfileRow {
   prenom: string | null;
   nrc: string | null;
   adresse: string | null;
-  metadata?: Record<string, unknown> | null;
+  metadata: Record<string, unknown> | null;
 }
 
 export function adaptSupabaseProfile(row: SupabaseProfileRow): UserProfile {
-  const meta = row.metadata ?? {};
 
+  const meta = (row.metadata ?? {}) as Record<string, unknown>;
   return {
     id: row.id,
     nom: row.full_name,
@@ -95,6 +95,5 @@ export function adaptSupabaseProfile(row: SupabaseProfileRow): UserProfile {
     // Objet brut transmis en plus des champs déjà extraits ci-dessus :
     // certains composants (ex. StockageDashboard) lisent des clés qui
     // n'ont pas encore de champ dédié dans UserProfile.
-    metadata: meta as Record<string, any>,
   };
 }

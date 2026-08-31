@@ -103,6 +103,23 @@ export async function loadWilayas(): Promise<WilayaRow[]> {
   return (data as any[]).map(w => ({ code: w.code, fr: w.name, ar: w.name_ar ?? w.name }));
 }
 
+export interface CommuneRow {
+  id: number;
+  wilaya_code: number;
+  name: string;
+  name_ar: string | null;
+}
+
+export async function loadCommunes(): Promise<CommuneRow[]> {
+  const { data, error } = await supabase
+    .from('communes')
+    .select('id, wilaya_code, name, name_ar')
+    .order('wilaya_code', { ascending: true })
+    .order('name', { ascending: true });
+  if (error) { console.error('loadCommunes:', error.message); return []; }
+  return data as CommuneRow[];
+}
+
 export interface AppData {
   profiles: UserProfile[];
   vehicles: MoyenTransport[];
