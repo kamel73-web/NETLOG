@@ -332,10 +332,7 @@ export async function acceptProposal(params: {
     );
   }
 
-  if (
-    currentOffer.status !== 'ouverte' &&
-    currentOffer.status !== 'attribuee'
-  ) {
+    if (currentOffer.status !== 'ouverte') {
     throw new Error(
       `Cette offre ne peut plus être attribuée. Statut actuel: ${currentOffer.status}`
     );
