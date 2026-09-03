@@ -337,7 +337,50 @@ export async function acceptProposal(params: {
       `Cette offre ne peut plus être attribuée. Statut actuel: ${currentOffer.status}`
     );
   }
+export async function confirmDelivery(params: {
+  offerId: number;
+  code: string;
+  reserves?: string;
+}) {
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
 
+  if (sessionError) {
+    throw new Error(`Session: ${sessionError.message}`);
+  }
+
+  if (!session?.user?.id) {
+    throw new Error(
+      'Utilisateur non authentifié dans Supabase. La session est absente.'
+    );
+  }
+
+  console.log('[NETLOG] RPC confirm_delivery', params);
+
+  const { data, error } = await supabase.rpc('confirm_delivery', {
+    p_offer_id: params.offerId,
+    p_code: params.code,
+    p_reserves: params.reserves ?? null,
+  });
+
+  console.log('[NETLOG] Résultat RPC confirm_delivery', { data, error });
+
+  if (error) {
+    throw new Error(
+      `Confirmation de livraison échouée : ${error.message}`
+    );
+  }
+
+  if (!data) {
+    throw new Error(
+      "Confirmation de livraison échouée : Supabase n'a retourné aucune donnée."
+    );
+  }
+
+  return data;
+}
   // ============================================================
   // 4. Attribuer l'offre au transporteur
   //
