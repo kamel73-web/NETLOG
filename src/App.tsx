@@ -1212,12 +1212,16 @@ export default function App() {
   };
 
   // Soumettre proposition et faire le MULTICRITÈRE AUTOMATIQUE de compatibilité (PDF Section 3.4)
-  const handlePublishBid = (e: React.FormEvent) => {
+  const handlePublishBid = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!currentUser || !selectedOffreForBid) return;
 
-    // FLOTTE ET ASSURANCE CHECKING (REQUIRED SPECS)
-    const myFlotte = moyens.filter(m => m.transporteurId === currentUser?.id);
+    // FLOTTE : le transporteur doit disposer d'au moins un véhicule
+    const myFlotte = moyens.filter(
+      m => m.transporteurId === currentUser.id
+    );
+
     if (myFlotte.length === 0) {
       setCompatibilityError(
         lang === "ar"
@@ -1227,11 +1231,16 @@ export default function App() {
       return;
     }
 
+    // Un véhicule doit obligatoirement être sélectionné
     if (!bidMoyenId) {
-      triggerSystemLog("Veuillez d'abord déclarer et sélectionner un moyen de transport.", "danger");
+      triggerSystemLog(
+        "Veuillez d'abord déclarer et sélectionner un moyen de transport.",
+        "danger"
+      );
       return;
     }
 
+    // Certification documentaire obligatoire
     if (!certifyDocuments) {
       setCompatibilityError(
         lang === "ar"
@@ -1241,42 +1250,56 @@ export default function App() {
       return;
     }
 
-    const linkedMoyen = moyens.find(m => m.id === bidMoyenId);
-    if (!linkedMoyen) return;
+    const linkedMoyen = moyens.find(
+      m => m.id === bidMoyenId
+    );
 
-    // --- CONTRÔLES DE COMPATIBILITÉ (SECTION 3.4 DU PDF) ---
-    // Rule 1: Type de matériel doit correspondre
+    if (!linkedMoyen) {
+      triggerSystemLog(
+        "Le moyen de transport sélectionné est introuvable.",
+        "danger"
+      );
+      return;
+    }
+
+    // RULE 1 : type de matériel
     if (linkedMoyen.type !== selectedOffreForBid.moyenExige) {
       setCompatibilityError(
         lang === "ar"
           ? `نوع المركبة غير متوافق: العرض يتطلب شاحنة من نوع "${translateMoyenType(selectedOffreForBid.moyenExige, lang)}"، لكنك تستخدم "${translateMoyenType(linkedMoyen.type, lang)}".`
-          : `Type de véhicule incompatible: l'offre exige un "${selectedOffreForBid.moyenExige}", mais vous utilisez un "${linkedMoyen.type}".`
+          : `Type de véhicule incompatible : l'offre exige un "${selectedOffreForBid.moyenExige}", mais vous utilisez un "${linkedMoyen.type}".`
       );
       return;
     }
 
-    // Rule 2: Poids utile max >= poids exigé
+    // RULE 2 : capacité de charge
     if (linkedMoyen.poidsUtileMax < selectedOffreForBid.poids) {
       setCompatibilityError(
         lang === "ar"
           ? `حمولة غير كافية: الحمولة المفيدة لمركبتك (${linkedMoyen.poidsUtileMax} طن) أقل من الحمولة المطلوبة (${selectedOffreForBid.poids} طن).`
-          : `Capacité de charge insuffisante: Poids utile de votre matériel (${linkedMoyen.poidsUtileMax} t) < Poids demandé (${selectedOffreForBid.poids} t).`
+          : `Capacité de charge insuffisante : poids utile de votre matériel (${linkedMoyen.poidsUtileMax} t) < poids demandé (${selectedOffreForBid.poids} t).`
       );
       return;
     }
 
-    // Rule 3: Longueur max >= Longueur exigée (si renseigné)
-    if (selectedOffreForBid.longueurExigee && linkedMoyen.longueurMax < selectedOffreForBid.longueurExigee) {
+    // RULE 3 : longueur
+    if (
+      selectedOffreForBid.longueurExigee &&
+      linkedMoyen.longueurMax < selectedOffreForBid.longueurExigee
+    ) {
       setCompatibilityError(
         lang === "ar"
-          ? `الطول غير كافٍ: طول مقطورة شاحنتك (${linkedMoyen.longueurMax} متر) أقل من الطول المطلوب بـ (${selectedOffreForBid.longueurExigee} متر).`
-          : `Longueur insuffisante: Longueur de votre véhicule (${linkedMoyen.longueurMax} m) < Longueur exigée (${selectedOffreForBid.longueurExigee} m).`
+          ? `الطول غير كافٍ: طول مقطورة شاحنتك (${linkedMoyen.longueurMax} متر) أقل من الطول المطلوب (${selectedOffreForBid.longueurExigee} متر).`
+          : `Longueur insuffisante : longueur de votre véhicule (${linkedMoyen.longueurMax} m) < longueur exigée (${selectedOffreForBid.longueurExigee} m).`
       );
       return;
     }
 
-    // Rule 4: Prix ne peut pas dépasser le prix fixe s'il est imposé par le DO
-    if (selectedOffreForBid.prixFixe && bidPrice > selectedOffreForBid.prixFixe) {
+    // RULE 4 : prix plafond fixé par le donneur d'ordre
+    if (
+      selectedOffreForBid.prixFixe &&
+      Number(bidPrice) > selectedOffreForBid.prixFixe
+    ) {
       setCompatibilityError(
         lang === "ar"
           ? `تجاوز السعر الأقصى: حدد صاحب الشحن سعرًا أقصى قدره ${selectedOffreForBid.prixFixe.toLocaleString()} دج. لا يمكنك تقديم سعر أعلى.`
@@ -1285,23 +1308,89 @@ export default function App() {
       return;
     }
 
-    // Si tout est ok : on crée la proposition
-    const newProp: PropositionPrix = {
-      id: "prop-" + Date.now(),
-      offreId: selectedOffreForBid.id,
-      transporteurId: currentUser.id,
-      transporteurRaisonSociale: currentUser.raisonSociale,
-      moyenId: linkedMoyen.id,
-      prixPropose: Number(bidPrice),
-      commentaire: bidCommentaire,
-      status: "En attente",
-    };
+    // Vérification du prix
+    if (!Number.isFinite(Number(bidPrice)) || Number(bidPrice) <= 0) {
+      triggerSystemLog(
+        "Veuillez saisir un prix de transport valide.",
+        "danger"
+      );
+      return;
+    }
 
-    const updated = [...propositions, newProp];
-    saveState(undefined, undefined, undefined, updated);
-    setSelectedOffreForBid(null);
-    triggerSystemLog(`Votre soumission de tarif (${bidPrice.toLocaleString()} DZD) est acceptée par l'algorithme NETLOG !`, "success");
+    try {
+      // Enregistrement réel dans Supabase
+      const offerId = Number(selectedOffreForBid.id);
+
+      if (!Number.isFinite(offerId)) {
+        throw new Error(
+          "Identifiant de l'offre invalide pour Supabase."
+        );
+      }
+
+      const vehicleId = Number(linkedMoyen.id);
+
+      if (!Number.isFinite(vehicleId)) {
+        throw new Error(
+          "Identifiant du véhicule invalide pour Supabase."
+        );
+      }
+
+      const { submitProposal } = await import("./lib/freightOffers");
+
+      const proposal = await submitProposal({
+        offerId,
+        vehicleId,
+        prixPropose: Number(bidPrice),
+        message: bidCommentaire?.trim() || undefined,
+      });
+
+      // Mise à jour immédiate de l'interface locale
+      const newProp: PropositionPrix = {
+        id: String(proposal.id),
+        offreId: selectedOffreForBid.id,
+        transporteurId: currentUser.id,
+        transporteurRaisonSociale: currentUser.raisonSociale,
+        moyenId: linkedMoyen.id,
+        prixPropose: Number(bidPrice),
+        commentaire: bidCommentaire,
+        status: "En attente",
+      };
+
+      const updated = [...propositions, newProp];
+
+      saveState(
+        undefined,
+        undefined,
+        undefined,
+        updated
+      );
+
+      setSelectedOffreForBid(null);
+      setBidMoyenId("");
+      setBidCommentaire("");
+      setBidPrice(0);
+      setCertifyDocuments(false);
+      setCompatibilityError(null);
+
+      triggerSystemLog(
+        `Votre soumission de tarif (${Number(bidPrice).toLocaleString()} DZD) a été enregistrée sur la Bourse NETLOG.`,
+        "success"
+      );
+    } catch (error) {
+      console.error(
+        "[NETLOG] Erreur soumission proposition :",
+        error
+      );
+
+      triggerSystemLog(
+        error instanceof Error
+          ? error.message
+          : "Échec de l'enregistrement de votre proposition.",
+        "danger"
+      );
+    }
   };
+
 
   // Changer l'état de cargaison (Chargé → Déchargé)
   const handleUpdateStatus = (offreId: string, nextStatus: OffreStatus) => {
@@ -1322,45 +1411,59 @@ export default function App() {
   };
 
   // Clôturer la livraison via le Code Unique de Confirmation (+ gestion des réserves)
-  const handleConfirmDelivery = (offreId: string) => {
-    const target = offres.find(o => o.id === offreId);
-    if (!target) return;
+  // Clôturer la livraison via le Code Unique de Confirmation (+ gestion des réserves)
+const handleConfirmDelivery = async (offreId: string) => {
+  const target = offres.find(o => o.id === offreId);
+  if (!target) return;
 
-    const enteredCode = verificationCodes[offreId] || "";
-    if (enteredCode !== target.codeConfirmation) {
-      triggerSystemLog("Code de validation erroné. Veuillez saisir les 4 chiffres corrects.", "danger");
-      return;
-    }
+  const enteredCode = verificationCodes[offreId] || "";
+  const insertedReserves = reservesInputs[offreId] || "";
 
-    const insertedReserves = reservesInputs[offreId] || "";
+  const offerIdNum = Number(offreId);
+  if (!Number.isFinite(offerIdNum)) {
+    triggerSystemLog("Identifiant d'offre invalide.", "danger");
+    return;
+  }
+
+  try {
+    const { confirmDelivery } = await import("./lib/freightOffers");
+
+    await confirmDelivery({
+      offerId: offerIdNum,
+      code: enteredCode,
+      reserves: insertedReserves || undefined,
+    });
 
     const updated = offres.map(o => {
       if (o.id === offreId) {
-        return { 
-          ...o, 
-          status: OffreStatus.Valide,
-          reserves: insertedReserves ? insertedReserves : undefined
+        return {
+          ...o,
+          status: OffreStatus.Decharge,
+          reservesLivraison: insertedReserves ? insertedReserves : undefined,
         };
       }
       return o;
     });
 
-    // On passe aussi la facture liée comme "Facture transmise" automatiquement
-    const updatedFactures = factures.map(f => {
-      if (f.offreId === offreId) {
-        return { ...f, status: FactureStatus.Transmise };
-      }
-      return f;
-    });
+    saveState(undefined, undefined, updated);
 
-    saveState(undefined, undefined, updated, undefined, updatedFactures);
     triggerSystemLog(
-      insertedReserves 
-        ? "Prestation clôturée avec réserves écrites enregistrées. Facture émise !" 
-        : "Prestation clôturée avec succès en parfait état ! Facturation générée.", 
+      insertedReserves
+        ? "Livraison confirmée avec réserves écrites enregistrées."
+        : "Livraison confirmée avec succès en parfait état !",
       "success"
     );
-  };
+  } catch (error) {
+    console.error("[NETLOG] Erreur confirmation livraison :", error);
+
+    triggerSystemLog(
+      error instanceof Error
+        ? error.message
+        : "Échec de la confirmation de livraison.",
+      "danger"
+    );
+  }
+};
 
   // Payer une facture
   const handlePayInvoice = (factureId: string, mode: ReglementMode) => {
