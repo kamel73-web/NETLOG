@@ -1220,7 +1220,31 @@ export default function App() {
       }
       raisonSociale = regManRaisonSociale.trim();
       nrc = regManRC.trim();
-      input.typesEngins = regManTypesEngins.join(", ");
+           input.typesEngins = regManTypesEngins.join(", ");
+      input.wilayaActivite = regManWilayaActivite;
+    } else if (regProfil === ProfileType.Commissionnaire) {
+      if (!regManRaisonSociale.trim()) {
+        triggerSystemLog("Raison sociale obligatoire pour les commissionnaires", "danger");
+        return;
+      }
+      if (!regManRC.trim()) {
+        triggerSystemLog("Numéro d'inscription RC obligatoire pour les commissionnaires", "danger");
+        return;
+      }
+      raisonSociale = regManRaisonSociale.trim();
+      nrc = regManRC.trim();
+      input.wilayaActivite = regManWilayaActivite;
+    } else if (regProfil === ProfileType.Stockage) {
+      if (!regManRaisonSociale.trim()) {
+        triggerSystemLog("Raison sociale obligatoire pour l'espace de stockage", "danger");
+        return;
+      }
+      if (!regManRC.trim()) {
+        triggerSystemLog("Numéro d'inscription RC obligatoire pour l'espace de stockage", "danger");
+        return;
+      }
+      raisonSociale = regManRaisonSociale.trim();
+      nrc = regManRC.trim();
       input.wilayaActivite = regManWilayaActivite;
     }
 
@@ -3296,7 +3320,71 @@ export default function App() {
                               </div>
                             </div>
                           </div>
+                            {/* Option 4: Commissionnaire */}
+                            <div
+                              onClick={() => setRegProfil(ProfileType.Commissionnaire)}
+                              className={`p-3 rounded-2xl border-2 transition-all flex items-center gap-3 cursor-pointer ${
+                                regProfil === ProfileType.Commissionnaire
+                                  ? "border-[#1D9E75] bg-[#E1F5EE]/40"
+                                  : "border-slate-100 bg-slate-50/60 hover:border-slate-200"
+                              }`}
+                            >
+                              <span className="text-2xl pt-1">📋</span>
+                              <div className="flex-1">
+                                <strong className="text-xs text-slate-850 block font-extrabold">
+                                  {lang === "ar" ? "وكيل شحن / مندوب نقل" : "Commissionnaire"}
+                                </strong>
+                                <span className="text-[10px] text-slate-500 font-semibold block">
+                                  {lang === "ar"
+                                    ? "منظم نقل ووسيط شحن معتمد."
+                                    : "Organisateur de transport, commissionnaire de fret agréé."}
+                                </span>
+                              </div>
+                            </div>
 
+                            {/* Option 5: Manutentionnaire */}
+                            <div
+                              onClick={() => setRegProfil(ProfileType.Manutentionnaire)}
+                              className={`p-3 rounded-2xl border-2 transition-all flex items-center gap-3 cursor-pointer ${
+                                regProfil === ProfileType.Manutentionnaire
+                                  ? "border-[#1D9E75] bg-[#E1F5EE]/40"
+                                  : "border-slate-100 bg-slate-50/60 hover:border-slate-200"
+                              }`}
+                            >
+                              <span className="text-2xl pt-1">🏗️</span>
+                              <div className="flex-1">
+                                <strong className="text-xs text-slate-850 block font-extrabold">
+                                  {lang === "ar" ? "مناولة" : "Manutentionnaire"}
+                                </strong>
+                                <span className="text-[10px] text-slate-500 font-semibold block">
+                                  {lang === "ar"
+                                    ? "رافعات، رافعات شوكية، معدات مناولة."
+                                    : "Grues, chariots élévateurs, engins de manutention."}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Option 6: Stockage */}
+                            <div
+                              onClick={() => setRegProfil(ProfileType.Stockage)}
+                              className={`p-3 rounded-2xl border-2 transition-all flex items-center gap-3 cursor-pointer ${
+                                regProfil === ProfileType.Stockage
+                                  ? "border-[#1D9E75] bg-[#E1F5EE]/40"
+                                  : "border-slate-100 bg-slate-50/60 hover:border-slate-200"
+                              }`}
+                            >
+                              <span className="text-2xl pt-1">🏢</span>
+                              <div className="flex-1">
+                                <strong className="text-xs text-slate-850 block font-extrabold">
+                                  {lang === "ar" ? "مساحة تخزين" : "Espace de stockage"}
+                                </strong>
+                                <span className="text-[10px] text-slate-500 font-semibold block">
+                                  {lang === "ar"
+                                    ? "مستودعات ومنصات تخزين."
+                                    : "Entrepôts, dépôts, plateformes de stockage."}
+                                </span>
+                              </div>
+                            </div>
                           <button
                             onClick={() => setRegStep(2)}
                             className="w-full py-3 bg-[#1D9E75] hover:bg-[#085041] text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md mt-2 cursor-pointer"
@@ -7618,11 +7706,12 @@ export default function App() {
                   </div>
                 )}
 
-                {regProfil === ProfileType.Manutentionnaire && (
-                  <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-100">
-                    <span className="text-[10px] font-extrabold text-[#085041] uppercase tracking-wide block mb-2 border-b pb-1">
-                      🏗️ Informations d'activité de manutention
-                    </span>
+                {(regProfil === ProfileType.Manutentionnaire
+  || regProfil === ProfileType.Commissionnaire
+  || regProfil === ProfileType.Stockage) && (
+  <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-100">
+    <span className="text-[10px] font-extrabold text-[#085041] uppercase tracking-wide block mb-2 border-b pb-1">
+      🏗️ Informations d'activité
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                       <div>
