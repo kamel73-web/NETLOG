@@ -1,5 +1,5 @@
-import { supabase } from './supabase';
-import { createMissionFromProposal } from './missions';
+import { supabase } from "./supabase";
+import { createMissionFromProposal } from "./missions";
 
 export interface CreateFreightOfferInput {
   wilayaDepart: number;
@@ -16,21 +16,21 @@ export interface CreateFreightOfferInput {
   poidsKg?: number;
   typeMarchandise?: string;
   prixPropose: number;
-  paymentMethod: 'cash' | 'satim' | 'cib' | 'baridimob';
+  paymentMethod: "cash" | "satim" | "cib" | "baridimob";
   dateEnlevementSouhaitee?: string;
   typeMoyenExige?: string;
   nombreVoyages?: number;
 }
 
 export async function createFreightOffer(input: CreateFreightOfferInput) {
-  console.log('[NETLOG] createFreightOffer() appelé', input);
+  console.log("[NETLOG] createFreightOffer() appelé", input);
 
   const {
     data: { session },
     error: sessionError,
   } = await supabase.auth.getSession();
 
-  console.log('[NETLOG] Session Supabase', {
+  console.log("[NETLOG] Session Supabase", {
     hasSession: !!session,
     userId: session?.user?.id ?? null,
     sessionError: sessionError?.message ?? null,
@@ -38,7 +38,7 @@ export async function createFreightOffer(input: CreateFreightOfferInput) {
 
   if (sessionError) {
     throw new Error(
-      `Erreur récupération session Supabase : ${sessionError.message}`
+      `Erreur récupération session Supabase : ${sessionError.message}`,
     );
   }
 
@@ -46,7 +46,7 @@ export async function createFreightOffer(input: CreateFreightOfferInput) {
 
   if (!userId) {
     throw new Error(
-      'Utilisateur non authentifié dans Supabase. La session est absente.'
+      "Utilisateur non authentifié dans Supabase. La session est absente.",
     );
   }
 
@@ -72,15 +72,15 @@ export async function createFreightOffer(input: CreateFreightOfferInput) {
     nombre_voyages: input.nombreVoyages,
   };
 
-  console.log('[NETLOG] INSERT freight_offers', payload);
+  console.log("[NETLOG] INSERT freight_offers", payload);
 
   const { data, error } = await supabase
-    .from('freight_offers')
+    .from("freight_offers")
     .insert(payload)
     .select()
     .single();
 
-  console.log('[NETLOG] Résultat INSERT freight_offers', {
+  console.log("[NETLOG] Résultat INSERT freight_offers", {
     data,
     error: error
       ? {
@@ -95,42 +95,38 @@ export async function createFreightOffer(input: CreateFreightOfferInput) {
   if (error) {
     throw new Error(
       `Création offre échouée : ${error.message}${
-        error.details ? ` — ${error.details}` : ''
-      }`
+        error.details ? ` — ${error.details}` : ""
+      }`,
     );
   }
 
   if (!data) {
     throw new Error(
-      "Création offre échouée : Supabase n'a retourné aucune donnée."
+      "Création offre échouée : Supabase n'a retourné aucune donnée.",
     );
   }
 
   return data;
 }
 
-export async function listOpenOffers(filters?: {
-  wilayaDepart?: number;
-}) {
+export async function listOpenOffers(filters?: { wilayaDepart?: number }) {
   let query = supabase
-    .from('freight_offers')
+    .from("freight_offers")
     .select(
-      'id, wilaya_depart, wilaya_arrivee, point_repere_depart, point_repere_arrivee, poids_kg, prix_propose, payment_method, date_enlevement_souhaitee, created_at'
+      "id, wilaya_depart, wilaya_arrivee, point_repere_depart, point_repere_arrivee, poids_kg, prix_propose, payment_method, date_enlevement_souhaitee, created_at",
     )
-    .eq('status', 'ouverte')
-    .order('created_at', { ascending: false })
+    .eq("status", "ouverte")
+    .order("created_at", { ascending: false })
     .limit(50);
 
   if (filters?.wilayaDepart) {
-    query = query.eq('wilaya_depart', filters.wilayaDepart);
+    query = query.eq("wilaya_depart", filters.wilayaDepart);
   }
 
   const { data, error } = await query;
 
   if (error) {
-    throw new Error(
-      `Chargement des offres échoué: ${error.message}`
-    );
+    throw new Error(`Chargement des offres échoué: ${error.message}`);
   }
 
   return data;
@@ -158,7 +154,7 @@ export async function createVehicle(input: CreateVehicleInput) {
 
   if (!userId) {
     throw new Error(
-      'Utilisateur non authentifié dans Supabase. La session est absente.'
+      "Utilisateur non authentifié dans Supabase. La session est absente.",
     );
   }
 
@@ -171,29 +167,25 @@ export async function createVehicle(input: CreateVehicleInput) {
     is_available: input.isAvailable ?? true,
   };
 
-  console.log('[NETLOG] INSERT vehicles', payload);
+  console.log("[NETLOG] INSERT vehicles", payload);
 
   const { data, error } = await supabase
-    .from('vehicles')
+    .from("vehicles")
     .insert(payload)
     .select()
     .single();
 
-  console.log('[NETLOG] Résultat INSERT vehicles', {
+  console.log("[NETLOG] Résultat INSERT vehicles", {
     data,
     error,
   });
 
   if (error) {
-    throw new Error(
-      `Création véhicule échouée: ${error.message}`
-    );
+    throw new Error(`Création véhicule échouée: ${error.message}`);
   }
 
   if (!data) {
-    throw new Error(
-      'Véhicule: aucune donnée retournée'
-    );
+    throw new Error("Véhicule: aucune donnée retournée");
   }
 
   return data;
@@ -219,7 +211,7 @@ export async function submitProposal(params: {
 
   if (!userId) {
     throw new Error(
-      'Utilisateur non authentifié dans Supabase. La session est absente.'
+      "Utilisateur non authentifié dans Supabase. La session est absente.",
     );
   }
 
@@ -232,29 +224,25 @@ export async function submitProposal(params: {
     message: params.message,
   };
 
-  console.log('[NETLOG] INSERT proposals', payload);
+  console.log("[NETLOG] INSERT proposals", payload);
 
   const { data, error } = await supabase
-    .from('proposals')
+    .from("proposals")
     .insert(payload)
     .select()
     .single();
 
-  console.log('[NETLOG] Résultat INSERT proposals', {
+  console.log("[NETLOG] Résultat INSERT proposals", {
     data,
     error,
   });
 
   if (error) {
-    throw new Error(
-      `Envoi de la proposition échoué: ${error.message}`
-    );
+    throw new Error(`Envoi de la proposition échoué: ${error.message}`);
   }
 
   if (!data) {
-    throw new Error(
-      'Proposition: aucune donnée retournée'
-    );
+    throw new Error("Proposition: aucune donnée retournée");
   }
 
   return data;
@@ -273,30 +261,26 @@ export async function acceptProposal(params: {
   offerId: number;
   proposalId: number;
 }) {
-  console.log('[NETLOG] acceptProposal', params);
+  console.log("[NETLOG] acceptProposal", params);
 
   // ============================================================
   // 1. Charger la proposition sélectionnée
   // ============================================================
 
   const { data: prop, error: propLoadError } = await supabase
-    .from('proposals')
-    .select(
-      'id, offer_id, transporteur_id, vehicle_id, chauffeur_id'
-    )
-    .eq('id', params.proposalId)
-    .eq('offer_id', params.offerId)
+    .from("proposals")
+    .select("id, offer_id, transporteur_id, vehicle_id, chauffeur_id")
+    .eq("id", params.proposalId)
+    .eq("offer_id", params.offerId)
     .single();
 
   if (propLoadError || !prop) {
     throw new Error(
-      `Proposition introuvable: ${
-        propLoadError?.message ?? 'sans données'
-      }`
+      `Proposition introuvable: ${propLoadError?.message ?? "sans données"}`,
     );
   }
 
-  console.log('[NETLOG] Proposition sélectionnée', prop);
+  console.log("[NETLOG] Proposition sélectionnée", prop);
 
   // ============================================================
   // 2. Vérification de cohérence
@@ -304,13 +288,13 @@ export async function acceptProposal(params: {
 
   if (Number(prop.offer_id) !== Number(params.offerId)) {
     throw new Error(
-      "La proposition sélectionnée n'appartient pas à cette offre."
+      "La proposition sélectionnée n'appartient pas à cette offre.",
     );
   }
 
   if (!prop.transporteur_id) {
     throw new Error(
-      'La proposition sélectionnée ne possède aucun transporteur.'
+      "La proposition sélectionnée ne possède aucun transporteur.",
     );
   }
 
@@ -319,68 +303,23 @@ export async function acceptProposal(params: {
   // ============================================================
 
   const { data: currentOffer, error: offerLoadError } = await supabase
-    .from('freight_offers')
-    .select('id, status')
-    .eq('id', params.offerId)
+    .from("freight_offers")
+    .select("id, status")
+    .eq("id", params.offerId)
     .single();
 
   if (offerLoadError || !currentOffer) {
     throw new Error(
-      `Offre introuvable: ${
-        offerLoadError?.message ?? 'sans données'
-      }`
+      `Offre introuvable: ${offerLoadError?.message ?? "sans données"}`,
     );
   }
 
-    if (currentOffer.status !== 'ouverte') {
+  if (currentOffer.status !== "ouverte") {
     throw new Error(
-      `Cette offre ne peut plus être attribuée. Statut actuel: ${currentOffer.status}`
-    );
-  }
-export async function confirmDelivery(params: {
-  offerId: number;
-  code: string;
-  reserves?: string;
-}) {
-  const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
-
-  if (sessionError) {
-    throw new Error(`Session: ${sessionError.message}`);
-  }
-
-  if (!session?.user?.id) {
-    throw new Error(
-      'Utilisateur non authentifié dans Supabase. La session est absente.'
+      `Cette offre ne peut plus être attribuée. Statut actuel: ${currentOffer.status}`,
     );
   }
 
-  console.log('[NETLOG] RPC confirm_delivery', params);
-
-  const { data, error } = await supabase.rpc('confirm_delivery', {
-    p_offer_id: params.offerId,
-    p_code: params.code,
-    p_reserves: params.reserves ?? null,
-  });
-
-  console.log('[NETLOG] Résultat RPC confirm_delivery', { data, error });
-
-  if (error) {
-    throw new Error(
-      `Confirmation de livraison échouée : ${error.message}`
-    );
-  }
-
-  if (!data) {
-    throw new Error(
-      "Confirmation de livraison échouée : Supabase n'a retourné aucune donnée."
-    );
-  }
-
-  return data;
-}
   // ============================================================
   // 4. Attribuer l'offre au transporteur
   //
@@ -390,28 +329,24 @@ export async function confirmDelivery(params: {
   // ============================================================
 
   const { data: updatedOffer, error: offerError } = await supabase
-    .from('freight_offers')
+    .from("freight_offers")
     .update({
-      status: 'attribuee',
+      status: "attribuee",
       transporteur_id: prop.transporteur_id,
     })
-    .eq('id', params.offerId)
+    .eq("id", params.offerId)
     .select()
     .single();
 
   if (offerError) {
-    throw new Error(
-      `Mise à jour de l'offre échouée: ${offerError.message}`
-    );
+    throw new Error(`Mise à jour de l'offre échouée: ${offerError.message}`);
   }
 
   if (!updatedOffer) {
-    throw new Error(
-      "Mise à jour de l'offre échouée: aucune offre retournée."
-    );
+    throw new Error("Mise à jour de l'offre échouée: aucune offre retournée.");
   }
 
-  console.log('[NETLOG] Offre attribuée', {
+  console.log("[NETLOG] Offre attribuée", {
     offerId: params.offerId,
     transporteurId: prop.transporteur_id,
   });
@@ -421,16 +356,16 @@ export async function confirmDelivery(params: {
   // ============================================================
 
   const { error: proposalError } = await supabase
-    .from('proposals')
+    .from("proposals")
     .update({
-      status: 'acceptee',
+      status: "acceptee",
     })
-    .eq('id', params.proposalId)
-    .eq('offer_id', params.offerId);
+    .eq("id", params.proposalId)
+    .eq("offer_id", params.offerId);
 
   if (proposalError) {
     throw new Error(
-      `Mise à jour de la proposition échouée: ${proposalError.message}`
+      `Mise à jour de la proposition échouée: ${proposalError.message}`,
     );
   }
 
@@ -439,24 +374,23 @@ export async function confirmDelivery(params: {
   // ============================================================
 
   const { error: rejectError } = await supabase
-    .from('proposals')
+    .from("proposals")
     .update({
-      status: 'refusee',
+      status: "refusee",
     })
-    .eq('offer_id', params.offerId)
-    .neq('id', params.proposalId);
+    .eq("offer_id", params.offerId)
+    .neq("id", params.proposalId);
 
   if (rejectError) {
     console.warn(
-      '[NETLOG] Refus des autres propositions:',
-      rejectError.message
+      "[NETLOG] Refus des autres propositions:",
+      rejectError.message,
     );
   }
 
   // ============================================================
   // 7. Journalisation finale
   // ============================================================
-
 
   // Créer la mission terrain (source de vérité chargement/déchargement)
   try {
@@ -467,10 +401,13 @@ export async function confirmDelivery(params: {
       chauffeurId: prop.chauffeur_id ?? null,
     });
   } catch (missionErr: any) {
-    console.warn('[NETLOG] createMissionFromProposal:', missionErr?.message ?? missionErr);
+    console.warn(
+      "[NETLOG] createMissionFromProposal:",
+      missionErr?.message ?? missionErr,
+    );
   }
 
-  console.log('[NETLOG] acceptProposal OK', {
+  console.log("[NETLOG] acceptProposal OK", {
     offerId: params.offerId,
     proposalId: params.proposalId,
     transporteur_id: prop.transporteur_id,
@@ -490,7 +427,50 @@ export async function confirmDelivery(params: {
       transporteur_id: prop.transporteur_id,
       vehicle_id: prop.vehicle_id ?? null,
       chauffeur_id: prop.chauffeur_id ?? null,
-      status: 'acceptee',
+      status: "acceptee",
     },
   };
 }
+
+export async function confirmDelivery(params: {
+    offerId: number;
+    code: string;
+    reserves?: string;
+  }) {
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError) {
+      throw new Error(`Session: ${sessionError.message}`);
+    }
+
+    if (!session?.user?.id) {
+      throw new Error(
+        "Utilisateur non authentifié dans Supabase. La session est absente.",
+      );
+    }
+
+    console.log("[NETLOG] RPC confirm_delivery", params);
+
+    const { data, error } = await supabase.rpc("confirm_delivery", {
+      p_offer_id: params.offerId,
+      p_code: params.code,
+      p_reserves: params.reserves ?? null,
+    });
+
+    console.log("[NETLOG] Résultat RPC confirm_delivery", { data, error });
+
+    if (error) {
+      throw new Error(`Confirmation de livraison échouée : ${error.message}`);
+    }
+
+    if (!data) {
+      throw new Error(
+        "Confirmation de livraison échouée : Supabase n'a retourné aucune donnée.",
+      );
+    }
+
+    return data;
+  }
