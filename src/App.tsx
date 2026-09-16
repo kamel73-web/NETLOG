@@ -3439,9 +3439,25 @@ export default function App() {
                                     ? lang === "ar"
                                       ? "🚛 ناقل بري محترف"
                                       : "🚛 Transporteur Routier"
-                                    : lang === "ar"
-                                      ? "💼 وكيل تجاري"
-                                      : "💼 Agent Commercial"}
+                                    : regProfil === ProfileType.Commercial
+                                      ? lang === "ar"
+                                        ? "💼 وكيل تجاري"
+                                        : "💼 Agent Commercial"
+                                      : regProfil ===
+                                          ProfileType.Commissionnaire
+                                        ? lang === "ar"
+                                          ? "📋 مندوب شحن"
+                                          : "📋 Commissionnaire"
+                                        : regProfil ===
+                                            ProfileType.Manutentionnaire
+                                          ? lang === "ar"
+                                            ? "🏗️ مناولة"
+                                            : "🏗️ Manutentionnaire"
+                                          : regProfil === ProfileType.Stockage
+                                            ? lang === "ar"
+                                              ? "🏢 مساحة تخزين"
+                                              : "🏢 Espace de stockage"
+                                            : String(regProfil)}
                               </strong>
                             </div>
                             <button
@@ -4094,6 +4110,67 @@ export default function App() {
                                     className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700"
                                   />
                                 </div>
+                              </div>
+                            </div>
+                          )}
+                          {(regProfil === ProfileType.Manutentionnaire ||
+                            regProfil === ProfileType.Commissionnaire ||
+                            regProfil === ProfileType.Stockage) && (
+                            <div className="space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                              <span className="text-[10px] font-black text-slate-450 uppercase tracking-widest block border-b pb-1">
+                                {lang === "ar"
+                                  ? "معلومات النشاط"
+                                  : "Informations d'activité"}
+                              </span>
+                              <div className="grid grid-cols-2 gap-2.5">
+                                <div>
+                                  <label className="block text-[10px] text-slate-500 mb-0.5">
+                                    Raison sociale *
+                                  </label>
+                                  <input
+                                    type="text"
+                                    required
+                                    placeholder="ex: Manutention Alger SARL"
+                                    value={regManRaisonSociale}
+                                    onChange={(e) =>
+                                      setRegManRaisonSociale(e.target.value)
+                                    }
+                                    className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] text-slate-500 mb-0.5">
+                                    N° RC *
+                                  </label>
+                                  <input
+                                    type="text"
+                                    required
+                                    placeholder="16/00-XXXXXXX"
+                                    value={regManRC}
+                                    onChange={(e) =>
+                                      setRegManRC(e.target.value)
+                                    }
+                                    className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700"
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-[10px] text-slate-500 mb-0.5">
+                                  Wilaya d'activité *
+                                </label>
+                                <select
+                                  value={regManWilayaActivite}
+                                  onChange={(e) =>
+                                    setRegManWilayaActivite(e.target.value)
+                                  }
+                                  className="w-full px-2 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 cursor-pointer"
+                                >
+                                  {WILAYAS.map((w) => (
+                                    <option key={w.code} value={w.fr}>
+                                      {lang === "ar" ? w.ar : w.fr}
+                                    </option>
+                                  ))}
+                                </select>
                               </div>
                             </div>
                           )}
