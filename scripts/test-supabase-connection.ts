@@ -1,14 +1,12 @@
-import dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' });
 import { createClient } from '@supabase/supabase-js';
 
-// Ce script tourne via tsx, en dehors du contexte Vite : import.meta.env
-// n'existe pas ici, il faut lire process.env chargé par dotenv depuis .env.local.
+// Le script tourne via tsx, en dehors de Vite.
+// Les variables sont fournies par l'environnement Replit.
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error('❌ Variables manquantes. Vérifie VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY dans .env.local');
+  console.error('❌ Variables manquantes. Vérifie les Secrets Replit VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY.');
   process.exit(1);
 }
 
