@@ -1345,7 +1345,6 @@ export default function App() {
       prixFixe: formPrixFixe ? Number(formPrixFixe) : undefined,
       commentaire: formCommentaire,
       status: OffreStatus.Publie,
-      codeConfirmation: randomCode,
       dateCreation: new Date().toISOString(),
     };
 
@@ -5208,7 +5207,6 @@ export default function App() {
                                 nombreVoyages: 1,
                                 prixFixe: 125000,
                                 status: OffreStatus.Publie,
-                                codeConfirmation: "8899",
                                 dateCreation: new Date()
                                   .toISOString()
                                   .split("T")[0],
@@ -5561,9 +5559,6 @@ export default function App() {
                     commentaire:
                       pubCommentaire ||
                       "Acheminement rapide conforme aux normes NETLOG d'Algérie.",
-                    codeConfirmation: String(
-                      Math.floor(1000 + Math.random() * 9000),
-                    ),
                     dateCreation: new Date().toISOString(),
                   };
 
@@ -5946,7 +5941,6 @@ export default function App() {
                         moyenExige: MoyenType.Tautliner,
                         nombreVoyages: 1,
                         status: OffreStatus.Valide,
-                        codeConfirmation: "0000",
                         dateCreation: new Date().toISOString(),
                         prixFixe: finalPrice,
                       },
@@ -6935,9 +6929,6 @@ export default function App() {
                       <div className="text-slate-500 text-[10px] leading-tight mt-0.5">
                         {trackedOffre.arriveeDetails || "Zone Industrielle"}
                       </div>
-                      <div className="text-[#1D9E75] font-black text-[9px] mt-1.5 uppercase">
-                        CODE OTP VAL: {trackedOffre.codeConfirmation}
-                      </div>
                     </div>
                   </div>
 
@@ -7082,10 +7073,6 @@ export default function App() {
                             ? `Cette expédition a été dûment déchargée avec les réserves suivantes : "${trackedOffre.reserves}".`
                             : "Le déchargement à quai s'est déroulé en parfaite conformité, sans aucune réserve formulée."}
                         </p>
-                        <div className="text-[10px] font-mono text-slate-500 font-semibold pt-1 border-t border-emerald-200/50 text-center">
-                          Code d'authentification numérique unique :{" "}
-                          {trackedOffre.codeConfirmation}-OK
-                        </div>
                       </div>
                     )}
                   </div>

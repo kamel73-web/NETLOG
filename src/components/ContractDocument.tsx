@@ -493,7 +493,6 @@ export default function ContractDocument({
                         ) : (
                           <>
                             <span className="text-[9.5px] font-black text-emerald-600 not-italic uppercase tracking-wide">✅ Acquitté sans réserves</span>
-                            <span className="text-[8px] font-mono text-slate-400 not-italic">Code validation OK : {offre?.codeConfirmation || "4281"}</span>
                           </>
                         )}
                       </div>

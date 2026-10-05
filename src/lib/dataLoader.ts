@@ -89,7 +89,6 @@ export async function loadFreightOffers(): Promise<OffreFret[]> {
           annulee: OffreStatus.Valide,
         } as any
       )[o.status] ?? OffreStatus.Publie,
-    codeConfirmation: o.code_confirmation ?? "0000",
     contratLogistiquePath: o.contrat_logistique_path ?? undefined,
     reserves: o.reserves ?? undefined,
     reservesChargement: o.reserves_chargement ?? undefined,

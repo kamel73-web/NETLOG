@@ -261,7 +261,6 @@ export default function DonneurDashboard({
     }
 
     let insertedId: string;
-    let codeConfirmation: string;
     try {
       const inserted = await createFreightOffer({
         wilayaDepart,
@@ -278,7 +277,6 @@ export default function DonneurDashboard({
         nombreVoyages: Number(formNombreVoyages) || 1,
       });
       insertedId = String(inserted.id);
-      codeConfirmation = inserted.code_confirmation ?? String(Math.floor(1000 + Math.random() * 9000));
     } catch (err: any) {
       triggerSystemLog(`Échec de la publication : ${err?.message ?? "erreur inconnue"}`, "danger");
       return;
@@ -320,7 +318,6 @@ export default function DonneurDashboard({
       bonCommande: formBonCommande,
       commentaire,
       status: OffreStatus.Publie,
-      codeConfirmation,
       dateCreation: new Date().toISOString().split("T")[0],
     };
 

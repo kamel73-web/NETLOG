@@ -260,10 +260,6 @@ export default function TransporteurDashboard({
     currentUser?.wilaya || "Alger",
   );
 
-  const [verificationCodes, setVerificationCodes] = useState<
-    Record<string, string>
-  >({});
-
   // --- ÉTATS GESTION DE FACTURATION MUTLI-MISSIONS ---
   const [selectedMissionsForInvoice, setSelectedMissionsForInvoice] = useState<
     string[]
@@ -366,7 +362,6 @@ export default function TransporteurDashboard({
       prixFixe: Math.floor(65000 + Math.random() * 40000),
       status: OffreStatus.Valide,
       contratLogistiquePath: "/docs/contrat_routier.pdf",
-      codeConfirmation: String(Math.floor(1000 + Math.random() * 9000)),
       dateCreation: new Date().toISOString(),
     };
 

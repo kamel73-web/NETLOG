@@ -218,7 +218,6 @@ export interface OffreFret {
   transporteurRaisonSociale?: string; // Optionnel raison sociale du transporteur assigné
   chauffeurId?: string; // Chauffeur affecté par le transporteur
   chauffeurSignaleProbleme?: string; // Tout problème signalé par le chauffeur au transporteur
-  codeConfirmation: string; // Code de confirmation à 4 chiffres à donner au déchargement
   dateCreation: string;
 }
 

@@ -154,7 +154,6 @@ export const MOCK_OFFRES: OffreFret[] = [
     prixFixe: 85000,
     commentaire: "Transport de ciment en sacs sur palettes.",
     status: OffreStatus.Publie,
-    codeConfirmation: "8820",
     dateCreation: "2026-05-25T08:00:00Z"
   },
   {
@@ -174,7 +173,6 @@ export const MOCK_OFFRES: OffreFret[] = [
     nombreVoyages: 1,
     commentaire: "Produits laitiers et boissons au frais.",
     status: OffreStatus.Publie,
-    codeConfirmation: "1099",
     dateCreation: "2026-05-25T08:05:00Z"
   },
   {
@@ -195,7 +193,6 @@ export const MOCK_OFFRES: OffreFret[] = [
     prixFixe: 45000,
     commentaire: "Châssis porte-conteneur exigé.",
     status: OffreStatus.Publie,
-    codeConfirmation: "3015",
     dateCreation: "2026-05-25T08:10:00Z"
   },
   {
@@ -216,7 +213,6 @@ export const MOCK_OFFRES: OffreFret[] = [
     prixFixe: 70000,
     commentaire: "Camion benne obligatoire.",
     status: OffreStatus.Publie,
-    codeConfirmation: "4509",
     dateCreation: "2026-05-25T08:15:00Z"
   },
   {
@@ -237,7 +233,6 @@ export const MOCK_OFFRES: OffreFret[] = [
     prixFixe: 95000,
     commentaire: "Tubes d'acier longs de 12 mètres.",
     status: OffreStatus.Publie,
-    codeConfirmation: "5201",
     dateCreation: "2026-05-25T08:20:00Z"
   },
   {
@@ -258,7 +253,6 @@ export const MOCK_OFFRES: OffreFret[] = [
     prixFixe: 30000,
     commentaire: "Bouteilles d'huile emballées sous film étirable.",
     status: OffreStatus.Publie,
-    codeConfirmation: "6102",
     dateCreation: "2026-05-25T08:25:00Z"
   },
   {
@@ -279,7 +273,6 @@ export const MOCK_OFFRES: OffreFret[] = [
     prixFixe: 120000,
     commentaire: "Appareils sensibles sous carton.",
     status: OffreStatus.Publie,
-    codeConfirmation: "7044",
     dateCreation: "2026-05-25T08:30:00Z"
   },
   {
@@ -300,7 +293,6 @@ export const MOCK_OFFRES: OffreFret[] = [
     prixFixe: 180000,
     commentaire: "Pièces de rechange pour derrick de forage.",
     status: OffreStatus.Publie,
-    codeConfirmation: "8522",
     dateCreation: "2026-05-25T08:35:00Z"
   },
   {
@@ -321,7 +313,6 @@ export const MOCK_OFFRES: OffreFret[] = [
     prixFixe: 25000,
     commentaire: "Maintien de la chaîne du froid à 4°C obligatoire.",
     status: OffreStatus.Publie,
-    codeConfirmation: "9001",
     dateCreation: "2026-05-25T08:40:00Z"
   },
   {
@@ -342,7 +333,6 @@ export const MOCK_OFFRES: OffreFret[] = [
     prixFixe: 40000,
     commentaire: "Orange de saison en caissettes bois.",
     status: OffreStatus.Publie,
-    codeConfirmation: "1055",
     dateCreation: "2026-05-25T08:45:00Z"
   }
 ];
