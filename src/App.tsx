@@ -610,10 +610,6 @@ export default function App() {
   const [trackerReserves, setTrackerReserves] = useState<string>("");
   const [trackerNoReserves, setTrackerNoReserves] = useState<boolean>(true);
 
-  // Code de confirmation déchargement saisi
-  const [verificationCodes, setVerificationCodes] = useState<{
-    [key: string]: string;
-  }>({});
   const [reservesInputs, setReservesInputs] = useState<{
     [key: string]: string;
   }>({});
@@ -1679,13 +1675,11 @@ export default function App() {
     }
   };
 
-  // Clôturer la livraison via le Code Unique de Confirmation (+ gestion des réserves)
-  // Clôturer la livraison via le Code Unique de Confirmation (+ gestion des réserves)
+  // Confirmer la livraison côté donneur d'ordre avec gestion des réserves.
   const handleConfirmDelivery = async (offreId: string) => {
     const target = offres.find((o) => o.id === offreId);
     if (!target) return;
 
-    const enteredCode = verificationCodes[offreId] || "";
     const insertedReserves = reservesInputs[offreId] || "";
 
     const offerIdNum = Number(offreId);
@@ -1699,7 +1693,6 @@ export default function App() {
 
       await confirmDelivery({
         offerId: offerIdNum,
-        code: enteredCode,
         reserves: insertedReserves || undefined,
       });
 

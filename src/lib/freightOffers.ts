@@ -434,7 +434,6 @@ export async function acceptProposal(params: {
 
 export async function confirmDelivery(params: {
     offerId: number;
-    code: string;
     reserves?: string;
   }) {
     const {
@@ -471,13 +470,11 @@ export async function confirmDelivery(params: {
     console.log("[NETLOG] RPC confirm_delivery", {
       offerId: params.offerId,
       missionId: mission.id,
-      hasCode: Boolean(params.code),
       hasReserves: Boolean(params.reserves?.trim()),
     });
 
     const { data, error } = await supabase.rpc("confirm_delivery", {
       p_mission_id: Number(mission.id),
-      p_code: params.code,
       p_reserves: params.reserves ?? null,
     });
 
