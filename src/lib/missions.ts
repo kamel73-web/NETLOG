@@ -85,14 +85,31 @@ export async function validateUnload(missionId: number, reserves?: string) {
 
   if (error) throw new Error(`Validation déchargement échouée: ${error.message}`);
 
-  if (data?.offer_id) {
-    const { error: offerErr } = await supabase
-      .from('freight_offers')
-      .update({ status: 'livree' })
-      .eq('id', data.offer_id);
-    if (offerErr) {
-      console.warn('[NETLOG] sync freight_offers livree:', offerErr.message);
-    }
+  return data;
+}
+
+export async function confirmDelivery(params: {
+  missionId: number;
+  code: string;
+  reserves?: string;
+}) {
+  console.log('[NETLOG] RPC confirm_delivery', params);
+
+  const { data, error } = await supabase.rpc('confirm_delivery', {
+    p_mission_id: params.missionId,
+    p_code: params.code,
+    p_reserves: params.reserves ?? null,
+  });
+
+  console.log('[NETLOG] Résultat RPC confirm_delivery', { data, error });
+
+  if (error) {
+    throw new Error(`Confirmation de livraison échouée : ${error.message}`);
   }
+
+  if (!data) {
+    throw new Error("Confirmation de livraison échouée : aucune donnée retournée.");
+  }
+
   return data;
 }

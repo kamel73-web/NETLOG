@@ -20,7 +20,7 @@ import {
   acceptProposal,
   createVehicle,
 } from "./lib/freightOffers";
-import { loadAppData, loadProfiles, type CommuneRow } from "./lib/dataLoader";
+import { loadAppData, loadProfiles, type CommuneRow, type MissionRow } from "./lib/dataLoader";
 import {
   adaptSupabaseProfile,
   type SupabaseProfileRow,
@@ -376,16 +376,8 @@ export default function App() {
   useEffect(() => {
     stateRef.current = { users, moyens, offres, propositions, factures, devis };
   }, [users, moyens, offres, propositions, factures, devis]);
-
   // Missions & Favorites & Notifications support
-  const [missions, setMissions] = useState<any[]>(() => {
-    try {
-      const saved = localStorage.getItem("netlog_missions");
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [missions, setMissions] = useState<MissionRow[]>([]);
 
   const [favoritedOffres, setFavoritedOffres] = useState<string[]>(() => {
     try {
@@ -731,6 +723,7 @@ export default function App() {
           offers,
           proposals,
           invoices,
+          missions,
           currentUser: supabaseUser,
         }) => {
           setUsers(profiles);
@@ -738,6 +731,7 @@ export default function App() {
           setOffres(offers);
           setPropositions(proposals);
           setFactures(invoices);
+          setMissions(missions);
 
           // Session active : priorité à Supabase, sinon localStorage legacy
           if (supabaseUser) {
@@ -838,10 +832,6 @@ export default function App() {
     }
   };
 
-  const saveMissionsState = (newMissions: any[]) => {
-    setMissions(newMissions);
-    localStorage.setItem("netlog_missions", JSON.stringify(newMissions));
-  };
 
   const saveNotificationsState = (newNotifs: string[]) => {
     setNotifications(newNotifs);
@@ -1057,6 +1047,7 @@ export default function App() {
       setOffres(data.offers);
       setPropositions(data.proposals);
       setFactures(data.invoices);
+      setMissions(data.missions);
     } catch (err) {
       console.error("Erreur rafraîchissement données après connexion:", err);
       triggerSystemLog(
@@ -4782,6 +4773,8 @@ export default function App() {
             {currentTab === "donneur" &&
               currentUser?.profil === ProfileType.DonneurOrdre && (
                 <DonneurDashboard
+                missions={missions}
+                setMissions={setMissions}
                   currentUser={currentUser}
                   setCurrentUser={setCurrentUser}
                   lang={lang}

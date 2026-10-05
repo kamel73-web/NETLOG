@@ -30,7 +30,8 @@ import {
 import { OffreStatus, ProfileType, MoyenType, Facture, FactureStatus, DevisOfficiel } from "../types";
 import DevisModule from "./DevisModule";
 import { createFreightOffer, acceptProposal } from "../lib/freightOffers"
-import { getMissionIdByOfferId, validateLoading, validateUnload } from "../lib/missions";
+import { getMissionIdByOfferId, confirmDelivery, validateLoading, validateUnload } from "../lib/missions";
+import type { MissionRow } from "../lib/dataLoader";
 
 
 function wilayaCodeFromLabel(label: string): number | null {
@@ -73,6 +74,8 @@ interface DonneurDashboardProps {
   translateMoyenType: (moyen: any, lang: string) => string;
   translateMarchandise: (march: any, lang: string) => string;
   setCurrentTab: (tab: string) => void;
+  missions: MissionRow[];
+  setMissions: React.Dispatch<React.SetStateAction<MissionRow[]>>;
 }
 
 export default function DonneurDashboard({
@@ -93,7 +96,9 @@ export default function DonneurDashboard({
   translateCity,
   translateMoyenType,
   translateMarchandise,
-  setCurrentTab
+  setCurrentTab,
+  missions,
+  setMissions
 }: DonneurDashboardProps) {
 
   const [activeSubTab, setActiveSubTab] = useState<"offres" | "missions" | "propositions" | "devis" | "factures" | "compte">("offres");
@@ -457,6 +462,9 @@ export default function DonneurDashboard({
     try {
       const missionId = await getMissionIdByOfferId(offerIdNum);
       await validateLoading(missionId);
+      setMissions(prev =>
+        prev.map(m => (m.offreId === String(offre.id) ? { ...m, status: "en_route" } : m))
+      );
       const updated = offres.map(o =>
         o.id === offre.id ? { ...o, status: OffreStatus.Charge } : o
       );
@@ -471,19 +479,54 @@ export default function DonneurDashboard({
   };
 
   // Helper code validation 
-  const handleValidateDeliveryFinal = () => {
+  const handleValidateDeliveryFinal = async () => {
     if (!activeMissionToValidate) return;
 
+    const offreId = activeMissionToValidate.id;
+    const offerIdNum = Number(offreId);
+    if (!Number.isFinite(offerIdNum)) {
+      triggerSystemLog("Identifiant d'offre invalide.", "danger");
+      return;
+    }
+
+    const reserves =
+      valideConformite !== "conforme"
+        ? `[${valideReservesType}] ${valideReservesDesc}`
+        : undefined;
+
+    let confirmed: any;
+    try {
+      const missionId = await getMissionIdByOfferId(offerIdNum);
+      confirmed = await confirmDelivery({
+        missionId,
+        code: activeMissionToValidate.codeConfirmation,
+        reserves,
+      });
+    } catch (err: any) {
+      triggerSystemLog(err?.message ?? "Échec de la confirmation de livraison.", "danger");
+      return;
+    }
+
+    const row = Array.isArray(confirmed) ? confirmed[0] : confirmed;
+    setMissions(prev =>
+      prev.map(m =>
+        m.offreId === String(offreId)
+          ? {
+              ...m,
+              status: row?.status ?? "cloturee",
+              livraisonConfirmeeAt: row?.livraison_confirmee_at ?? null,
+            }
+          : m
+      )
+    );
+
     const updatedOffres = offres.map(o => {
-      if (o.id === activeMissionToValidate.id) {
-        return { 
-          ...o, 
+      if (o.id === offreId) {
+        return {
+          ...o,
           status: OffreStatus.Valide,
-          reserves: valideConformite !== "conforme" ? `[${valideReservesType}] ${valideReservesDesc}` : undefined,
-          evaluation: {
-            stars: valideRating,
-            comment: valideComment
-          }
+          reserves,
+          evaluation: { stars: valideRating, comment: valideComment },
         };
       }
       return o;
@@ -492,41 +535,13 @@ export default function DonneurDashboard({
     let updatedUsers = users;
     const assignedChauffeurId = activeMissionToValidate.chauffeurId;
     if (assignedChauffeurId) {
-      updatedUsers = users.map(u => {
-        if (u.id === assignedChauffeurId) {
-          return {
-            ...u,
-            disponibiliteChauffeur: "Disponible"
-          };
-        }
-        return u;
-      });
+      updatedUsers = users.map(u =>
+        u.id === assignedChauffeurId ? { ...u, disponibiliteChauffeur: "Disponible" } : u
+      );
     }
 
-    // Auto-generate invoice (FAC)
-    const correspondingProp = propositions.find(p => p.offreId === activeMissionToValidate.id && p.status === "Accepté");
-    const amount = correspondingProp ? correspondingProp.prixPropose : (activeMissionToValidate.prixFixe || 150000);
-    const transporteurId = correspondingProp ? correspondingProp.transporteurId : "user-trans-1";
-
-    const currentYear = new Date().getFullYear();
-    const invoiceSeqNum = String(factures.length + 1).padStart(4, "0");
-    const invoiceId = `FAC-${currentYear}-${invoiceSeqNum}`;
-
-    const newInvoice: Facture = {
-      id: invoiceId,
-      offreId: activeMissionToValidate.id,
-      donneurId: currentUser.id,
-      transporteurId: transporteurId,
-      montant: amount,
-      status: "Facture Transmise" as any, // Adhering to the table check text literal
-      prestation: `Acheminement Fret (Axe : ${activeMissionToValidate.depart} ➔ ${activeMissionToValidate.arrivee})`,
-      dateEmission: new Date().toISOString().split("T")[0],
-    };
-
-    const updatedFactures = [newInvoice, ...(factures || [])];
-
-    saveState(updatedUsers, undefined, updatedOffres, undefined, updatedFactures);
-    triggerSystemLog(`Livraison confirmée pour la mission ${activeMissionToValidate.id}. Facture automatique ${invoiceId} et Lettre de Voiture associées générées.`, "success");
+    saveState(updatedUsers, undefined, updatedOffres);
+    triggerSystemLog(`Livraison confirmée pour la mission ${offreId}.`, "success");
     setShowValideModal(false);
     setActiveMissionToValidate(null);
   };
@@ -1169,14 +1184,31 @@ export default function DonneurDashboard({
               // 1. Attribue = attente_chargement
               // 2. Charge = en_route
               // 3. Decharge = livre / attente_validation
+              // Jalons lus depuis missions.status (source de vérité), repli sur le statut de l'offre
+              const missionRow = missions.find(m => m.offreId === String(mission.id));
+              const ms = missionRow?.status;
               let progressStep = 1;
               let progressPercentage = "25%";
-              if (mission.status === OffreStatus.Charge) {
-                progressStep = 2;
-                progressPercentage = "65%";
-              } else if (mission.status === OffreStatus.Decharge) {
+              if (ms === "cloturee") {
+                progressStep = 4;
+                progressPercentage = "100%";
+              } else if (ms === "livree") {
                 progressStep = 3;
-                progressPercentage = "90%";
+                progressPercentage = "85%";
+              } else if (ms === "en_route" || ms === "en_transit" || ms === "sur_site_livraison") {
+                progressStep = 2;
+                progressPercentage = "55%";
+              } else if (!ms) {
+                if (mission.status === OffreStatus.Valide) {
+                  progressStep = 4;
+                  progressPercentage = "100%";
+                } else if (mission.status === OffreStatus.Decharge) {
+                  progressStep = 3;
+                  progressPercentage = "85%";
+                } else if (mission.status === OffreStatus.Charge) {
+                  progressStep = 2;
+                  progressPercentage = "55%";
+                }
               }
 
               return (
@@ -1198,7 +1230,7 @@ export default function DonneurDashboard({
                     <div className="flex justify-between items-center text-xs font-black text-slate-900 px-1">
                       <span>{translateCity(mission.depart, lang)}</span>
                       <span className="text-[10px] text-emerald-600 font-extrabold font-mono uppercase bg-emerald-50 px-2 py-0.5 rounded-md animate-pulse">
-                        {progressStep === 1 ? "Attente Chargement" : progressStep === 2 ? "En transit" : "Déchargé"}
+                        {progressStep === 1 ? "Attribuée" : progressStep === 2 ? "Chargée / en route" : progressStep === 3 ? "Déchargée" : "Livrée"}
                       </span>
                       <span>{translateCity(mission.arrivee, lang)}</span>
                     </div>
@@ -1254,7 +1286,7 @@ export default function DonneurDashboard({
                       📄 Lettre de voiture (LDV)
                     </button>
 
-                    {mission.status === OffreStatus.Attribue && (
+                    {progressStep === 1 && (
                       <button
                         onClick={() => handleConfirmLoading(mission)}
                         className="flex-1 py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-extrabold transition cursor-pointer text-center"
@@ -1263,8 +1295,9 @@ export default function DonneurDashboard({
                       </button>
                     )}
 
-                    {mission.status === OffreStatus.Charge && (
+                    {(progressStep === 2 || progressStep === 3) && (
                       <>
+                        {progressStep === 3 && (
                         <button
                           onClick={() => {
                             setActiveMissionToValidate(mission);
@@ -1278,6 +1311,7 @@ export default function DonneurDashboard({
                         >
                           ✅ Valider la livraison
                         </button>
+                        )}
                         <button
                           onClick={() => {
                             triggerSystemLog(`Alerte Logistique transmise. Le commercial NETLOG prend contact sous 15 minutes avec le chauffeur ${carrierName}.`, "warning");
@@ -1289,7 +1323,7 @@ export default function DonneurDashboard({
                       </>
                     )}
 
-                    {mission.status === OffreStatus.Valide && (
+                    {progressStep === 4 && (
                       <div className="w-full flex items-center justify-between p-3 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-100 text-[11px] font-bold">
                         <span>✅ Livraison clôturée. Dossier légal archive OK.</span>
                         <span className="font-mono text-[10px] font-black underline cursor-pointer" onClick={() => setActiveSubTab("factures")}>Consulter facture ➔</span>
