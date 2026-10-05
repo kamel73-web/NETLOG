@@ -75,7 +75,6 @@ export default function ChauffeurDashboard({
   const [confirmingOffreId, setConfirmingOffreId] = useState<string | null>(
     null,
   );
-  const [enteredOtpCode, setEnteredOtpCode] = useState("");
 
   // Loading/Unloading Reserves tracking states
   const [loadingConfirmId, setLoadingConfirmId] = useState<string | null>(null);
@@ -225,15 +224,6 @@ export default function ChauffeurDashboard({
     offer: OffreFret,
   ) => {
     e.preventDefault();
-    if (enteredOtpCode.trim() !== offer.codeConfirmation) {
-      triggerSystemLog(
-        lang === "ar"
-          ? "رمز التأكيد غير صحيح"
-          : "Code de confirmation incorrect ! Veuillez demander le bon code au client destinataire.",
-        "danger",
-      );
-      return;
-    }
     const offerIdNum = Number(offer.id);
     if (!Number.isFinite(offerIdNum)) {
       triggerSystemLog("ID offre invalide.", "danger");
@@ -241,11 +231,7 @@ export default function ChauffeurDashboard({
     }
     try {
       const missionId = await getMissionIdByOfferId(offerIdNum);
-      await confirmDelivery({
-        missionId,
-        code: enteredOtpCode.trim(),
-        reserves: hasUnloadingReserves ? unloadingReserves.trim() : undefined,
-      });
+      await validateUnload(missionId, hasUnloadingReserves ? unloadingReserves.trim() : undefined);
       const updated = offres.map((o) => {
         if (o.id === offer.id) {
           return {
@@ -260,7 +246,6 @@ export default function ChauffeurDashboard({
       });
       saveState(undefined, undefined, updated);
       setConfirmingOffreId(null);
-      setEnteredOtpCode("");
       setUnloadingReserves("");
       setHasUnloadingReserves(false);
       triggerSystemLog(
@@ -666,26 +651,6 @@ export default function ChauffeurDashboard({
                               onSubmit={(e) => handleConfirmUnloading(e, offer)}
                               className="bg-indigo-50 dark:bg-indigo-950/40 p-4 rounded-2xl border border-indigo-150 space-y-3"
                             >
-                              <div className="space-y-1.5">
-                                <label className="block text-[10px] font-bold text-indigo-950 dark:text-indigo-200 uppercase">
-                                  {lang === "ar"
-                                    ? "كود تأكيد العميل (4 أرقام) :"
-                                    : "Saisir Code de déchargement destinataire :"}
-                                </label>
-                                <div className="flex gap-2">
-                                  <input
-                                    type="text"
-                                    maxLength={4}
-                                    placeholder="Ex: 1234"
-                                    required
-                                    value={enteredOtpCode}
-                                    onChange={(e) =>
-                                      setEnteredOtpCode(e.target.value)
-                                    }
-                                    className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-center font-mono font-black text-xs text-slate-900 focus:outline-none focus:border-indigo-500"
-                                  />
-                                </div>
-                              </div>
 
                               <div className="space-y-2 pt-1.5 border-t border-indigo-100/30">
                                 <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -742,7 +707,6 @@ export default function ChauffeurDashboard({
                                   type="button"
                                   onClick={() => {
                                     setConfirmingOffreId(null);
-                                    setEnteredOtpCode("");
                                     setUnloadingReserves("");
                                     setHasUnloadingReserves(false);
                                   }}
@@ -756,7 +720,6 @@ export default function ChauffeurDashboard({
                             <button
                               onClick={() => {
                                 setConfirmingOffreId(offer.id);
-                                setEnteredOtpCode("");
                                 setUnloadingReserves("");
                                 setHasUnloadingReserves(false);
                               }}

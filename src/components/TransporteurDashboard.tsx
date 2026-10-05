@@ -571,7 +571,7 @@ export default function TransporteurDashboard({
     const { id, nextStatus } = missionConfirming;
 
     const offerIdNum = Number(id);
-    if (id !== "mock" && Number.isFinite(offerIdNum)) {
+    if (Number.isFinite(offerIdNum)) {
       try {
         const missionId = await getMissionIdByOfferId(offerIdNum);
         if (nextStatus === OffreStatus.Charge) {
@@ -601,7 +601,7 @@ export default function TransporteurDashboard({
       "success",
     );
 
-    if (id !== "mock") {
+    if (Number.isFinite(offerIdNum)) {
       if (nextStatus === OffreStatus.Charge) {
         onNotifyDO?.(id, "chargement");
       } else if (nextStatus === OffreStatus.Decharge) {
@@ -610,38 +610,6 @@ export default function TransporteurDashboard({
     }
 
     setMissionConfirming(null);
-  };
-
-  const handleVerifyClientCode = async (
-    offreId: string,
-    expectedCode: string,
-  ) => {
-    const input = verificationCodes[offreId] || "";
-    const offerIdNum = Number(offreId);
-    if (!Number.isFinite(offerIdNum)) {
-      triggerSystemLog("ID offre invalide.", "danger");
-      return;
-    }
-    try {
-      const missionId = await getMissionIdByOfferId(offerIdNum);
-      await confirmDelivery({ missionId, code: input.trim() });
-      const updated = offres.map((o) => {
-        if (o.id === offreId) {
-          return { ...o, status: OffreStatus.Decharge };
-        }
-        return o;
-      });
-      saveState(undefined, undefined, updated);
-      triggerSystemLog(
-        "Code validé ! Livraison confirmée avec succès.",
-        "success",
-      );
-    } catch (err: any) {
-      triggerSystemLog(
-        err?.message ?? "Code erroné ou échec de la confirmation.",
-        "danger",
-      );
-    }
   };
 
   const handleSaveProfile = () => {
@@ -1974,137 +1942,10 @@ export default function TransporteurDashboard({
           {/* MISSIONS EN COURS */}
           {missionsSubTab === "en_cours" && (
             <div className="space-y-4">
-              {/* Force an elegant mock active card to verify specs always conforms even if data arrays flush */}
               {activeMissions.length === 0 && (
-                <div className="bg-white border border-gray-100 rounded-3xl p-5 sm:p-6 space-y-5">
-                  <div className="flex justify-between items-center border-b border-slate-50 pb-3">
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-teal-600 block">
-                        Réf : MSS-2025-0841
-                      </span>
-                      <h4 className="font-bold text-sm text-slate-900 leading-normal">
-                        Alger ➔ Sétif
-                      </h4>
-                    </div>
-                    <div>
-                      <span className="bg-amber-100 text-amber-900 border border-amber-200 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase">
-                        Chargé / En cours de route
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-semibold text-slate-600">
-                    <div>
-                      🏢 Donneur :{" "}
-                      <span className="text-slate-900 text-xs font-bold block">
-                        SARL BATIMEX
-                      </span>
-                    </div>
-                    <div>
-                      📦 Cargo :{" "}
-                      <span className="text-slate-900 text-xs block">
-                        Structures Métalliques (24T)
-                      </span>
-                    </div>
-                    <div>
-                      🚚 Camion :{" "}
-                      <span className="text-slate-900 block font-mono">
-                        Mercedes (001428-121-16)
-                      </span>
-                    </div>
-                    <div>
-                      💰 Prix convenu :{" "}
-                      <span className="text-[#1D9E75] text-xs font-black block">
-                        80 000 DA
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* STEPPER BAR PROGRESS */}
-                  <div className="py-4 font-mono text-[10px]">
-                    <div className="flex justify-between items-center relative gap-2 mb-1.5">
-                      <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-200 -translate-y-1/2 z-0"></div>
-                      <div className="absolute top-1/2 left-0 w-2/3 h-0.5 bg-[#1D9E75] -translate-y-1/2 z-0"></div>
-
-                      {/* Node 1 */}
-                      <div className="z-10 flex flex-col items-center">
-                        <span className="w-5 h-5 rounded-full bg-[#1D9E75] text-white flex items-center justify-center font-bold font-mono text-[9px] border-2 border-white shadow">
-                          ✓
-                        </span>
-                        <span className="text-[10px] font-sans font-bold text-slate-800 mt-1">
-                          Confirmée
-                        </span>
-                      </div>
-
-                      {/* Node 2 */}
-                      <div className="z-10 flex flex-col items-center">
-                        <span className="w-5 h-5 rounded-full bg-[#1D9E75] text-white flex items-center justify-center font-bold font-mono text-[9px] border-2 border-white shadow">
-                          ✓
-                        </span>
-                        <span className="text-[10px] font-sans font-bold text-slate-800 mt-1">
-                          Chargement
-                        </span>
-                      </div>
-
-                      {/* Node 3 */}
-                      <div className="z-10 flex flex-col items-center">
-                        <span className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold font-mono text-[9px] border-2 border-white shadow-md animate-bounce">
-                          ●
-                        </span>
-                        <span className="text-[10px] font-sans font-extrabold text-[#085041] mt-1">
-                          En route
-                        </span>
-                      </div>
-
-                      {/* Node 4 */}
-                      <div className="z-10 flex flex-col items-center">
-                        <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center font-bold font-mono text-[9px] border-2 border-white shadow">
-                          ○
-                        </span>
-                        <span className="text-[10px] font-sans font-bold text-slate-400 mt-1">
-                          Livré
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-50 select-none">
-                    <button
-                      onClick={() =>
-                        handleTriggerStatusTransition(
-                          "mock",
-                          "Decharge",
-                          "J'ai livré la marchandise",
-                        )
-                      }
-                      className="px-4 py-2 bg-[#1D9E75] hover:bg-[#157B5B] text-white font-extrabold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer shadow-sm transition-all"
-                    >
-                      ✅ J'ai livré la marchandise
-                    </button>
-                    <button
-                      onClick={() =>
-                        triggerSystemLog(
-                          "Incident signalé aux équipes de direction NETLOG. Un commercial vous contacte dans 10min.",
-                          "warning",
-                        )
-                      }
-                      className="px-3 py-2 border border-rose-200 hover:bg-[#FDF2F2] text-rose-600 font-bold text-xs rounded-xl cursor-pointer transition-all"
-                    >
-                      ⚠️ Signaler un problème
-                    </button>
-                    <button
-                      onClick={() =>
-                        triggerSystemLog(
-                          "Simulation d'appel client au : +213 23 88 41 20",
-                          "info",
-                        )
-                      }
-                      className="px-3 py-2 border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs rounded-xl flex items-center gap-1 cursor-pointer"
-                    >
-                      📞 Appeler le DO
-                    </button>
-                  </div>
-                </div>
+                <p className="text-xs text-slate-500 text-center py-8">
+                  Aucune mission en cours.
+                </p>
               )}
 
               {/* DYNAMIC MISSIONS */}
@@ -2369,43 +2210,10 @@ export default function TransporteurDashboard({
                       )}
 
                       {isDecharged && (
-                        <div className="w-full space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                          <p className="text-xs font-semibold text-slate-700">
-                            Entrez le code de vérification client fourni par le
-                            destinaire (Visible sur l'espace DO, Ex:{" "}
-                            <b className="text-[#1D9E75]">
-                              {offre.codeConfirmation || "8820"}
-                            </b>
-                            ) pour valider l'acheminement :
-                          </p>
-                          <div className="flex items-center gap-2 max-w-sm">
-                            <input
-                              type="text"
-                              placeholder="Code 4 chiffres"
-                              maxLength={4}
-                              value={verificationCodes[offre.id] || ""}
-                              onChange={(e) =>
-                                setVerificationCodes({
-                                  ...verificationCodes,
-                                  [offre.id]: e.target.value,
-                                })
-                              }
-                              className="px-3 py-2 border border-slate-300 text-center font-mono font-bold text-sm text-slate-900 rounded-lg bg-white w-32"
-                            />
-                            <button
-                              onClick={() =>
-                                handleVerifyClientCode(
-                                  offre.id,
-                                  offre.codeConfirmation || "8820",
-                                )
-                              }
-                              className="px-4 py-2 bg-[#1D9E75] text-white hover:bg-[#157B5B] text-xs font-bold rounded-lg cursor-pointer"
-                            >
-                              Valider Code
-                            </button>
-                          </div>
-                        </div>
-                      )}
+  <p className="w-full text-xs font-semibold text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
+    ✅ Déchargement déclaré. En attente de la confirmation du donneur d'ordre.
+  </p>
+)}
 
                       <button
                         onClick={() =>

@@ -499,7 +499,6 @@ export default function DonneurDashboard({
       const missionId = await getMissionIdByOfferId(offerIdNum);
       confirmed = await confirmDelivery({
         missionId,
-        code: activeMissionToValidate.codeConfirmation,
         reserves,
       });
     } catch (err: any) {

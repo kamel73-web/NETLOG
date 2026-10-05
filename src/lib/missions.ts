@@ -5,7 +5,6 @@ export async function createMissionFromProposal(params: {
   transporteurId: string;
   vehicleId?: number | null;
   chauffeurId?: string | null;
-  codeConfirmation?: string | null;
 }) {
   // Évite les doublons si une mission existe déjà pour cette offre
   const { data: existing } = await supabase
@@ -24,7 +23,6 @@ export async function createMissionFromProposal(params: {
       vehicle_id: params.vehicleId ?? null,
       chauffeur_id: params.chauffeurId ?? null,
       status: 'en_route_chargement',
-      code_confirmation: params.codeConfirmation ?? null,
     })
     .select()
     .single();
@@ -90,14 +88,12 @@ export async function validateUnload(missionId: number, reserves?: string) {
 
 export async function confirmDelivery(params: {
   missionId: number;
-  code: string;
   reserves?: string;
 }) {
   console.log('[NETLOG] RPC confirm_delivery', params);
 
   const { data, error } = await supabase.rpc('confirm_delivery', {
     p_mission_id: params.missionId,
-    p_code: params.code,
     p_reserves: params.reserves ?? null,
   });
 
