@@ -26,13 +26,6 @@ import {
   type SupabaseProfileRow,
 } from "./lib/profileAdapter";
 import {
-  MOCK_OFFRES,
-  MOCK_USERS,
-  MOCK_MOYENS,
-  MOCK_PROPOSITIONS,
-  MOCK_FACTURES,
-} from "./mockData";
-import {
   OffreFret,
   OffreStatus,
   MoyenType,
