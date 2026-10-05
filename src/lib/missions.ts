@@ -90,14 +90,20 @@ export async function confirmDelivery(params: {
   missionId: number;
   reserves?: string;
 }) {
-  console.log('[NETLOG] RPC confirm_delivery', params);
+  console.log('[NETLOG] RPC confirm_delivery', {
+    missionId: params.missionId,
+    hasReserves: Boolean(params.reserves?.trim()),
+  });
 
   const { data, error } = await supabase.rpc('confirm_delivery', {
     p_mission_id: params.missionId,
     p_reserves: params.reserves ?? null,
   });
 
-  console.log('[NETLOG] Résultat RPC confirm_delivery', { data, error });
+  console.log('[NETLOG] Résultat RPC confirm_delivery', {
+    success: !error,
+    error: error?.message ?? null,
+  });
 
   if (error) {
     throw new Error(`Confirmation de livraison échouée : ${error.message}`);

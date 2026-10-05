@@ -452,15 +452,39 @@ export async function confirmDelivery(params: {
       );
     }
 
-    console.log("[NETLOG] RPC confirm_delivery", params);
+    const { data: mission, error: missionError } = await supabase
+      .from("missions")
+      .select("id")
+      .eq("offer_id", params.offerId)
+      .order("id", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (missionError || !mission?.id) {
+      throw new Error(
+        `Mission introuvable pour l'offre ${params.offerId}${
+          missionError ? ` : ${missionError.message}` : ""
+        }`,
+      );
+    }
+
+    console.log("[NETLOG] RPC confirm_delivery", {
+      offerId: params.offerId,
+      missionId: mission.id,
+      hasCode: Boolean(params.code),
+      hasReserves: Boolean(params.reserves?.trim()),
+    });
 
     const { data, error } = await supabase.rpc("confirm_delivery", {
-      p_offer_id: params.offerId,
+      p_mission_id: Number(mission.id),
       p_code: params.code,
       p_reserves: params.reserves ?? null,
     });
 
-    console.log("[NETLOG] Résultat RPC confirm_delivery", { data, error });
+    console.log("[NETLOG] Résultat RPC confirm_delivery", {
+      success: !error,
+      error: error?.message ?? null,
+    });
 
     if (error) {
       throw new Error(`Confirmation de livraison échouée : ${error.message}`);
