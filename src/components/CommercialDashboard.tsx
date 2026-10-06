@@ -90,48 +90,10 @@ export default function CommercialDashboard({
   const [selectedUserDetail, setSelectedUserDetail] = useState<UserProfile | null>(null);
 
   // Fictional local payouts logs for commissions history
-  const [payoutRequests, setPayoutRequests] = useState<any[]>([
-    { id: "pay-1", date: "2026-04-12", type: "CCP", amount: 15400, status: "Payé", ref: "CCP-992182-DZ" },
-    { id: "pay-2", date: "2026-05-05", type: "AGB", amount: 12100, status: "Payé", ref: "AGB-881261-DZ" }
-  ]);
+  const [payoutRequests, setPayoutRequests] = useState<any[]>([]);
 
   // Farid's reference code
   const referralCode = "NETLOG-BVF-781";
-
-  // Seeding effect: ensures that the 18 default portfolio actors are injected into the global synchronized store on mount if missing
-  React.useEffect(() => {
-    const hasPortfolioUsers = users.some(u => u.sourceDecouverte === referralCode);
-    if (!hasPortfolioUsers) {
-      const seeded: UserProfile[] = Array.from({ length: 18 }).map((_, i) => {
-        const isDO = (i % 3 === 0);
-        const nameIndex = i % 8;
-        const orgIndex = i % 5;
-        return {
-          id: isDO ? `sim-aff-do-${i}` : `sim-aff-trans-${i}`,
-          nom: ["Benzekri", "Hamidi", "Mekid", "Kaci", "Belkacem", "Zaoui", "Bouzid", "Khelil"][nameIndex],
-          prenom: ["Ahmed", "Yacine", "Karim", "Farid", "Sofia", "Amine", "Nour", "Walid"][nameIndex],
-          raisonSociale: isDO
-            ? ["SARL BATIMEX", "SPA ALGERIA FOOD", "Etablissement Bois d'Algérie", "Sarl Nord-Sud Fret", "SPA AGROAL"][orgIndex]
-            : ["Trans-Benzekri Eurl", "Eurl Hamidi Logistique", "Sté Belkacem & Fils", "Kaci Transports Internationaux", "Mekid Transport"][orgIndex],
-          nrc: `31/00-0982737 B ${26 + i}`,
-          adresse: isDO ? "Zone Industrielle Dar El Beida, Alger" : "Zone Industrielle Hassi Ameur, Oran",
-          email: `${isDO ? "do" : "trans"}-affilie-${i + 1}@bvf.dz`,
-          tel: `0555 ${12 + i} 45 89`,
-          profil: isDO ? ProfileType.DonneurOrdre : ProfileType.Transporteur,
-          status: "valide",
-          wilaya: isDO ? "16 - Alger" : "31 - Oran",
-          nbCamions: isDO ? undefined : String(2 + (i % 4)),
-          secteur: isDO ? ["Matériaux de construction", "Agroalimentaire", "Bois & Dérivés", "Logistique", "Alimentation"][orgIndex] : undefined,
-          sourceDecouverte: referralCode,
-          dateInscription: `2026-05-${Math.min(25, 1 + i * 2)}`,
-          // Base status: active for some, pending/inactive for others to allow instant testing of the toggles
-          hasAbonnement: !isDO && (i % 2 === 0), 
-          conventionSignee: isDO && (i % 2 === 0)
-        };
-      });
-      saveState([...users, ...seeded], undefined, undefined, undefined, undefined);
-    }
-  }, [users, saveState]);
 
   // Live filtered users from global shared store
   const networkTransporteurs = users.filter(
@@ -196,7 +158,7 @@ export default function CommercialDashboard({
     
     // To make it clear that the commission is paid ONLY on amounts actually paid by the Donneur d'Ordre!
     // We split simulated baseline and real freight transactions into Paid and Unpaid/Pending amounts.
-    const baseSimulatedVolume = isBatimex ? 350000 : 150000;
+    const baseSimulatedVolume = 0;
     // 80% is actually paid, 20% is pending invoice payment
     const baseSimulatedPaid = isBatimex ? 280000 : 120000;
     const baseSimulatedUnpaid = baseSimulatedVolume - baseSimulatedPaid;
@@ -256,16 +218,7 @@ export default function CommercialDashboard({
   const totalCommissionsEnAttente = (networkDOs.filter(doUser => !doUser.conventionSignee).length * 4500) + unpaidVariableCommissions;
 
   // Render a lovely transaction ledger from network activity
-  const recentTransactions = [
-    { date: "2026-05-24", subject: "SARL BATIMEX", mission: "Alger ➔ Oran (Cargaison ciment réglée par DO)", comm: 2500, status: "Validée" },
-    { date: "2026-05-23", subject: "Trans-Benzekri Eurl", mission: "Abonnement Mensuel Conclu", comm: 5000, status: "Validée" },
-    { date: "2026-05-20", subject: "Eurl Hamidi Logistique", mission: "Abonnement Mensuel Conclu", comm: 5000, status: "Payée" },
-    { date: "2026-05-24", subject: "SARL BATIMEX", mission: "Oran ➔ Béchar (18t céramique)", comm: 500, status: "Validée" },
-    { date: "2026-05-23", subject: "Eurl Hamidi Logistique", mission: "Sétif ➔ Alger (12t boissons)", comm: 200, status: "Validée" },
-    { date: "2026-05-22", subject: "SPA ALGERIA FOOD", mission: "Alger ➔ Oran (20t semoule)", comm: 500, status: "En attente" },
-    { date: "2026-05-21", subject: "Sté Belkacem & Fils", mission: "Boumerdès ➔ Constantine (8t câbles)", comm: 500, status: "Validée" },
-    { date: "2026-05-18", subject: "Mekid Transport", mission: "Oran ➔ Alger (15t acier)", comm: 200, status: "Payée" }
-  ];
+  const recentTransactions: { date: string; subject: string; mission: string; comm: number; status: string }[] = [];
 
   // Handler for adding a transporteur
   const submitTransporteur = (e: React.FormEvent) => {
@@ -387,7 +340,7 @@ export default function CommercialDashboard({
               Bonjour Farid 💼
             </h2>
             <p className="text-xs text-emerald-100 font-medium">
-              Code de recommandation commercial : <span className="font-mono font-bold bg-white/10 px-2 py-0.5 rounded tracking-wide text-white">{referralCode}</span> • Votre résumé d'activité du mois courant (Mai 2026)
+              Code de recommandation commercial : <span className="font-mono font-bold bg-white/10 px-2 py-0.5 rounded tracking-wide text-white">{referralCode}</span> • Votre résumé d'activité du mois courant
             </p>
           </div>
           
@@ -1217,24 +1170,6 @@ export default function CommercialDashboard({
               </table>
             </div>
 
-            {/* BATIMEX HIGHLIGHT SUCCESS STATS CARD */}
-            <div className="bg-gradient-to-r from-teal-50 to-indigo-50/10 p-4 rounded-2xl border border-teal-200 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">🏭</span>
-                <div>
-                  <span className="text-[10px] uppercase font-black text-teal-850 block tracking-widest">
-                    Record d'activité donneur d'ordre
-                  </span>
-                  <span className="text-xs font-bold text-slate-800 block">
-                    DO le plus actif de votre réseau : <b>SARL BATIMEX (5 missions ce mois)</b>
-                  </span>
-                </div>
-              </div>
-              
-              <span className="bg-[#1D9E75] text-white text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest font-mono">
-                +2 500 DA
-              </span>
-            </div>
           </div>
 
         </div>
@@ -1279,18 +1214,9 @@ export default function CommercialDashboard({
                 </div>
               </div>
 
-              <div className="pt-2 text-center">
-                <button 
-                  onClick={() => {
-                    setVirementAmount(String(totalCommissionsValidees));
-                    setShowVirementModal(true);
-                  }}
-                  className="bg-[#1D9E75] hover:bg-[#085041] text-white font-extrabold px-6 py-3 rounded-2xl text-xs w-full cursor-pointer flex items-center justify-center gap-2 shadow-xs transition-colors"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  <span>Demander le virement de mes commissions</span>
-                </button>
-              </div>
+              <p className="pt-2 text-center text-xs text-slate-500">
+                Le versement des commissions sera disponible prochainement.
+              </p>
             </div>
 
             {/* Bank detail layout */}
@@ -1345,56 +1271,6 @@ export default function CommercialDashboard({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                  <tr className="hover:bg-slate-50/50">
-                    <td className="py-2.5 font-mono text-[10px]">2026-05-24</td>
-                    <td className="py-2.5 text-[#1D9E75] font-bold">DO affiliate</td>
-                    <td className="py-2.5 font-bold">SARL BATIMEX</td>
-                    <td className="py-2.5 text-slate-500 text-[10.5px]">Oran ➔ Bechar (18t)</td>
-                    <td className="py-2.5 text-right font-mono font-bold text-slate-900">500 DA</td>
-                    <td className="py-2.5 text-right">
-                      <span className="bg-amber-100 text-amber-800 text-[9px] font-black px-1.5 py-0.5 rounded">En Attente</span>
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-slate-50/50">
-                    <td className="py-2.5 font-mono text-[10px]">2026-05-24</td>
-                    <td className="py-2.5 text-blue-500 font-bold">Transporteur</td>
-                    <td className="py-2.5 font-bold">Trans-Benzekri Eurl</td>
-                    <td className="py-2.5 text-slate-500 text-[10.5px]">Alger ➔ Constantine (24t)</td>
-                    <td className="py-2.5 text-right font-mono font-bold text-slate-900">200 DA</td>
-                    <td className="py-2.5 text-right">
-                      <span className="bg-emerald-100 text-emerald-800 text-[9px] font-black px-1.5 py-0.5 rounded">Validée</span>
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-slate-50/50">
-                    <td className="py-2.5 font-mono text-[10px]">2026-05-23</td>
-                    <td className="py-2.5 text-blue-500 font-bold">Transporteur</td>
-                    <td className="py-2.5 font-bold">Eurl Hamidi Logistique</td>
-                    <td className="py-2.5 text-slate-500 text-[10.5px]">Sétif ➔ Alger (12t)</td>
-                    <td className="py-2.5 text-right font-mono font-bold text-slate-900">200 DA</td>
-                    <td className="py-2.5 text-right">
-                      <span className="bg-emerald-100 text-emerald-800 text-[9px] font-black px-1.5 py-0.5 rounded">Validée</span>
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-slate-50/50">
-                    <td className="py-2.5 font-mono text-[10px]">2026-05-18</td>
-                    <td className="py-2.5 text-[#1D9E75] font-bold">DO affiliate</td>
-                    <td className="py-2.5 font-bold">SPA ALGERIA FOOD</td>
-                    <td className="py-2.5 text-slate-500 text-[10.5px]">Alger ➔ Oran (22t)</td>
-                    <td className="py-2.5 text-right font-mono font-bold text-slate-900">500 DA</td>
-                    <td className="py-2.5 text-right">
-                      <span className="bg-emerald-100 text-emerald-800 text-[9px] font-black px-1.5 py-0.5 rounded">Validée</span>
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-slate-50/50">
-                    <td className="py-2.5 font-mono text-[10px]">2026-05-02</td>
-                    <td className="py-2.5 text-blue-500 font-bold">Transporteur</td>
-                    <td className="py-2.5 font-bold">Mekid Transport</td>
-                    <td className="py-2.5 text-slate-500 text-[10.5px]">Oran ➔ Alger (15t)</td>
-                    <td className="py-2.5 text-right font-mono font-bold text-slate-900">200 DA</td>
-                    <td className="py-2.5 text-right">
-                      <span className="bg-blue-105 bg-blue-50 text-[#378ADD] text-[9px] font-black px-1.5 py-0.5 rounded">Payée</span>
-                    </td>
-                  </tr>
                 </tbody>
               </table>
             </div>

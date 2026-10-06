@@ -336,62 +336,6 @@ export default function TransporteurDashboard({
     );
   };
 
-  // Action to inject a dummy validated mission for testing
-  const handleSimulateValidatedMission = (partnerRaison: string) => {
-    const clientUser =
-      users.find(
-        (u) =>
-          u.raisonSociale === partnerRaison ||
-          u.profil === ProfileType.DonneurOrdre,
-      ) || users[0];
-    const newMissionId = `OFF-${Math.floor(10000 + Math.random() * 90000)}`;
-
-    const newOffer: any = {
-      id: newMissionId,
-      donneurId: clientUser.id || "user-do-1",
-      donneurRaisonSociale: clientUser.raisonSociale || partnerRaison,
-      depart: "Alger",
-      arrivee: "Sétif",
-      departDetails: "Port d'Alger",
-      arriveeDetails: "Zone Industrielle Sétif",
-      dateChargement: new Date().toISOString().split("T")[0],
-      dateLivraison: new Date().toISOString().split("T")[0],
-      poids: 24,
-      marchandise: "Produits Laitiers / Conserves",
-      moyenExige: MoyenType.Tautliner,
-      nombreVoyages: 1,
-      prixFixe: Math.floor(65000 + Math.random() * 40000),
-      status: OffreStatus.Valide,
-      contratLogistiquePath: "/docs/contrat_routier.pdf",
-      dateCreation: new Date().toISOString(),
-    };
-
-    // Find any camion of this carrier
-    const firstCamion = moyens.find(
-      (m) => m.transporteurId === currentUser?.id,
-    );
-
-    const newProp: any = {
-      id: `PROP-${Math.floor(10000 + Math.random() * 90000)}`,
-      offreId: newMissionId,
-      transporteurId: currentUser?.id || "user-trans-1",
-      transporteurRaisonSociale:
-        currentUser?.raisonSociale || "Ahmed Transports",
-      moyenId: firstCamion?.id || "camion-01",
-      prixPropose: newOffer.prixFixe,
-      status: "Accepté",
-    };
-
-    const updatedOffres = [newOffer, ...offres];
-    const updatedProps = [newProp, ...propositions];
-
-    saveState(undefined, undefined, updatedOffres, updatedProps);
-    triggerSystemLog(
-      `Mission d'essai ${newMissionId} (${newOffer.depart} ➔ ${newOffer.arrivee}, ${newOffer.prixFixe.toLocaleString()} DA) générée avec statut 'Validé' pour essais de facturation.`,
-      "success",
-    );
-  };
-
   // Calculations for dynamic counts
   const myCamions = moyens.filter((m) => m.transporteurId === currentUser?.id);
   const assignedProps = propositions.filter(
@@ -2300,32 +2244,6 @@ export default function TransporteurDashboard({
                         </p>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          id="btn-sim-batimex"
-                          onClick={() =>
-                            handleSimulateValidatedMission("SARL BATIMEX")
-                          }
-                          className="px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-2 shadow-2xs cursor-pointer"
-                        >
-                          <span className="text-emerald-550 font-extrabold">
-                            ＋
-                          </span>{" "}
-                          Simuler Livré BATIMEX
-                        </button>
-                        <button
-                          id="btn-sim-cevital"
-                          onClick={() =>
-                            handleSimulateValidatedMission("SPA CEVITAL")
-                          }
-                          className="px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-2 shadow-2xs cursor-pointer"
-                        >
-                          <span className="text-emerald-550 font-extrabold">
-                            ＋
-                          </span>{" "}
-                          Simuler Livré CEVITAL
-                        </button>
-                      </div>
                     </div>
 
                     {myCompletedMissions.length === 0 ? (
