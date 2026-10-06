@@ -559,7 +559,7 @@ export default function DonneurDashboard({
     const currentYear = new Date().getFullYear();
     const totalAmountHT = unbilledOffres.reduce((sum, o) => {
       const correspondingProp = propositions.find(p => p.offreId === o.id && p.status === "Accepté");
-      return sum + (correspondingProp ? correspondingProp.prixPropose : (o.prixFixe || 80000));
+      return sum + (correspondingProp ? correspondingProp.prixPropose : (o.prixFixe ?? 0));
     }, 0);
 
     const invoiceId = `FAC-${currentYear}-M-${Math.floor(100 + Math.random() * 900)}`;
@@ -717,7 +717,7 @@ export default function DonneurDashboard({
         >
           <span className="text-slate-400 text-[10px] font-extrabold uppercase tracking-wider group-hover:text-emerald-600 transition-colors">🚚 Missions en cours</span>
           <span className="text-2xl font-black text-emerald-600 block mt-2">
-            {countMissions || 2}
+            {countMissions}
           </span>
           <span className="text-[10px] text-emerald-500 font-bold mt-1 underline group-hover:no-underline">Acheminements actifs →</span>
         </div>
@@ -1174,7 +1174,7 @@ export default function DonneurDashboard({
               const carrierTel = "0550 42 18 90";
               const vehiclePlate = "123456-116";
               const vehicleType = translateMoyenType(mission.moyenExige || MoyenType.Tautliner, lang) + " 30T";
-              const amountDa = mission.prixConvenu || (mission.prixFixe || 80000);
+              const amountDa = mission.prixConvenu || (mission.prixFixe ?? 0);
 
               // Progress state:
               // 1. Attribue = attente_chargement
@@ -1678,7 +1678,7 @@ export default function DonneurDashboard({
                       </tr>
                     ) : (
                       filteredFactures.map(fact => {
-                        const amount = fact.montant || 80000;
+                        const amount = fact.montant ?? 0;
                         const ttc = Math.round(amount * 1.19);
                         const isGrp = !!fact.isMensuelleGroupee;
                         
@@ -2858,7 +2858,7 @@ export default function DonneurDashboard({
               <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
                 <div>
                   <span className="text-[10px] text-slate-400 font-extrabold uppercase">Montant total dû TTC :</span>
-                  <p className="text-xl font-black text-[#1D9E75] font-mono mt-1">{(selectedFactureToPay.montant || 80000).toLocaleString()} DA</p>
+                  <p className="text-xl font-black text-[#1D9E75] font-mono mt-1">{(selectedFactureToPay.montant ?? 0).toLocaleString()} DA</p>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 font-extrabold uppercase mb-1 block">Axe / Prestation logistique :</span>

@@ -307,7 +307,7 @@ export default function TransporteurDashboard({
       selectedMissionsForInvoice.includes(o.id),
     );
     const totalHT = selectedOffres.reduce(
-      (sum, o) => sum + (o.prixFixe || 80000),
+      (sum, o) => sum + (o.prixFixe ?? 0),
       0,
     );
 
@@ -623,7 +623,7 @@ export default function TransporteurDashboard({
             <span className="text-xl">🚛</span>
           </div>
           <span className="text-3xl font-black text-gray-900 block">
-            {myCamions.length || 2}
+            {myCamions.length}
           </span>
           <span className="text-[10px] text-gray-400 font-medium underline group-hover:no-underline">
             Véhicules déclarés actifs →
@@ -646,7 +646,7 @@ export default function TransporteurDashboard({
             <span className="text-xl">📋</span>
           </div>
           <span className="text-3xl font-black text-teal-600 block">
-            {compatibleOffres.length || 14}
+            {compatibleOffres.length}
           </span>
           <span className="text-[10px] text-gray-400 font-medium underline group-hover:no-underline">
             Correspondent au matériel →
@@ -669,7 +669,7 @@ export default function TransporteurDashboard({
             <span className="text-xl">🔄</span>
           </div>
           <span className="text-3xl font-black text-blue-600 block">
-            {activeMissions.length || 1}
+            {activeMissions.length}
           </span>
           <span className="text-[10px] text-gray-400 font-medium underline group-hover:no-underline">
             En cours d'acheminement →
@@ -1424,7 +1424,7 @@ export default function TransporteurDashboard({
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                Compatibles avec ma flotte ({compatibleOffres.length || 14})
+                Compatibles avec ma flotte ({compatibleOffres.length})
               </button>
               <button
                 onClick={() => setOffresSubTab("toutes")}
@@ -1825,7 +1825,7 @@ export default function TransporteurDashboard({
                     : "text-slate-600"
                 }`}
               >
-                En cours ({activeMissions.length || 1})
+                En cours ({activeMissions.length})
               </button>
               <button
                 onClick={() => setMissionsSubTab("terminees")}
@@ -2215,7 +2215,7 @@ export default function TransporteurDashboard({
                 .map((id) => offres.find((o) => o.id === id))
                 .filter(Boolean);
               const sumSelectedHT = activeSelectedOffres.reduce(
-                (s, o) => s + (o.prixFixe || 80000),
+                (s, o) => s + (o.prixFixe ?? 0),
                 0,
               );
               const calculatedTVA = Math.round(sumSelectedHT * 0.19);
@@ -2413,7 +2413,7 @@ export default function TransporteurDashboard({
                                         {o.marchandise || "Fret standard"}
                                       </td>
                                       <td className="px-5 py-3 text-right font-extrabold text-[#1D9E75] font-mono">
-                                        {(o.prixFixe || 80000).toLocaleString()}{" "}
+                                        {(o.prixFixe ?? 0).toLocaleString()}{" "}
                                         DA
                                       </td>
                                     </tr>
@@ -2529,7 +2529,7 @@ export default function TransporteurDashboard({
                                     {clientName}
                                   </td>
                                   <td className="px-5 py-4 font-extrabold text-[#1D9E75]">
-                                    {(o.prixFixe || 80000).toLocaleString()} DA
+                                    {(o.prixFixe ?? 0).toLocaleString()} DA
                                   </td>
                                   <td className="px-5 py-4">
                                     <div className="flex items-center gap-1.5">
@@ -2897,7 +2897,7 @@ export default function TransporteurDashboard({
                             {doName}
                           </td>
                           <td className="px-5 py-4 font-black">
-                            {(f.montant || 80000).toLocaleString()} DA
+                            {(f.montant ?? 0).toLocaleString()} DA
                           </td>
                           <td className="px-5 py-4">
                             <span className="bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
