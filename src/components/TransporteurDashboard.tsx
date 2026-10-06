@@ -31,6 +31,7 @@ import {
   ReglementMode,
 } from "../types";
 import { createVehicle } from "../lib/freightOffers";
+import { loadFreightOffers } from "../lib/dataLoader";
 import {
   getMissionIdByOfferId,
   confirmDelivery,
@@ -585,14 +586,13 @@ export default function TransporteurDashboard({
       }
     }
 
-    const updatedOffres = offres.map((o) => {
-      if (o.id === id) {
-        return { ...o, status: nextStatus };
-      }
-      return o;
-    });
-
-    saveState(undefined, undefined, updatedOffres);
+    // La base (trigger) fait foi : on relit les offres au lieu de deviner le statut
+    try {
+      const freshOffres = await loadFreightOffers();
+      saveState(undefined, undefined, freshOffres);
+    } catch (err) {
+      console.error("Erreur rechargement après transition:", err);
+    }
     triggerSystemLog(
       `Statut de la mission mis à jour : ${nextStatus} !`,
       "success",
