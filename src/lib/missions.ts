@@ -58,15 +58,6 @@ export async function validateLoading(missionId: number, reserves?: string) {
 
   if (error) throw new Error(`Validation chargement échouée: ${error.message}`);
 
-  if (data?.offer_id) {
-    const { error: offerErr } = await supabase
-      .from('freight_offers')
-      .update({ status: 'en_cours' })
-      .eq('id', data.offer_id);
-    if (offerErr) {
-      console.warn('[NETLOG] sync freight_offers en_cours:', offerErr.message);
-    }
-  }
   return data;
 }
 
