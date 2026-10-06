@@ -20,6 +20,7 @@ import {
   validateLoading,
   validateUnload,
 } from "../lib/missions";
+import { loadFreightOffers } from "../lib/dataLoader";
 
 interface ChauffeurDashboardProps {
   currentUser: UserProfile;
@@ -190,17 +191,8 @@ export default function ChauffeurDashboard({
     try {
       const missionId = await getMissionIdByOfferId(offerIdNum);
       await validateLoading(missionId, reservesText);
-      const updated = offres.map((o) => {
-        if (o.id === offreId) {
-          return {
-            ...o,
-            status: OffreStatus.Charge,
-            reservesChargement: reservesText || undefined,
-          };
-        }
-        return o;
-      });
-      saveState(undefined, undefined, updated);
+      const freshOffres = await loadFreightOffers();
+      saveState(undefined, undefined, freshOffres);
       setLoadingConfirmId(null);
       setLoadingReserves("");
       setHasLoadingReserves(false);
@@ -232,19 +224,8 @@ export default function ChauffeurDashboard({
     try {
       const missionId = await getMissionIdByOfferId(offerIdNum);
       await validateUnload(missionId, hasUnloadingReserves ? unloadingReserves.trim() : undefined);
-      const updated = offres.map((o) => {
-        if (o.id === offer.id) {
-          return {
-            ...o,
-            status: OffreStatus.Decharge,
-            reserves: hasUnloadingReserves
-              ? unloadingReserves.trim()
-              : o.reserves,
-          };
-        }
-        return o;
-      });
-      saveState(undefined, undefined, updated);
+      const freshOffres = await loadFreightOffers();
+      saveState(undefined, undefined, freshOffres);
       setConfirmingOffreId(null);
       setUnloadingReserves("");
       setHasUnloadingReserves(false);

@@ -1300,7 +1300,6 @@ export default function App() {
     e.preventDefault();
     if (!currentUser) return;
 
-    const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
 
     const wilayaDepartObj = WILAYAS.find((w) => w.fr === formDepart);
     const wilayaArriveeObj = WILAYAS.find((w) => w.fr === formArrivee);
