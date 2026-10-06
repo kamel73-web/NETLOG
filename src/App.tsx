@@ -962,6 +962,24 @@ export default function App() {
   };
 
   // Enregistrer ou se connecter
+  // Recharge les données quand l'utilisateur revient sur l'application
+  useEffect(() => {
+    if (!currentUser) return;
+    const refresh = () => {
+      if (document.visibilityState !== "visible") return;
+      loadAppData()
+        .then((data) => {
+          setOffres(data.offers);
+          setPropositions(data.proposals);
+          setFactures(data.invoices);
+          setMissions(data.missions);
+        })
+        .catch((err) => console.error("Erreur rafraîchissement données:", err));
+    };
+    document.addEventListener("visibilitychange", refresh);
+    return () => document.removeEventListener("visibilitychange", refresh);
+  }, [currentUser?.id]);
+
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!loginEmail || !loginPassword) {

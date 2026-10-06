@@ -398,7 +398,9 @@ export default function TransporteurDashboard({
   );
   const assignedOffreIds = assignedProps.map((p) => p.offreId);
   const activeMissions = offres.filter(
-    (o) => assignedOffreIds.includes(o.id) && o.status !== OffreStatus.Valide,
+    (o) => assignedOffreIds.includes(o.id) &&
+      o.status !== OffreStatus.Valide &&
+      o.status !== OffreStatus.Annule,
   );
 
   // Offers compatibility counts

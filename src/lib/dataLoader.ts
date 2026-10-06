@@ -85,8 +85,9 @@ export async function loadFreightOffers(): Promise<OffreFret[]> {
           ouverte: OffreStatus.Publie,
           attribuee: OffreStatus.Attribue,
           en_cours: OffreStatus.Charge,
-          livree: OffreStatus.Decharge,
-          annulee: OffreStatus.Valide,
+          decharge: OffreStatus.Decharge,
+          livree: OffreStatus.Valide,
+          annulee: OffreStatus.Annule,
         } as any
       )[o.status] ?? OffreStatus.Publie,
     contratLogistiquePath: o.contrat_logistique_path ?? undefined,

@@ -152,6 +152,7 @@ export enum OffreStatus {
   Charge = "Chargé / En cours",              // Transporteur a validé le chargement
   Decharge = "Déchargé",                     // Transporteur a validé le déchargement
   Valide = "Validé / Clôturé",               // Destinataire/Client a validé avec ou sans réserves
+  Annule = "Annulé",
 }
 
 export enum MoyenType {
