@@ -1907,8 +1907,7 @@ export default function TransporteurDashboard({
                     <div className="flex justify-between items-center border-b border-slate-50 pb-3">
                       <div>
                         <span className="text-[10px] uppercase font-bold text-teal-600 block">
-                          Réf : MSS-2025-
-                          {offre.id.toUpperCase().substring(0, 5)}
+                          Offre n° {offre.id}
                         </span>
                         <h4 className="font-bold text-sm text-slate-900 leading-normal">
                           {translateCity(offre.depart, lang)} ➔{" "}
@@ -1924,7 +1923,7 @@ export default function TransporteurDashboard({
                       <div>
                         🏢 Donneur :{" "}
                         <span className="text-slate-900 text-xs font-bold block">
-                          {offre.donneurRaisonSociale || "SARL BATIMEX"}
+                          {offre.donneurRaisonSociale || "—"}
                         </span>
                       </div>
                       <div>
@@ -2594,41 +2593,6 @@ export default function TransporteurDashboard({
                             })}
 
                             {/* Seeding original static historical log */}
-                            <tr className="bg-slate-50/20">
-                              <td className="px-5 py-4 font-mono font-bold text-slate-400">
-                                10/05/2026
-                              </td>
-                              <td className="px-5 py-4 font-bold text-slate-500">
-                                Alger ➔ Sétif
-                              </td>
-                              <td className="px-5 py-4 font-semibold text-slate-400">
-                                SARL BATIMEX
-                              </td>
-                              <td className="px-5 py-4 font-extrabold text-slate-400">
-                                80 000 DA
-                              </td>
-                              <td className="px-5 py-4">
-                                <span className="text-amber-400 font-bold">
-                                  ⭐⭐⭐⭐⭐ 5.0
-                                </span>
-                                <span className="block text-[11px] text-slate-400">
-                                  "Très professionnel, livraison à l'heure"
-                                </span>
-                              </td>
-                              <td className="px-5 py-4 text-right">
-                                <button
-                                  onClick={() =>
-                                    triggerSystemLog(
-                                      "Chargement de la facture FAC-2025-001 (Simulé)",
-                                      "success",
-                                    )
-                                  }
-                                  className="text-slate-400 hover:text-slate-600 font-bold cursor-pointer"
-                                >
-                                  👁️ Facture
-                                </button>
-                              </td>
-                            </tr>
 
                             <tr className="bg-slate-50/20">
                               <td className="px-5 py-4 font-mono font-bold text-slate-400">
@@ -2982,34 +2946,6 @@ export default function TransporteurDashboard({
                     })}
 
                   {/* Seed row 1 */}
-                  <tr>
-                    <td className="px-5 py-4 font-mono font-bold text-slate-500">
-                      FAC-2025-001
-                    </td>
-                    <td className="px-5 py-4">05/05/2026</td>
-                    <td className="px-5 py-4 font-bold text-slate-900">
-                      SARL BATIMEX
-                    </td>
-                    <td className="px-5 py-4 font-black">80 000 DA</td>
-                    <td className="px-5 py-4 font-medium">
-                      <span className="bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
-                        ✅ Payée
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <button
-                        onClick={() =>
-                          triggerSystemLog(
-                            "Visualisation PDF facture FAC-2025-001 (Simulé)",
-                            "info",
-                          )
-                        }
-                        className="px-2.5 py-1 text-xs border border-slate-200 rounded-lg hover:bg-slate-50 font-bold block ml-auto cursor-pointer"
-                      >
-                        👁 Voir
-                      </button>
-                    </td>
-                  </tr>
 
                   {/* Seed row 2 */}
                   <tr>

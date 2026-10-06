@@ -20,7 +20,7 @@ import {
   acceptProposal,
   createVehicle,
 } from "./lib/freightOffers";
-import { loadAppData, loadProfiles, type CommuneRow, type MissionRow } from "./lib/dataLoader";
+import { loadAppData, loadProfiles, type CommuneRow, type MissionRow, loadFreightOffers } from "./lib/dataLoader";
 import {
   adaptSupabaseProfile,
   type SupabaseProfileRow,
@@ -722,22 +722,9 @@ export default function App() {
           setFactures(invoices);
           setMissions(missions);
 
-          // Session active : priorité à Supabase, sinon localStorage legacy
+          // Session active : uniquement via Supabase Auth
           if (supabaseUser) {
             setCurrentUser(supabaseUser);
-          } else {
-            const storedSession = localStorage.getItem("netlog_session");
-            if (storedSession) {
-              try {
-                const parsed = JSON.parse(storedSession);
-                const matched = profiles.find(
-                  (u) => u.id === parsed.id || u.email === parsed.email,
-                );
-                setCurrentUser(matched ?? null);
-              } catch (e) {
-                console.error(e);
-              }
-            }
           }
         },
       )
@@ -791,32 +778,26 @@ export default function App() {
 
     if (updatedUsers) {
       setUsers(updatedUsers);
-      localStorage.setItem("netlog_users", JSON.stringify(updatedUsers));
       newUsers = updatedUsers;
     }
     if (updatedMoyens) {
       setMoyens(updatedMoyens);
-      localStorage.setItem("netlog_moyens", JSON.stringify(updatedMoyens));
       newMoyens = updatedMoyens;
     }
     if (updatedOffres) {
       setOffres(updatedOffres);
-      localStorage.setItem("netlog_offres", JSON.stringify(updatedOffres));
       newOffres = updatedOffres;
     }
     if (updatedProps) {
       setPropositions(updatedProps);
-      localStorage.setItem("netlog_props", JSON.stringify(updatedProps));
       newProps = updatedProps;
     }
     if (updatedFactures) {
       setFactures(updatedFactures);
-      localStorage.setItem("netlog_factures", JSON.stringify(updatedFactures));
       newFactures = updatedFactures;
     }
     if (updatedDevis) {
       setDevis(updatedDevis);
-      localStorage.setItem("netlog_devis", JSON.stringify(updatedDevis));
       newDevis = updatedDevis;
     }
   };
@@ -865,7 +846,6 @@ export default function App() {
       return;
     }
 
-    localStorage.setItem("netlog_users", JSON.stringify(updated));
 
     // Mettre à jour l'utilisateur en cours si c'est lui-même
     if (currentUser?.id === userId) {
@@ -897,7 +877,6 @@ export default function App() {
       return;
     }
 
-    localStorage.setItem("netlog_users", JSON.stringify(updated));
 
     if (currentUser?.id === userId) {
       setCurrentUser({ ...currentUser, status: "suspendu" });
@@ -5565,7 +5544,11 @@ export default function App() {
                     dateCreation: new Date().toISOString(),
                   };
 
-                  saveState(undefined, undefined, [newOffer, ...offres]);
+                  try {
+                    saveState(undefined, undefined, await loadFreightOffers());
+                  } catch (err) {
+                    console.error("Erreur rechargement après publication:", err);
+                  }
                   triggerSystemLog(
                     `Offre ${insertedId} publiée sur la bourse (${pubDepart} ➔ ${pubArrivee}).`,
                     "success",

@@ -335,7 +335,7 @@ export default function ContractDocument({
               <span className="font-black text-[#1D9E75] uppercase text-[9px] tracking-widest block mb-1">
                 {type === "LETTRE-VOITURE" ? "DONNEUR D'ORDRE (EXPÉDITEUR CONTRACTANT)" : "DESTINATAIRE / CLIENT DE FACTURATION"}
               </span>
-              <p className="font-bold text-slate-950 text-xs">{donneur?.raisonSociale || "SARL BATIMEX"}</p>
+              <p className="font-bold text-slate-950 text-xs">{donneur?.raisonSociale || "—"}</p>
               <p className="text-[11px] text-slate-600 mt-1">
                 <b>Responsable :</b> {donneur?.nom || "Kamel"} {donneur?.prenom || "Babassi"}<br />
                 <b>RC N° :</b> {donneur?.nrc || "0974100-B-16"}<br />

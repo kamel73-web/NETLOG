@@ -285,7 +285,7 @@ export default function DonneurDashboard({
     const newOffre = {
       id: insertedId,
       donneurId: currentUser?.id || "DO-DEFAULT",
-      donneurRaisonSociale: currentUser?.raisonSociale || "SARL BATIMEX",
+      donneurRaisonSociale: currentUser?.raisonSociale || "—",
       depart: departName,
       arrivee: arriveeName,
       departDetails: formDepartDetails,
@@ -613,7 +613,7 @@ export default function DonneurDashboard({
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight !text-white mb-2 flex items-center gap-2">
-              Bonjour {currentUser?.raisonSociale || "SARL BATIMEX"} 🏭
+              Bonjour {currentUser?.raisonSociale || "—"} 🏭
             </h1>
             <p className="text-emerald-100 text-xs sm:text-sm font-medium flex items-center gap-2">
               <Calendar className="w-4 h-4 text-emerald-300" />
@@ -1213,7 +1213,7 @@ export default function DonneurDashboard({
                     <div>
                       <p className="text-[10px] font-black text-[#1D9E75] uppercase tracking-wide">MISSION LOGISTIQUE ACTIVE</p>
                       <h4 className="text-xs font-mono font-extrabold text-slate-800 mt-0.5">
-                        {mission.id} ➔ MSS-2025-{mission.id.slice(-4)}
+                        Offre n° {mission.id}
                       </h4>
                     </div>
                     <span className="font-mono text-xs font-black text-slate-900 border border-slate-100 bg-slate-50 px-2.5 py-1 rounded-full">
@@ -1783,7 +1783,7 @@ export default function DonneurDashboard({
               <div className="grid grid-cols-2 gap-2 text-[11px]">
                 <div>
                   <span className="text-slate-400 block font-semibold">Raison Sociale:</span>
-                  <strong className="text-slate-800 font-extrabold">{currentUser?.raisonSociale || "SARL BATIMEX"}</strong>
+                  <strong className="text-slate-800 font-extrabold">{currentUser?.raisonSociale || "—"}</strong>
                 </div>
                 <div>
                   <span className="text-slate-400 block font-semibold">Représentant officiel:</span>
