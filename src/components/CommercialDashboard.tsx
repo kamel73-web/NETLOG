@@ -81,7 +81,7 @@ export default function CommercialDashboard({
 
   // Virement Modal State
   const [showVirementModal, setShowVirementModal] = useState(false);
-  const [virementAmount, setVirementAmount] = useState("11100");
+  const [virementAmount, setVirementAmount] = useState("");
   const [virementRIB, setVirementRIB] = useState("");
   const [virementType, setVirementType] = useState<"CCP" | "AGB" | "BNA" | "BEA">("CCP");
   const [virementMsg, setVirementMsg] = useState("");
@@ -188,7 +188,7 @@ export default function CommercialDashboard({
       // Fallback: If no invoices are created yet for this DO, count OffreStatus.Valide as paid, and progress/en route as pending.
       realPaidAmount = settledOffres.reduce((sum, o) => sum + (o.prixFixe || 65000), 0);
       const pendingOffres = matchedOffres.filter(o => o.status !== OffreStatus.Valide);
-      realUnpaidAmount = pendingOffres.reduce((sum, o) => sum + (o.prixFixe || 10000), 0);
+      realUnpaidAmount = pendingOffres.reduce((sum, o) => sum + (o.prixFixe ?? 0), 0);
     }
 
     const totalTurnover = baseSimulatedVolume + realPaidAmount + realUnpaidAmount;
@@ -317,7 +317,7 @@ export default function CommercialDashboard({
       type: virementType,
       amount: amt,
       status: "En attente",
-      ref: `${virementType}-PENDING-${Math.floor(Math.random() * 900000 + 100000)}`
+      ref: `${virementType}-PENDING-${Date.now()}`
     };
 
     setPayoutRequests([newReq, ...payoutRequests]);
@@ -480,7 +480,7 @@ export default function CommercialDashboard({
                     <span className="text-[#1D9E75]"><TrendingUp className="w-4 h-4" /></span>
                     <h3 className="font-black text-slate-800 text-xs uppercase tracking-wider">Evolution des commissions (6 derniers mois)</h3>
                   </div>
-                  <p className="text-[10px] text-slate-400">Total cumulé et viré : {(27500 - 11100 + totalCommissionsValidees).toLocaleString()} DA • Source: Netlog BVF Ledger</p>
+                  <p className="text-[10px] text-slate-400">Total cumulé : {totalCommissionsValidees.toLocaleString()} DA</p>
                 </div>
                 
                 <span className="text-[10px] text-slate-400 font-mono font-bold uppercase">
@@ -640,7 +640,7 @@ export default function CommercialDashboard({
 
                 <button 
                   onClick={() => {
-                    setVirementAmount("11100");
+                    setVirementAmount("");
                     setShowVirementModal(true);
                   }}
                   className="w-full text-left p-3.5 rounded-2xl bg-amber-50/10 hover:bg-amber-50/20 hover:border-amber-300 border border-dashed border-amber-200/80 transition-all flex items-center gap-3 cursor-pointer"
@@ -1335,12 +1335,12 @@ export default function CommercialDashboard({
                 <div className="relative">
                   <input 
                     type="number" 
-                    max="11100"
+                    
                     min="1000"
                     value={virementAmount} 
                     onChange={e => setVirementAmount(e.target.value)}
                     className="w-full text-xs font-mono font-extrabold p-3 bg-slate-50 border border-slate-150 rounded-xl focus:border-[#1D9E75] outline-none"
-                    placeholder="Ex: 11100"
+                    placeholder="Montant en DA"
                   />
                   <span className="absolute right-3.5 top-3.5 font-bold text-slate-400 text-[10.5px]">DA</span>
                 </div>
