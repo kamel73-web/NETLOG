@@ -48,7 +48,7 @@ export async function loadVehicles(): Promise<MoyenTransport[]> {
   }));
 }
 
-export async function loadFreightOffers(): Promise<OffreFret[]> {
+async function loadFreightOffersRaw(): Promise<OffreFret[]> {
   const { data, error } = await supabase
     .from("freight_offers")
     .select(
@@ -100,7 +100,7 @@ export async function loadFreightOffers(): Promise<OffreFret[]> {
   }));
 }
 
-export async function loadProposals(): Promise<PropositionPrix[]> {
+async function loadProposalsRaw(): Promise<PropositionPrix[]> {
   const { data, error } = await supabase
     .from("proposals")
     .select("*")
@@ -295,5 +295,51 @@ export async function loadMissions(): Promise<MissionRow[]> {
     status: m.status,
     dechargementAt: m.dechargement_at ?? null,
     livraisonConfirmeeAt: m.livraison_confirmee_at ?? null,
+  }));
+}
+
+// --- Noms des contreparties (le transporteur ne peut pas lire le profil du donneur, et inversement) ---
+type Party = { name: string; phone?: string };
+
+export async function loadParties(): Promise<Record<string, Party>> {
+  const parties: Record<string, Party> = {};
+  const { data: auth } = await supabase.auth.getUser();
+  const uid = auth?.user?.id;
+  if (!uid) return parties;
+
+  const [own, others] = await Promise.all([
+    supabase.from("profiles").select("id, entreprise, prenom, full_name").eq("id", uid).maybeSingle(),
+    supabase.rpc("get_counterparties"),
+  ]);
+
+  if (own.data) {
+    const o: any = own.data;
+    parties[uid] = {
+      name: (o.entreprise || "").trim() || [o.prenom, o.full_name].filter(Boolean).join(" "),
+    };
+  }
+  if (others.error) {
+    console.error("loadParties:", others.error.message);
+  } else {
+    for (const r of (others.data as any[]) ?? []) {
+      parties[r.id] = { name: r.display_name ?? "", phone: r.phone ?? undefined };
+    }
+  }
+  return parties;
+}
+
+export async function loadFreightOffers(): Promise<OffreFret[]> {
+  const [offers, parties] = await Promise.all([loadFreightOffersRaw(), loadParties()]);
+  return offers.map((o) => ({
+    ...o,
+    donneurRaisonSociale: parties[o.donneurId]?.name || o.donneurRaisonSociale,
+  }));
+}
+
+export async function loadProposals(): Promise<PropositionPrix[]> {
+  const [proposals, parties] = await Promise.all([loadProposalsRaw(), loadParties()]);
+  return proposals.map((p) => ({
+    ...p,
+    transporteurRaisonSociale: parties[p.transporteurId]?.name || p.transporteurRaisonSociale,
   }));
 }
