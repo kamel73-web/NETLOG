@@ -5168,52 +5168,6 @@ export default function App() {
                         <div className="space-y-2">
                           <button
                             onClick={() => {
-                              // Create a totally brand new mock cargo offer
-                              const newMockOffre: OffreFret = {
-                                id: "offre-mock-" + Date.now(),
-                                donneurId: "user-do-1",
-                                donneurRaisonSociale: "SARL BATIMEX",
-                                depart: "Alger",
-                                arrivee: "Oran",
-                                departDetails: "Rouïba, Alger",
-                                arriveeDetails: "Zone Portuaire, Oran",
-                                dateChargement: new Date(Date.now() + 86400000)
-                                  .toISOString()
-                                  .split("T")[0],
-                                dateLivraison: new Date(Date.now() + 172800000)
-                                  .toISOString()
-                                  .split("T")[0],
-                                poids: 22,
-                                marchandise: "Profilés d'Aluminium en fardeaux",
-                                moyenExige: MoyenType.Tautliner,
-                                nombreVoyages: 1,
-                                prixFixe: 125000,
-                                status: OffreStatus.Publie,
-                                dateCreation: new Date()
-                                  .toISOString()
-                                  .split("T")[0],
-                              };
-
-                              const updated = [newMockOffre, ...offres];
-                              saveState(undefined, undefined, updated);
-                              triggerSystemLog(
-                                "Cargaison témoin injectée avec succès dans la bourse publique d'Alger !",
-                                "success",
-                              );
-                            }}
-                            className="w-full text-left p-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-[#1D9E75] transition-all flex items-center gap-3 text-xs font-bold text-slate-700 cursor-pointer"
-                          >
-                            <span className="text-lg">⚡</span>
-                            <div>
-                              <span>Injecter une cargaison témoin</span>
-                              <span className="text-[9px] text-slate-400 block font-normal">
-                                Ajoute un fret direct sur Alger-Oran
-                              </span>
-                            </div>
-                          </button>
-
-                          <button
-                            onClick={() => {
                               // Generate mock CCP invoices directly for testing
                               triggerSystemLog(
                                 "Validation administrative de tous les justificatifs CCP !",
@@ -5287,11 +5241,11 @@ export default function App() {
 
                     <div className="flex gap-4 font-mono text-[10px] text-slate-500 font-bold">
                       <div className="bg-emerald-50 text-emerald-800 px-3.5 py-2.5 rounded-2xl border border-emerald-100 text-center">
-                        <span className="block font-black text-xs">1,240</span>
+                        <span className="block font-black text-xs">—</span>
                         Moyens Actifs
                       </div>
                       <div className="bg-indigo-50 text-indigo-800 px-3.5 py-2.5 rounded-2xl border border-indigo-100 text-center">
-                        <span className="block font-black text-xs">58</span>
+                        <span className="block font-black text-xs">—</span>
                         Wilayas Couvertes
                       </div>
                     </div>
@@ -5305,78 +5259,7 @@ export default function App() {
                       </h3>
 
                       <div className="space-y-2.5 max-h-[460px] overflow-y-auto pr-2 scrollbar-thin">
-                        {[
-                          {
-                            code: "16",
-                            name: "Alger (Capitale)",
-                            count: 485,
-                            load: 92,
-                            trend: "up",
-                          },
-                          {
-                            code: "31",
-                            name: "Oran",
-                            count: 320,
-                            load: 78,
-                            trend: "up",
-                          },
-                          {
-                            code: "19",
-                            name: "Sétif (Hauts-Plateaux)",
-                            count: 210,
-                            load: 65,
-                            trend: "neutral",
-                          },
-                          {
-                            code: "30",
-                            name: "Ouargla (Hassi Messaoud)",
-                            count: 185,
-                            load: 84,
-                            trend: "up",
-                          },
-                          {
-                            code: "25",
-                            name: "Constantine (Est)",
-                            count: 160,
-                            load: 58,
-                            trend: "down",
-                          },
-                          {
-                            code: "06",
-                            name: "Béjaïa (Port principal)",
-                            count: 155,
-                            load: 88,
-                            trend: "up",
-                          },
-                          {
-                            code: "23",
-                            name: "Annaba",
-                            count: 120,
-                            load: 50,
-                            trend: "neutral",
-                          },
-                          {
-                            code: "13",
-                            name: "Tlemcen",
-                            count: 95,
-                            load: 45,
-                            trend: "down",
-                          },
-                          {
-                            code: "47",
-                            name: "Ghardaïa (Porte du Sud)",
-                            count: 110,
-                            load: 72,
-                            trend: "up",
-                          },
-                          {
-                            code: "39",
-                            name: "El Oued",
-                            count: 85,
-                            load: 60,
-                            trend: "up",
-                          },
-                        ].map((entry) => (
+                        {([] as any[]).map((entry) => (
                           <div
                             key={entry.code}
                             className="p-3 bg-slate-50 hover:bg-slate-100/75 rounded-2xl border border-slate-100 flex items-center justify-between text-xs transition duration-150"
