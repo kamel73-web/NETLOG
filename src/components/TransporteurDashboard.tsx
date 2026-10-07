@@ -3196,13 +3196,13 @@ export default function TransporteurDashboard({
                       <input
                         type="text"
                         inputMode="numeric"
-                        pattern="[0-9]{6}"
+                        pattern="\d{6}"
                         maxLength={6}
                         required
                         value={driverPassword}
-                        onChange={(e) => setDriverPassword(e.target.value.replace(/\D/g, ""))}
-                        placeholder="Ex: 482193"
-                        className="w-full px-3 py-2 border border-slate-200 rounded-xl font-mono focus:border-emerald-505"
+                        onChange={(e) => setDriverPassword(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        placeholder="Ex: 482915"
+                        className="w-full px-3 py-2 border border-slate-200 rounded-xl font-mono focus:border-emerald-500"
                       />
                     </div>
                     <div className="space-y-1">
