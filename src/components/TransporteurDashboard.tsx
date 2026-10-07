@@ -3058,6 +3058,8 @@ export default function TransporteurDashboard({
                 prenom: driverFirstName.trim(),
                 phone: driverTel.trim(),
                 password: driverPassword.trim(),
+                position: driverPosition.trim(),
+                availability: String(driverStatus),
               });
               saveState(await loadProfiles());
               triggerSystemLog(

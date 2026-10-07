@@ -17,7 +17,12 @@ export function toLoginEmail(identifier: string): string {
 }
 
 export async function createDriver(input: {
-  nom: string; prenom: string; phone: string; password?: string;
+  nom: string;
+  prenom: string;
+  phone: string;
+  password?: string;
+  position?: string;
+  availability?: string;
 }): Promise<{ id: string; phone: string; password?: string }> {
   const { data, error } = await supabase.functions.invoke("create-driver", { body: input });
   if (error) {
