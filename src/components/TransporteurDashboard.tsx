@@ -3135,8 +3135,7 @@ export default function TransporteurDashboard({
                       Fiche d'inscription d'un nouveau conducteur
                     </h4>
                     <p className="text-[10px] text-slate-400">
-                      Le chauffeur pourra se connecter avec cet email et mot de
-                      passe.
+                      Le chauffeur se connecte avec son numéro de téléphone et un code d'accès à 6 chiffres.
                     </p>
                   </div>
 
