@@ -12,6 +12,7 @@ import {
   getCurrentProfile,
   updateProfileStatus,
 } from "./lib/supabase";
+import { toLoginEmail } from "./lib/drivers";
 
 import {
   createFreightOffer,
@@ -975,7 +976,7 @@ export default function App() {
     // défaut "Test@2025" pour tout profil chargé depuis Supabase (faille
     // permettant de se connecter à n'importe quel compte réel).
     const { error: signInError } = await signInWithPassword(
-      loginEmail.trim(),
+      toLoginEmail(loginEmail),
       loginPassword,
     );
 
@@ -3123,12 +3124,13 @@ export default function App() {
                               : "Adresse email professionnelle *"}
                           </label>
                           <input
-                            type="email"
+                            type="text"
+                            autoComplete="username"
                             required
                             placeholder={
                               lang === "ar"
-                                ? "exemple@netlog.dz أو company@batimex.dz"
-                                : "exemple@netlog.dz ou nom@batimex.dz"
+                                ? "exemple@netlog.dz / 0555123456"
+                                : "E-mail ou n° de téléphone (chauffeur)"
                             }
                             value={loginEmail}
                             onChange={(e) => setLoginEmail(e.target.value)}
@@ -5460,28 +5462,7 @@ export default function App() {
                         </div>
 
                         <div className="pt-4 border-t border-slate-50 flex flex-col sm:flex-row justify-center gap-3">
-                          <button
-                            onClick={() => {
-                              const targetUser =
-                                users.find(
-                                  (u) => u.profil === ProfileType.DonneurOrdre,
-                                ) || users[1];
-                              setCurrentUser(targetUser);
-                              triggerSystemLog(
-                                `Connecté en séance d'évaluation en tant que : ${targetUser.raisonSociale}`,
-                                "success",
-                              );
-                            }}
-                            className="px-5 py-3 bg-[#1D9E75] hover:bg-[#157B5B] text-white text-xs font-black rounded-xl transition cursor-pointer active:scale-95 text-center shadow-sm"
-                          >
-                            ⚡ Devenir Donneur d'Ordre (SARL BATIMEX)
-                          </button>
-                          <button
-                            onClick={() => setCurrentTab("menu")}
-                            className="px-4 py-3 border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold rounded-xl cursor-pointer"
-                          >
-                            Simuler d'autres comptes
-                          </button>
+                          
                         </div>
                       </div>
                     ) : (
@@ -5928,7 +5909,8 @@ export default function App() {
 
                                 <button
                                   onClick={() => {
-                                    setCurrentUser(profileUser);
+                                    triggerSystemLog("Changement de profil désactivé : déconnectez-vous puis reconnectez-vous avec le compte voulu.", "info");
+                                    return;
 
                                     if (
                                       profileUser.profil ===
@@ -6426,7 +6408,8 @@ export default function App() {
                     <button
                       key={profileUser.id}
                       onClick={() => {
-                        setCurrentUser(profileUser);
+                        triggerSystemLog("Changement de profil désactivé : déconnectez-vous puis reconnectez-vous avec le compte voulu.", "info");
+                                    return;
 
                         // Route to correct layout instantly
                         if (profileUser.profil === ProfileType.DonneurOrdre) {
@@ -7819,12 +7802,13 @@ export default function App() {
             >
               <div>
                 <label className="block text-[10px] text-slate-500 mb-0.5">
-                  Adresse email *
+                  E-mail ou téléphone *
                 </label>
                 <input
-                  type="email"
+                            type="text"
+                            autoComplete="username"
                   required
-                  placeholder="nom@exemple.dz"
+                  placeholder="E-mail ou téléphone"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
                   className="w-full px-2.5 py-2 border border-slate-200 rounded-xl text-xs text-slate-800"

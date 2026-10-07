@@ -31,7 +31,8 @@ import {
   ReglementMode,
 } from "../types";
 import { createVehicle } from "../lib/freightOffers";
-import { loadFreightOffers } from "../lib/dataLoader";
+import { loadFreightOffers, loadProfiles } from "../lib/dataLoader";
+import { createDriver } from "../lib/drivers";
 import {
   getMissionIdByOfferId,
   confirmDelivery,
@@ -3041,69 +3042,39 @@ export default function TransporteurDashboard({
               u.transporteurParentId === currentUser.id,
           );
 
-          const handleAddDriverSubmit = (e: React.FormEvent) => {
+          const handleAddDriverSubmit = async (e: React.FormEvent) => {
             e.preventDefault();
-            if (
-              !driverLastName.trim() ||
-              !driverFirstName.trim() ||
-              !driverEmail.trim() ||
-              !driverTel.trim()
-            ) {
-              triggerSystemLog(
-                "Veuillez remplir tous les champs obligatoires (*).",
-                "danger",
-              );
+            if (!driverLastName.trim() || !driverFirstName.trim() || !driverTel.trim()) {
+              triggerSystemLog("Veuillez remplir tous les champs obligatoires (*).", "danger");
               return;
             }
-
-            // Check email
-            if (
-              users.some(
-                (u) =>
-                  u.email.trim().toLowerCase() ===
-                  driverEmail.trim().toLowerCase(),
-              )
-            ) {
-              triggerSystemLog(
-                "Cet email est déjà utilisé par un autre compte.",
-                "danger",
-              );
+            if (!/^\d{6}$/.test(driverPassword.trim())) {
+              triggerSystemLog("Le code d'accès doit comporter exactement 6 chiffres.", "danger");
               return;
             }
-
-            const newDrv = {
-              id: `driver-${Date.now()}`,
-              nom: driverLastName.trim(),
-              prenom: driverFirstName.trim(),
-              raisonSociale: `Chauffeur de ${currentUser.raisonSociale}`,
-              nrc: "N/A",
-              adresse: currentUser.adresse || "Algérie",
-              email: driverEmail.trim().toLowerCase(),
-              tel: driverTel.trim(),
-              profil: ProfileType.Chauffeur,
-              password: driverPassword || "Test@2025",
-              status: "valide" as const,
-              transporteurParentId: currentUser.id,
-              disponibiliteChauffeur: driverStatus,
-              positionChauffeur: driverPosition,
-              dateInscription: new Date().toISOString().substring(0, 10),
-            };
-
-            saveState([...users, newDrv]);
-            triggerSystemLog(
-              `Chauffeur ${newDrv.prenom} ${newDrv.nom} ajouté avec succès !`,
-              "success",
-            );
-
-            // Reset fields
-            setDriverFirstName("");
-            setDriverLastName("");
-            setDriverEmail("");
-            setDriverTel("");
-            setDriverPassword("");
-            setDriverPosition("Alger");
-            setDriverStatus("Disponible");
-            setShowDriverForm(false);
+            try {
+              await createDriver({
+                nom: driverLastName.trim(),
+                prenom: driverFirstName.trim(),
+                phone: driverTel.trim(),
+                password: driverPassword.trim(),
+              });
+              saveState(await loadProfiles());
+              triggerSystemLog(
+                `Chauffeur ${driverFirstName.trim()} ${driverLastName.trim()} créé. Il se connecte avec son numéro de téléphone et son code d'accès.`,
+                "success",
+              );
+              setDriverFirstName("");
+              setDriverLastName("");
+              setDriverEmail("");
+              setDriverTel("");
+              setDriverPassword("");
+              setDriverPosition("Alger");
+              setDriverStatus("Disponible");
+              setShowDriverForm(false);
+            } catch (err: any) {
+              triggerSystemLog(err?.message ?? "Création du chauffeur impossible.", "danger");
+            }
           };
 
           const handleDeleteDriver = (drvId: string) => {
@@ -3213,30 +3184,25 @@ export default function TransporteurDashboard({
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase text-slate-500 block">
-                        Email de connexion *
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        value={driverEmail}
-                        onChange={(e) => setDriverEmail(e.target.value)}
-                        placeholder="Ex: slimane.ben@log.dz"
-                        className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:border-emerald-505 focus:outline-none"
-                      />
+                      <label className="text-[10px] uppercase text-slate-500 block">Identifiant de connexion</label>
+                      <p className="px-3 py-2 text-xs text-slate-500">Le numéro de téléphone du chauffeur</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-1">
                       <label className="text-[10px] uppercase text-slate-500 block">
-                        Mot de passe (facultatif)
+                        Code d'accès (6 chiffres) *
                       </label>
                       <input
                         type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]{6}"
+                        maxLength={6}
+                        required
                         value={driverPassword}
-                        onChange={(e) => setDriverPassword(e.target.value)}
-                        placeholder="Ex: Test@2025"
+                        onChange={(e) => setDriverPassword(e.target.value.replace(/\D/g, ""))}
+                        placeholder="Ex: 482193"
                         className="w-full px-3 py-2 border border-slate-200 rounded-xl font-mono focus:border-emerald-505"
                       />
                     </div>
@@ -3374,7 +3340,7 @@ export default function TransporteurDashboard({
                             <p className="flex justify-between">
                               <span>🔑 Clé d'accès démo :</span>
                               <span className="text-indigo-700 font-mono text-[10px]">
-                                {drv.password || "Test@2025"}
+                                ••••••
                               </span>
                             </p>
                             <p className="flex justify-between">
@@ -3623,41 +3589,7 @@ export default function TransporteurDashboard({
                 Derniers avis des Donneurs d'Ordre
               </span>
 
-              <div className="space-y-3 font-medium text-xs">
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 relative">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-extrabold text-slate-900">
-                      SARL BATIMEX
-                    </span>
-                    <span className="font-mono text-slate-400 text-[10px]">
-                      10/05/2026
-                    </span>
-                  </div>
-                  <span className="text-amber-500 font-bold block mb-1">
-                    ⭐⭐⭐⭐⭐ 5.0
-                  </span>
-                  <p className="text-slate-600">
-                    "Très professionnel, livraison à l'heure"
-                  </p>
-                </div>
-
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 relative">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-extrabold text-slate-900">
-                      SPA CEVITAL
-                    </span>
-                    <span className="font-mono text-slate-400 text-[10px]">
-                      25/04/2026
-                    </span>
-                  </div>
-                  <span className="text-amber-500 font-bold block mb-1">
-                    ⭐⭐⭐⭐ 4.0
-                  </span>
-                  <p className="text-slate-600">
-                    "Bon travail, léger retard au chargement"
-                  </p>
-                </div>
-              </div>
+              <p className="text-xs text-slate-500">Aucun avis pour le moment.</p>
             </div>
           </div>
         </div>
