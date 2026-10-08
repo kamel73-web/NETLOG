@@ -5,6 +5,7 @@ export function normalizeDzMobile(raw: string): string | null {
   let d = raw.replace(/\D/g, "");
   if (d.startsWith("00213")) d = d.slice(2);
   if (d.startsWith("0")) d = "213" + d.slice(1);
+  if (/^[567]\d{8}$/.test(d)) d = "213" + d;
   return /^213[567]\d{8}$/.test(d) ? d : null;
 }
 
