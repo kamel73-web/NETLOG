@@ -38,6 +38,7 @@ import {
   confirmDelivery,
   validateLoading,
   validateUnload,
+  assignDriver,
 } from "../lib/missions";
 import DevisModule from "./DevisModule";
 
@@ -1996,24 +1997,26 @@ export default function TransporteurDashboard({
                       <div>
                         <select
                           value={offre.chauffeurId || ""}
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const selectedVal = e.target.value;
-                            const updatedOffres = offres.map((o) => {
-                              if (o.id === offre.id) {
-                                return {
-                                  ...o,
-                                  chauffeurId: selectedVal || undefined,
-                                };
-                              }
-                              return o;
-                            });
-                            saveState(undefined, undefined, updatedOffres);
-                            triggerSystemLog(
-                              selectedVal
-                                ? "Chauffeur affecté avec succès à cette mission !"
-                                : "Chauffeur désaffecté de la mission.",
-                              "success",
-                            );
+                            const offerIdNum = Number(offre.id);
+                            if (!Number.isFinite(offerIdNum)) {
+                              triggerSystemLog("ID offre invalide.", "danger");
+                              return;
+                            }
+                            try {
+                              const missionId = await getMissionIdByOfferId(offerIdNum);
+                              await assignDriver(missionId, selectedVal || null);
+                              saveState(undefined, undefined, await loadFreightOffers());
+                              triggerSystemLog(
+                                selectedVal
+                                  ? "Chauffeur affecté avec succès à cette mission !"
+                                  : "Chauffeur désaffecté de la mission.",
+                                "success",
+                              );
+                            } catch (err: any) {
+                              triggerSystemLog(err?.message ?? "Affectation impossible.", "danger");
+                            }
                           }}
                           className="bg-white text-slate-800 border border-slate-250 rounded-xl text-xs px-2.5 py-1.5 font-bold focus:outline-none cursor-pointer"
                         >

@@ -106,3 +106,12 @@ export async function confirmDelivery(params: {
 
   return data;
 }
+
+export async function assignDriver(missionId: number, driverId: string | null) {
+  const { data, error } = await supabase.rpc('assign_driver', {
+    p_mission_id: missionId,
+    p_driver_id: driverId,
+  });
+  if (error) throw new Error(`Affectation du chauffeur échouée : ${error.message}`);
+  return data;
+}
