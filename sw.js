@@ -1,27 +1,59 @@
-// NETLOG Service Worker for local caching and offline operations
-const CACHE_NAME = 'netlog-v1';
-const ASSETS = [
-  '/',
-  '/index.html',
-  '/src/main.tsx',
-  '/src/App.tsx',
-  '/src/index.css'
-];
+// NETLOG Service Worker : coque d'application hors ligne.
+// Ne touche jamais aux appels Supabase ni aux autres domaines.
+const CACHE = 'netlog-shell-v2';
 
-self.addEventListener('install', (e) => {
+self.addEventListener('install', () => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS).catch(() => {});
-    })
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', (e) => {
-  e.respondWith(
-    caches.match(e.request).then((cachedResponse) => {
-      return cachedResponse || fetch(e.request).catch(() => {
-        // Fallback or ignore for un-cached endpoints
-      });
-    })
-  );
+  const req = e.request;
+  const url = new URL(req.url);
+
+  // Uniquement les GET du même domaine : Supabase, polices, CDN... passent sans interception
+  if (req.method !== 'GET' || url.origin !== self.location.origin) return;
+
+  // Fichiers du build (noms hashés) : cache d'abord, sinon réseau puis mise en cache
+  if (url.pathname.includes('/assets/')) {
+    e.respondWith(
+      caches.match(req).then(
+        (hit) =>
+          hit ||
+          fetch(req).then((res) => {
+            if (res.ok) {
+              const copy = res.clone();
+              caches.open(CACHE).then((c) => c.put(req, copy));
+            }
+            return res;
+          })
+      )
+    );
+    return;
+  }
+
+  // Pages : réseau d'abord (toujours la dernière version), cache en secours hors ligne
+  if (req.mode === 'navigate') {
+    e.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(req, copy));
+          }
+          return res;
+        })
+        .catch(() =>
+          caches.match(req).then((hit) => hit || caches.match(new URL('./', self.location).href))
+        )
+    );
+  }
 });
