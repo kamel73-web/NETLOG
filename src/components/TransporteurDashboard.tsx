@@ -33,6 +33,10 @@ import {
 import { createVehicle } from "../lib/freightOffers";
 import { loadFreightOffers, loadProfiles } from "../lib/dataLoader";
 import { createDriver } from "../lib/drivers";
+
+// Prix convenu = prix de la proposition acceptée (le tarif de l'offre peut être libre, donc à 0)
+const agreedPrice = (props: any[], o: any): number =>
+  props.find((p) => p.offreId === o.id && p.status === "Accepté")?.prixPropose ?? o.prixFixe ?? 0;
 import {
   getMissionIdByOfferId,
   confirmDelivery,
@@ -309,7 +313,7 @@ export default function TransporteurDashboard({
       selectedMissionsForInvoice.includes(o.id),
     );
     const totalHT = selectedOffres.reduce(
-      (sum, o) => sum + (o.prixFixe ?? 0),
+      (sum, o) => sum + agreedPrice(propositions, o),
       0,
     );
 
@@ -1899,7 +1903,7 @@ export default function TransporteurDashboard({
 
                 let progressWidth = "25%";
                 if (isCharged) progressWidth = "50%";
-                else if (isDecharged) progressWidth = "75%";
+                else if (isDecharged) progressWidth = "100%";
 
                 return (
                   <div
@@ -1944,7 +1948,7 @@ export default function TransporteurDashboard({
                       <div>
                         💰 Prix convenu :{" "}
                         <span className="text-[#1D9E75] text-xs font-black block">
-                          {offre.prixFixe?.toLocaleString()} DA
+                          {agreedPrice(propositions, offre).toLocaleString()} DA
                         </span>
                       </div>
                     </div>
@@ -2093,15 +2097,31 @@ export default function TransporteurDashboard({
 
                         {/* Node 4 */}
                         <div className="z-10 flex flex-col items-center">
-                          <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-[9px] border-2 border-white shadow">
-                            ○
+                          <span
+                            className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[9px] border-2 border-white shadow ${
+                              isDecharged
+                                ? "bg-[#1D9E75] text-white"
+                                : "bg-slate-200 text-slate-500"
+                            }`}
+                          >
+                            {isDecharged ? "✓" : "○"}
                           </span>
-                          <span className="text-[10px] font-sans font-bold text-slate-400 mt-1">
-                            Livré
+                          <span
+                            className={`text-[10px] font-sans font-bold mt-1 ${
+                              isDecharged ? "text-slate-800" : "text-slate-400"
+                            }`}
+                          >
+                            Déchargé
                           </span>
                         </div>
                       </div>
                     </div>
+
+                    {isDecharged && (
+                      <p className="text-center text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-100 rounded-xl py-2">
+                        ⏳ Livraison en attente de validation
+                      </p>
+                    )}
 
                     {/* Actions contextuelles */}
                     <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-50 select-none">
@@ -2152,12 +2172,6 @@ export default function TransporteurDashboard({
                           ✅ J'ai livré la marchandise
                         </button>
                       )}
-
-                      {isDecharged && (
-  <p className="w-full text-xs font-semibold text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
-    ✅ Déchargement déclaré. En attente de la confirmation du donneur d'ordre.
-  </p>
-)}
 
                       <button
                         onClick={() =>
@@ -2219,7 +2233,7 @@ export default function TransporteurDashboard({
                 .map((id) => offres.find((o) => o.id === id))
                 .filter(Boolean);
               const sumSelectedHT = activeSelectedOffres.reduce(
-                (s, o) => s + (o.prixFixe ?? 0),
+                (s, o) => s + agreedPrice(propositions, o),
                 0,
               );
               const calculatedTVA = Math.round(sumSelectedHT * 0.19);
@@ -2417,7 +2431,7 @@ export default function TransporteurDashboard({
                                         {o.marchandise || "Fret standard"}
                                       </td>
                                       <td className="px-5 py-3 text-right font-extrabold text-[#1D9E75] font-mono">
-                                        {(o.prixFixe ?? 0).toLocaleString()}{" "}
+                                        {agreedPrice(propositions, o).toLocaleString()}{" "}
                                         DA
                                       </td>
                                     </tr>
@@ -2533,7 +2547,7 @@ export default function TransporteurDashboard({
                                     {clientName}
                                   </td>
                                   <td className="px-5 py-4 font-extrabold text-[#1D9E75]">
-                                    {(o.prixFixe ?? 0).toLocaleString()} DA
+                                    {agreedPrice(propositions, o).toLocaleString()} DA
                                   </td>
                                   <td className="px-5 py-4">
                                     <div className="flex items-center gap-1.5">
