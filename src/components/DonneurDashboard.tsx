@@ -32,6 +32,7 @@ import DevisModule from "./DevisModule";
 import { createFreightOffer, acceptProposal } from "../lib/freightOffers"
 import { getMissionIdByOfferId, confirmDelivery, validateLoading, validateUnload } from "../lib/missions";
 import type { MissionRow } from "../lib/dataLoader";
+import { loadFreightOffers, loadProposals, loadMissions } from "../lib/dataLoader";
 
 
 function wilayaCodeFromLabel(label: string): number | null {
@@ -410,36 +411,18 @@ export default function DonneurDashboard({
       return;
     }
 
-    const updatedProps = propositions.map(p => {
-      if (p.id === prop.id) return { ...p, status: "Accepté" as const };
-      if (p.offreId === prop.offreId) return { ...p, status: "Rejeté" as const };
-      return p;
-    });
-
-    const updatedOffres = offres.map(o => {
-      if (o.id === prop.offreId) {
-        return {
-          ...o,
-          status: OffreStatus.Attribue,
-          transporteurId: prop.transporteurId,
-          transporteurRaisonSociale: prop.transporteurRaisonSociale,
-          prixConvenu: prop.prixPropose
-        };
-      }
-      return o;
-    });
-
-    const newInvoice = {
-      id: `FAC-${2025}-${Math.floor(100 + Math.random() * 900)}`,
-      offreId: prop.offreId,
-      donneurId: currentUser?.id,
-      transporteurId: prop.transporteurId,
-      montant: prop.prixPropose,
-      status: "Facture Transmise",
-      dateEmission: new Date().toISOString().split("T")[0],
-    };
-
-    saveState(undefined, undefined, updatedOffres, updatedProps, [...(factures || []), newInvoice]);
+    // La base fait foi : on relit offres, propositions et missions (la mission vient d'être créée)
+    try {
+      const [freshOffres, freshProps, freshMissions] = await Promise.all([
+        loadFreightOffers(),
+        loadProposals(),
+        loadMissions(),
+      ]);
+      saveState(undefined, undefined, freshOffres, freshProps);
+      setMissions(freshMissions);
+    } catch (err) {
+      console.error("Erreur rechargement après acceptation:", err);
+    }
     triggerSystemLog(
       lang === "ar"
         ? "تم قبول العرض بنجاح وجاري إعداد عقد النقل"
@@ -1174,7 +1157,7 @@ export default function DonneurDashboard({
               const carrierTel = "0550 42 18 90";
               const vehiclePlate = "123456-116";
               const vehicleType = translateMoyenType(mission.moyenExige || MoyenType.Tautliner, lang) + " 30T";
-              const amountDa = mission.prixConvenu || (mission.prixFixe ?? 0);
+              const amountDa = propositions.find((p) => p.offreId === mission.id && p.status === "Accepté")?.prixPropose ?? mission.prixConvenu ?? mission.prixFixe ?? 0;
 
               // Progress state:
               // 1. Attribue = attente_chargement
