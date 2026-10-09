@@ -261,175 +261,20 @@ export async function acceptProposal(params: {
   offerId: number;
   proposalId: number;
 }) {
-  console.log("[NETLOG] acceptProposal", params);
-
-  // ============================================================
-  // 1. Charger la proposition sélectionnée
-  // ============================================================
-
-  const { data: prop, error: propLoadError } = await supabase
-    .from("proposals")
-    .select("id, offer_id, transporteur_id, vehicle_id, chauffeur_id")
-    .eq("id", params.proposalId)
-    .eq("offer_id", params.offerId)
-    .single();
-
-  if (propLoadError || !prop) {
-    throw new Error(
-      `Proposition introuvable: ${propLoadError?.message ?? "sans données"}`,
-    );
-  }
-
-  console.log("[NETLOG] Proposition sélectionnée", prop);
-
-  // ============================================================
-  // 2. Vérification de cohérence
-  // ============================================================
-
-  if (Number(prop.offer_id) !== Number(params.offerId)) {
-    throw new Error(
-      "La proposition sélectionnée n'appartient pas à cette offre.",
-    );
-  }
-
-  if (!prop.transporteur_id) {
-    throw new Error(
-      "La proposition sélectionnée ne possède aucun transporteur.",
-    );
-  }
-
-  // ============================================================
-  // 3. Vérifier que l'offre existe et est encore ouverte
-  // ============================================================
-
-  const { data: currentOffer, error: offerLoadError } = await supabase
-    .from("freight_offers")
-    .select("id, status")
-    .eq("id", params.offerId)
-    .single();
-
-  if (offerLoadError || !currentOffer) {
-    throw new Error(
-      `Offre introuvable: ${offerLoadError?.message ?? "sans données"}`,
-    );
-  }
-
-  if (currentOffer.status !== "ouverte") {
-    throw new Error(
-      `Cette offre ne peut plus être attribuée. Statut actuel: ${currentOffer.status}`,
-    );
-  }
-
-  // ============================================================
-  // 4. Attribuer l'offre au transporteur
-  //
-  // IMPORTANT :
-  // NE PAS envoyer vehicle_id / chauffeur_id à freight_offers.
-  // Ces informations sont conservées dans proposals.
-  // ============================================================
-
-  const { data: updatedOffer, error: offerError } = await supabase
-    .from("freight_offers")
-    .update({
-      status: "attribuee",
-      transporteur_id: prop.transporteur_id,
-    })
-    .eq("id", params.offerId)
-    .select()
-    .single();
-
-  if (offerError) {
-    throw new Error(`Mise à jour de l'offre échouée: ${offerError.message}`);
-  }
-
-  if (!updatedOffer) {
-    throw new Error("Mise à jour de l'offre échouée: aucune offre retournée.");
-  }
-
-  console.log("[NETLOG] Offre attribuée", {
-    offerId: params.offerId,
-    transporteurId: prop.transporteur_id,
+  // Tout se fait dans la base en une seule opération « tout ou rien » :
+  // attribution de l'offre, acceptation/refus des propositions, création de la mission.
+  const { data, error } = await supabase.rpc("accept_proposal", {
+    p_offer_id: params.offerId,
+    p_proposal_id: params.proposalId,
   });
-
-  // ============================================================
-  // 5. Accepter la proposition sélectionnée
-  // ============================================================
-
-  const { error: proposalError } = await supabase
-    .from("proposals")
-    .update({
-      status: "acceptee",
-    })
-    .eq("id", params.proposalId)
-    .eq("offer_id", params.offerId);
-
-  if (proposalError) {
-    throw new Error(
-      `Mise à jour de la proposition échouée: ${proposalError.message}`,
-    );
+  if (error) {
+    throw new Error(error.message);
   }
-
-  // ============================================================
-  // 6. Refuser les autres propositions
-  // ============================================================
-
-  const { error: rejectError } = await supabase
-    .from("proposals")
-    .update({
-      status: "refusee",
-    })
-    .eq("offer_id", params.offerId)
-    .neq("id", params.proposalId);
-
-  if (rejectError) {
-    console.warn(
-      "[NETLOG] Refus des autres propositions:",
-      rejectError.message,
-    );
+  if (!data) {
+    throw new Error("Acceptation de la proposition échouée : aucune donnée retournée.");
   }
-
-  // ============================================================
-  // 7. Journalisation finale
-  // ============================================================
-
-  // Créer la mission terrain (source de vérité chargement/déchargement)
-  try {
-    await createMissionFromProposal({
-      offerId: params.offerId,
-      transporteurId: prop.transporteur_id,
-      vehicleId: prop.vehicle_id ?? null,
-      chauffeurId: prop.chauffeur_id ?? null,
-    });
-  } catch (missionErr: any) {
-    console.warn(
-      "[NETLOG] createMissionFromProposal:",
-      missionErr?.message ?? missionErr,
-    );
-  }
-
-  console.log("[NETLOG] acceptProposal OK", {
-    offerId: params.offerId,
-    proposalId: params.proposalId,
-    transporteur_id: prop.transporteur_id,
-    vehicle_id: prop.vehicle_id ?? null,
-    chauffeur_id: prop.chauffeur_id ?? null,
-  });
-
-  // ============================================================
-  // 8. Retourner les données utiles à l'interface
-  // ============================================================
-
-  return {
-    offer: updatedOffer,
-    proposal: {
-      id: prop.id,
-      offer_id: prop.offer_id,
-      transporteur_id: prop.transporteur_id,
-      vehicle_id: prop.vehicle_id ?? null,
-      chauffeur_id: prop.chauffeur_id ?? null,
-      status: "acceptee",
-    },
-  };
+  const result = data as any;
+  return { offer: result.offer, proposal: result.proposal, mission: result.mission };
 }
 
 export async function confirmDelivery(params: {
