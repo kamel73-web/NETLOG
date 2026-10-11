@@ -1373,26 +1373,7 @@ export default function App() {
       return p;
     });
 
-    // 3. Générer la Facture à régler (Simulation)
-    const newFacture: Facture = {
-      id: "fact-" + Date.now(),
-      offreId: targetOffre.id,
-      donneurId: targetOffre.donneurId,
-      transporteurId: bid.transporteurId,
-      montant: bid.prixPropose,
-      status: FactureStatus.NonFacture,
-      dateEmission: new Date().toISOString().split("T")[0],
-    };
-
-    const updatedFactures = [...factures, newFacture];
-
-    saveState(
-      undefined,
-      undefined,
-      updatedOffres,
-      updatedProps,
-      updatedFactures,
-    );
+    saveState(undefined, undefined, updatedOffres, updatedProps);
     triggerSystemLog(
       `Offre attribuée à ${bid.transporteurRaisonSociale}. Contrat DO-BDF validé d'office !`,
       "success",

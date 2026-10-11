@@ -134,31 +134,29 @@ async function loadProposalsRaw(): Promise<PropositionPrix[]> {
 export async function loadInvoices(): Promise<Facture[]> {
   const { data, error } = await supabase
     .from("invoices")
-    .select("*")
-    .order("created_at", { ascending: false })
+    .select("*, invoice_lines(offer_id, active)")
+    .order("id", { ascending: false })
     .limit(200);
   if (error) {
     console.error("loadInvoices:", error.message);
     return [];
   }
   return (data as any[]).map((inv) => ({
-    id: inv.numero ?? String(inv.id),
-    offreId: String(inv.offer_id),
+    id: String(inv.numero),
+    offreId: String(inv.invoice_lines?.[0]?.offer_id ?? ""),
     donneurId: inv.donneur_ordre_id,
     transporteurId: inv.transporteur_id,
-    montant: inv.montant_ttc ?? 0,
+    montant: Number(inv.montant_ht ?? 0),
     status:
-      (
-        {
-          brouillon: FactureStatus.NonFacture,
-          emise: FactureStatus.Transmise,
-          payee: FactureStatus.Reglee,
-          annulee: FactureStatus.NonFacture,
-        } as any
-      )[inv.status] ?? FactureStatus.NonFacture,
-    dateEmission: inv.created_at?.slice(0, 10) ?? "",
-    dateReglement: inv.paid_at?.slice(0, 10) ?? undefined,
-  }));
+      ({
+        brouillon: FactureStatus.NonFacture,
+        emise: FactureStatus.Transmise,
+        payee: FactureStatus.Reglee,
+        annulee: FactureStatus.NonFacture,
+      } as any)[inv.status] ?? FactureStatus.NonFacture,
+    dateEmission: String(inv.date_emission ?? "").slice(0, 10),
+    dateReglement: inv.paid_at ? String(inv.paid_at).slice(0, 10) : undefined,
+  })) as any;
 }
 
 export interface WilayaRow {

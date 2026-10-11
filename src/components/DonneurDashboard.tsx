@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Plus, 
   Trash, 
@@ -32,6 +32,8 @@ import DevisModule from "./DevisModule";
 import { createFreightOffer, acceptProposal } from "../lib/freightOffers"
 import { getMissionIdByOfferId, confirmDelivery, validateLoading, validateUnload } from "../lib/missions";
 import type { MissionRow } from "../lib/dataLoader";
+import { loadMyInvoices, invoiceDisplayStatus, type Invoice } from "../lib/billing";
+import DonneurFactures from "./DonneurFactures";
 import { loadFreightOffers, loadProposals, loadMissions } from "../lib/dataLoader";
 
 
@@ -103,6 +105,24 @@ export default function DonneurDashboard({
 }: DonneurDashboardProps) {
 
   const [activeSubTab, setActiveSubTab] = useState<"offres" | "missions" | "propositions" | "devis" | "factures" | "compte">("offres");
+
+  // Factures reçues (lues en base : le donneur d'ordre peut seulement les consulter)
+  const [myInvoices, setMyInvoices] = useState<Invoice[]>([]);
+  const [invoicesLoading, setInvoicesLoading] = useState(true);
+  useEffect(() => {
+    let alive = true;
+    loadMyInvoices()
+      .then((list) => {
+        if (alive) setMyInvoices(list);
+      })
+      .catch((err) => console.error("Chargement des factures:", err))
+      .finally(() => {
+        if (alive) setInvoicesLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [activeSubTab]);
 
   // Form State for creating a new offer
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -185,18 +205,11 @@ export default function DonneurDashboard({
   const countMissions = doOffres.filter(o => o.status === OffreStatus.Charge || o.status === OffreStatus.Attribue).length;
   const countLivreesCeMois = doOffres.filter(o => o.status === OffreStatus.Decharge || o.status === OffreStatus.Valide).length;
 
-  // Total expenses calculated from state
-  const totalExpenses = factures
-    .filter(f => f.donneurId === currentUser?.id)
-    .reduce((sum, f) => sum + (f.montant || 0), 0) || 640000;
-
-  // Let's ensure mock invoices/factures exist for this display if empty
-  const localFactures = factures.length > 0 ? factures.filter(f => f.donneurId === currentUser?.id) : [
-    { id: "FAC-2025-008", dateEmission: "2026-05-20", prestation: "Alger ➔ Constantine (Matériaux)", montant: 45000, status: "Retard", modeReglement: "CCP" },
-    { id: "FAC-2025-007", dateEmission: "2026-05-18", prestation: "Oran ➔ Sétif (Ciment)", montant: 80000, status: "Facture Transmise", modeReglement: "Virement" },
-    { id: "FAC-2025-006", dateEmission: "2026-05-10", prestation: "Alger ➔ Adrar (Farine)", montant: 180000, status: "Facture Réglée", modeReglement: "Virement", dateReglement: "2026-05-12" },
-    { id: "FAC-2025-005", dateEmission: "2026-05-02", prestation: "Blida ➔ Annaba (Acier)", montant: 335000, status: "Facture Réglée", modeReglement: "Virement", dateReglement: "2026-05-05" }
-  ];
+  // Dépenses = factures reçues (hors annulées), lues en base
+  const totalExpenses = myInvoices
+    .filter((f) => f.status !== "annulee")
+    .reduce((sum, f) => sum + f.montant_ttc, 0);
+  const localFactures: any[] = [];
 
   // Handler for publishing a new offer
   const handlePublishOffre = async (e: React.FormEvent) => {
@@ -525,45 +538,9 @@ export default function DonneurDashboard({
     setActiveMissionToValidate(null);
   };
 
-  // Monthly consolidated invoicing ("Arrêter la période de facturation")
+  // Seul le transporteur émet les factures
   const handleGenerateMonthlyInvoice = () => {
-    // Find all completed/unbilled offers (OffreStatus.Valide) for this shipper that do not have an invoice yet
-    const unbilledOffres = offres.filter(o => 
-      o.donneurId === currentUser.id && 
-      (o.status === OffreStatus.Valide || o.status === OffreStatus.Decharge) && 
-      !(factures || []).some(f => f.offreId === o.id || (f as any).offreIds?.includes(o.id))
-    );
-
-    if (unbilledOffres.length === 0) {
-      triggerSystemLog("Aucune prestation en déchargement ou validée non-facturée disponible pour arrêter la période ce mois-ci !", "warning");
-      return;
-    }
-
-    const currentYear = new Date().getFullYear();
-    const totalAmountHT = unbilledOffres.reduce((sum, o) => {
-      const correspondingProp = propositions.find(p => p.offreId === o.id && p.status === "Accepté");
-      return sum + (correspondingProp ? correspondingProp.prixPropose : (o.prixFixe ?? 0));
-    }, 0);
-
-    const invoiceId = `FAC-${currentYear}-M-${Math.floor(100 + Math.random() * 900)}`;
-
-    const consolidatedInvoice: Facture = {
-      id: invoiceId,
-      donneurId: currentUser.id,
-      montant: totalAmountHT, // HT
-      status: "Facture Transmise" as any, // Transmise status
-      prestation: `Facture Mensuelle Groupée Consolidée (${unbilledOffres.length} Prestations de transport)`,
-      dateEmission: new Date().toISOString().split("T")[0],
-      isMensuelleGroupee: true,
-      offreIds: unbilledOffres.map(o => o.id),
-      modeReglement: "Virement"
-    } as any;
-
-    const updatedFactures = [consolidatedInvoice, ...(factures || [])];
-    
-    // We can also mark those offers as billed if we want or just let them query in factures
-    saveState(undefined, undefined, undefined, undefined, updatedFactures);
-    triggerSystemLog(`La période de facturation mensuelle a été arrêtée avec succès. Facture Groupée Consolidée ${invoiceId} émise pour ${unbilledOffres.length} prestations (${totalAmountHT.toLocaleString()} DA HT).`, "success");
+    triggerSystemLog("Les factures sont émises par le transporteur. Vous les retrouvez dans l'onglet Factures.", "info");
   };
 
   const handleCancelOffre = (id: string) => {
@@ -641,18 +618,27 @@ export default function DonneurDashboard({
           </div>
         )}
 
-        <div 
-          onClick={() => setActiveSubTab("factures")}
-          className="flex items-center gap-4 p-4 rounded-2xl bg-amber-50 border border-amber-100/80 shadow-xs cursor-pointer hover:bg-amber-100/50 transition duration-150"
-        >
-          <div className="p-3 bg-amber-500 text-white rounded-xl">
-            <AlertTriangle className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <p className="text-xs font-extrabold text-amber-950">⚠️ Facture FAC-2025-008 en retard de 5 jours (45 000 DA)</p>
-            <p className="text-[10px] text-amber-600 font-semibold">{lang === "ar" ? "اضغط هنا لتسجيل الدفع عبر CCP أو البنك" : "Cliquez pour régler immédiatement par BaridiMob / Versement"}</p>
-          </div>
-        </div>
+        {(() => {
+          const late = myInvoices.filter((f) => invoiceDisplayStatus(f).tone === "late");
+          if (late.length === 0) return null;
+          const total = late.reduce((s, f) => s + f.montant_ttc, 0);
+          return (
+            <div
+              onClick={() => setActiveSubTab("factures")}
+              className="flex items-center gap-4 p-4 rounded-2xl bg-amber-50 border border-amber-100/80 shadow-xs cursor-pointer hover:bg-amber-100/50 transition duration-150"
+            >
+              <div className="p-3 bg-amber-500 text-white rounded-xl">
+                <AlertTriangle className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-xs font-extrabold text-amber-950">
+                  ⚠️ {late.length} facture(s) en retard de paiement ({total.toLocaleString("fr-FR")} DA TTC)
+                </p>
+                <p className="text-[10px] text-amber-600 font-semibold">Cliquez pour consulter vos factures</p>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* 5 INDICATORS METRICS ROW */}
@@ -1437,7 +1423,12 @@ export default function DonneurDashboard({
       )}
 
       {/* 4. FACTURES SUB-TAB (ESPACE FACTURATION COMMERCIALE & CONSOLIDATION) */}
-      {activeSubTab === "factures" && (() => {
+      {activeSubTab === "factures" && (
+        <DonneurFactures invoices={myInvoices} loading={invoicesLoading} />
+      )}
+
+      {/* ANCIEN ÉCRAN DES FACTURES (désactivé, à supprimer) */}
+      {false && activeSubTab === "factures" && (() => {
         const todayDateStr = new Date().toISOString().split("T")[0];
         // Resolve all invoices belonging to this Shipper / DO
         const baseFactures = (factures && factures.length > 0) 
