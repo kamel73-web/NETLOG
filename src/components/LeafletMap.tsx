@@ -6,6 +6,7 @@ interface LeafletMapProps {
   moyens: MoyenTransport[];
   onSelectOffre: (offre: OffreFret) => void;
   lang: "fr" | "ar";
+  canBid?: boolean;
 }
 
 // Coordinates map for key Algerian cities
@@ -27,7 +28,12 @@ const ALGERIAN_COORDINATES: Record<string, [number, number]> = {
   "Tlemcen": [34.8783, -1.3150]
 };
 
-export default function LeafletMap({ offres, moyens, onSelectOffre, lang }: LeafletMapProps) {
+const isOffreOuverte = (offre: OffreFret) => {
+  const st = String(offre.status ?? "").toLowerCase();
+  return st.includes("publi") || st === "ouverte" || st === "open";
+};
+
+export default function LeafletMap({ offres, moyens, onSelectOffre, lang, canBid = false }: LeafletMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -121,7 +127,7 @@ export default function LeafletMap({ offres, moyens, onSelectOffre, lang }: Leaf
     });
 
     // Offer Markers (Green 📍)
-    offres.forEach(offre => {
+    offres.filter(isOffreOuverte).forEach(offre => {
       // Find approximate coordinates based on depart city
       const coords = ALGERIAN_COORDINATES[offre.depart] || ALGERIAN_COORDINATES["Alger"];
       // Add slight random offset to prevent direct overlap
@@ -144,12 +150,7 @@ export default function LeafletMap({ offres, moyens, onSelectOffre, lang }: Leaf
             <div><strong>Tonnage:</strong> ${offre.poids} Tonnes</div>
             <div><strong>Prix Fixe:</strong> <span class="text-emerald-600 font-mono font-bold">${offre.prixFixe ? offre.prixFixe.toLocaleString() + " DA" : "Sur offre"}</span></div>
           </div>
-          <button 
-            onclick="window.handleMapSelectOffre('${offre.id}')"
-            class="w-full mt-2 py-1 bg-[#1D9E75] text-white text-[10px] uppercase font-black tracking-wider rounded transition hover:bg-[#085041] cursor-pointer text-center"
-          >
-            🔍 Décrocher l'offre
-          </button>
+          <button onclick="window.handleMapSelectOffre('${offre.id}')" class="w-full mt-2 py-1 ${canBid ? 'bg-[#1D9E75] text-white' : 'bg-slate-200 text-slate-700'} text-[10px] uppercase font-black tracking-wider rounded transition cursor-pointer text-center">${canBid ? "🔍 Décrocher l'offre" : "👁 Voir le détail"}</button>
         </div>
       `;
 
@@ -206,7 +207,7 @@ export default function LeafletMap({ offres, moyens, onSelectOffre, lang }: Leaf
         mapInstanceRef.current = null;
       }
     };
-  }, [mapLoaded, offres, moyens]);
+  }, [mapLoaded, offres, moyens, canBid]);
 
   return (
     <div className="w-full h-full relative" style={{ minHeight: "450px" }}>

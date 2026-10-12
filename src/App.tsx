@@ -5304,6 +5304,7 @@ export default function App() {
                           moyens={moyens}
                           onSelectOffre={setSelectedDetailOffre}
                           lang={lang}
+                          canBid={currentUser?.profil === ProfileType.Transporteur}
                         />
                       </div>
 
