@@ -120,8 +120,13 @@ export async function loadMyInvoices(): Promise<Invoice[]> {
   return ((data as any[]) ?? []).map(normalizeInvoice);
 }
 
-/** Missions clôturées du transporteur connecté, pas encore facturées. */
-export async function loadBillableMissions(): Promise<BillableMission[]> {
+export interface CompletedMission extends BillableMission {
+  invoiceNumero: string | null;
+  invoiceStatus: string | null;
+}
+
+/** Missions clôturées du transporteur connecté, avec le numéro de la facture éventuelle. */
+export async function loadCompletedMissions(): Promise<CompletedMission[]> {
   const { data: ms, error: mErr } = await supabase
     .from("missions")
     .select("id, offer_id, dechargement_at, livraison_confirmee_at")
@@ -138,7 +143,7 @@ export async function loadBillableMissions(): Promise<BillableMission[]> {
       .select("id, donneur_ordre_id, wilaya_depart, wilaya_arrivee, type_marchandise, description, poids_kg")
       .in("id", offerIds),
     supabase.from("proposals").select("offer_id, prix_propose").eq("status", "acceptee").in("offer_id", offerIds),
-    supabase.from("invoice_lines").select("mission_id").eq("active", true),
+    supabase.from("invoice_lines").select("mission_id, invoices(numero, status)").eq("active", true),
     supabase.from("wilayas").select("code, name"),
     loadParties(),
   ]);
@@ -150,15 +155,20 @@ export async function loadBillableMissions(): Promise<BillableMission[]> {
   const priceByOffer = new Map<number, number>(
     ((props.data as any[]) ?? []).map((p) => [Number(p.offer_id), Number(p.prix_propose)]),
   );
-  const invoiced = new Set<number>(((lines.data as any[]) ?? []).map((l) => Number(l.mission_id)));
+  const invoiceByMission = new Map<number, { numero: string; status: string }>();
+  for (const l of (lines.data as any[]) ?? []) {
+    const inv = Array.isArray(l.invoices) ? l.invoices[0] : l.invoices;
+    if (inv) invoiceByMission.set(Number(l.mission_id), { numero: String(inv.numero), status: String(inv.status) });
+  }
   const wilayaName = new Map<number, string>(((wil.data as any[]) ?? []).map((w) => [Number(w.code), String(w.name)]));
 
   return missions
-    .filter((m) => !invoiced.has(Number(m.id)) && offerById.has(Number(m.offer_id)))
+    .filter((m) => offerById.has(Number(m.offer_id)))
     .map((m) => {
       const o = offerById.get(Number(m.offer_id));
       const dep = wilayaName.get(Number(o.wilaya_depart)) ?? String(o.wilaya_depart);
       const arr = wilayaName.get(Number(o.wilaya_arrivee)) ?? String(o.wilaya_arrivee);
+      const inv = invoiceByMission.get(Number(m.id));
       return {
         missionId: Number(m.id),
         offerId: Number(m.offer_id),
@@ -169,8 +179,15 @@ export async function loadBillableMissions(): Promise<BillableMission[]> {
         poidsT: o.poids_kg ? Number(o.poids_kg) / 1000 : 0,
         datePrestation: String(m.dechargement_at ?? m.livraison_confirmee_at ?? "").slice(0, 10) || null,
         prixHT: priceByOffer.has(Number(m.offer_id)) ? priceByOffer.get(Number(m.offer_id))! : null,
+        invoiceNumero: inv?.numero ?? null,
+        invoiceStatus: inv?.status ?? null,
       };
     });
+}
+
+/** Missions clôturées du transporteur connecté, pas encore facturées. */
+export async function loadBillableMissions(): Promise<BillableMission[]> {
+  return (await loadCompletedMissions()).filter((m) => !m.invoiceNumero);
 }
 
 export async function createInvoice(params: {

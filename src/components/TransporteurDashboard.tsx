@@ -34,6 +34,7 @@ import { createVehicle } from "../lib/freightOffers";
 import { loadFreightOffers, loadProfiles } from "../lib/dataLoader";
 import { createDriver } from "../lib/drivers";
 import TransporteurFactures from "./TransporteurFactures";
+import TransporteurMissionsTerminees from "./TransporteurMissionsTerminees";
 
 // Prix convenu = prix de la proposition acceptée (le tarif de l'offre peut être libre, donc à 0)
 const agreedPrice = (props: any[], o: any): number =>
@@ -2137,7 +2138,14 @@ export default function TransporteurDashboard({
           )}
 
           {/* MISSIONS TERMINÉES */}
-          {missionsSubTab === "terminees" &&
+          {missionsSubTab === "terminees" && (
+            <TransporteurMissionsTerminees
+              triggerSystemLog={triggerSystemLog}
+              onGoToBilling={() => setSubTab("finances")}
+            />
+          )}
+
+          {false &&
             (() => {
               // Find all completed / validated freights for this carrier
               const myCompletedMissions = offres.filter(
