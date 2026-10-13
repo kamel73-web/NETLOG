@@ -341,3 +341,43 @@ export async function loadProposals(): Promise<PropositionPrix[]> {
     transporteurRaisonSociale: parties[p.transporteurId]?.name || p.transporteurRaisonSociale,
   }));
 }
+
+// --- Coordonnées réelles des parties d'une mission (clé : n° d'offre) ---
+export interface MissionDetails {
+  missionId: string;
+  offreId: string;
+  donneurNom: string | null;
+  donneurTel: string | null;
+  transporteurNom: string | null;
+  transporteurTel: string | null;
+  chauffeurNom: string | null;
+  chauffeurTel: string | null;
+  vehiculeType: string | null;
+  vehiculeImmatriculation: string | null;
+  vehiculeCapaciteT: number | null;
+}
+
+export async function loadMissionDetails(): Promise<Record<string, MissionDetails>> {
+  const { data, error } = await supabase.rpc("get_my_mission_details");
+  if (error) {
+    console.error("loadMissionDetails:", error.message);
+    return {};
+  }
+  const out: Record<string, MissionDetails> = {};
+  for (const r of (data as any[]) ?? []) {
+    out[String(r.offer_id)] = {
+      missionId: String(r.mission_id),
+      offreId: String(r.offer_id),
+      donneurNom: r.donneur_nom ?? null,
+      donneurTel: r.donneur_tel ?? null,
+      transporteurNom: r.transporteur_nom ?? null,
+      transporteurTel: r.transporteur_tel ?? null,
+      chauffeurNom: r.chauffeur_nom ?? null,
+      chauffeurTel: r.chauffeur_tel ?? null,
+      vehiculeType: r.vehicule_type ?? null,
+      vehiculeImmatriculation: r.vehicule_immatriculation ?? null,
+      vehiculeCapaciteT: r.vehicule_capacite_kg ? Number(r.vehicule_capacite_kg) / 1000 : null,
+    };
+  }
+  return out;
+}

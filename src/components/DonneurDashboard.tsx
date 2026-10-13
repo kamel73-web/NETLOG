@@ -32,6 +32,7 @@ import DevisModule from "./DevisModule";
 import { createFreightOffer, acceptProposal } from "../lib/freightOffers"
 import { getMissionIdByOfferId, confirmDelivery, validateLoading, validateUnload } from "../lib/missions";
 import type { MissionRow } from "../lib/dataLoader";
+import { loadMissionDetails, type MissionDetails } from "../lib/dataLoader";
 import { loadMyInvoices, invoiceDisplayStatus, type Invoice } from "../lib/billing";
 import DonneurFactures from "./DonneurFactures";
 import { loadFreightOffers, loadProposals, loadMissions } from "../lib/dataLoader";
@@ -105,6 +106,18 @@ export default function DonneurDashboard({
 }: DonneurDashboardProps) {
 
   const [activeSubTab, setActiveSubTab] = useState<"offres" | "missions" | "propositions" | "devis" | "factures" | "compte">("offres");
+
+  // Coordonnées réelles du transporteur, du chauffeur et du véhicule (lues en base)
+  const [missionDetails, setMissionDetails] = useState<Record<string, MissionDetails>>({});
+  useEffect(() => {
+    let alive = true;
+    loadMissionDetails().then((d) => {
+      if (alive) setMissionDetails(d);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [activeSubTab]);
 
   // Factures reçues (lues en base : le donneur d'ordre peut seulement les consulter)
   const [myInvoices, setMyInvoices] = useState<Invoice[]>([]);
@@ -202,7 +215,7 @@ export default function DonneurDashboard({
   // Custom mock active offers tally
   const activeOffersCount = doOffres.filter(o => o.status === OffreStatus.Publie).length;
   const countNewProps = propositions.filter(p => doOffres.some(o => o.id === p.offreId) && p.status === "En attente").length;
-  const countMissions = doOffres.filter(o => o.status === OffreStatus.Charge || o.status === OffreStatus.Attribue).length;
+  const countMissions = doOffres.filter(o => o.status === OffreStatus.Charge || o.status === OffreStatus.Attribue || o.status === OffreStatus.Decharge).length;
   const countLivreesCeMois = doOffres.filter(o => o.status === OffreStatus.Decharge || o.status === OffreStatus.Valide).length;
 
   // Dépenses = factures reçues (hors annulées), lues en base
@@ -826,7 +839,7 @@ export default function DonneurDashboard({
                 onClick={() => setOffreFilterStatus("livrees")}
                 className={`px-3 py-1.5 rounded-lg border transition ${offreFilterStatus === "livrees" ? "bg-emerald-950 border-emerald-950 text-white font-black shadow-xs" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"}`}
               >
-                {lang === "ar" ? "تم تسليمها" : "Livrées"} ({doOffres.filter(o => o.status === OffreStatus.Decharge || o.status === OffreStatus.Valide).length})
+                {lang === "ar" ? "تم تسليمها" : "Livrées"} ({doOffres.filter(o => o.status === OffreStatus.Valide).length})
               </button>
             </div>
             {offreFilterStatus !== "tous" && (
@@ -1099,7 +1112,7 @@ export default function DonneurDashboard({
                 onClick={() => setMissionFilterStatus("livrees")}
                 className={`px-3 py-1.5 rounded-lg border transition ${missionFilterStatus === "livrees" ? "bg-blue-600 border-blue-600 text-white font-black shadow-xs" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"}`}
               >
-                ✅ {lang === "ar" ? "تم التسليم" : "Livrées"} ({doOffres.filter(o => o.status === OffreStatus.Decharge || o.status === OffreStatus.Valide).length})
+                ✅ {lang === "ar" ? "تم التسليم" : "Livrées"} ({doOffres.filter(o => o.status === OffreStatus.Valide).length})
               </button>
             </div>
             {missionFilterStatus !== "toutes" && (
@@ -1118,10 +1131,10 @@ export default function DonneurDashboard({
                 const isMission = o.status === OffreStatus.Attribue || o.status === OffreStatus.Charge || o.status === OffreStatus.Decharge || o.status === OffreStatus.Valide;
                 if (!isMission) return false;
                 if (missionFilterStatus === "en_cours") {
-                  return o.status === OffreStatus.Attribue || o.status === OffreStatus.Charge;
+                  return o.status === OffreStatus.Attribue || o.status === OffreStatus.Charge || o.status === OffreStatus.Decharge;
                 }
                 if (missionFilterStatus === "livrees") {
-                  return o.status === OffreStatus.Decharge || o.status === OffreStatus.Valide;
+                  return o.status === OffreStatus.Valide;
                 }
                 return true;
               });
@@ -1139,10 +1152,13 @@ export default function DonneurDashboard({
               return filteredMissions.map(mission => {
               
               // Determine current carrier for this offer or generate robust mock
-              const carrierName = mission.transporteurRaisonSociale || "EURL Ahmed Benzekri Transports";
-              const carrierTel = "0550 42 18 90";
-              const vehiclePlate = "123456-116";
-              const vehicleType = translateMoyenType(mission.moyenExige || MoyenType.Tautliner, lang) + " 30T";
+              const details = missionDetails[String(mission.id)];
+              const carrierName = details?.transporteurNom || mission.transporteurRaisonSociale || "—";
+              const carrierTel = details?.transporteurTel || "";
+              const vehiclePlate = details?.vehiculeImmatriculation || "non renseignée";
+              const vehicleType = details?.vehiculeType
+                ? `${translateMoyenType(details.vehiculeType as MoyenType, lang)}${details.vehiculeCapaciteT ? " · " + details.vehiculeCapaciteT + " T" : ""}`
+                : "—";
               const amountDa = propositions.find((p) => p.offreId === mission.id && p.status === "Accepté")?.prixPropose ?? mission.prixConvenu ?? mission.prixFixe ?? 0;
 
               // Progress state:
@@ -1223,8 +1239,8 @@ export default function DonneurDashboard({
                     </div>
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-slate-500 font-semibold">Téléphone mobile :</span>
-                      <a href={`tel:${carrierTel}`} className="text-indigo-600 hover:underline font-extrabold flex items-center gap-1">
-                        <Phone className="w-3.5 h-3.5 inline text-indigo-500" /> {carrierTel}
+                      <a href={carrierTel ? `tel:${carrierTel}` : undefined} className="text-indigo-600 hover:underline font-extrabold flex items-center gap-1">
+                        <Phone className="w-3.5 h-3.5 inline text-indigo-500" /> {carrierTel || "Non communiqué"}
                       </a>
                     </div>
                     <div className="flex justify-between items-center text-xs">
