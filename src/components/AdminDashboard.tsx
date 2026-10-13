@@ -108,18 +108,18 @@ export default function AdminDashboard({
 
   // Editable System Configuration (Defaults connected to parameters)
   const [companyDetails, setCompanyDetails] = useState({
-    raisonSociale: "Sarl NETLOG ALGERIE",
-    adresse: "12, Rue Larbi Ben M'hidi, Alger-Centre",
-    email: "direction@netlog.dz",
-    tel: "021 63 45 12",
-    nrc: "16/00-1092873 B 26",
-    nif: "001912873619283",
+    raisonSociale: "",
+    adresse: "",
+    email: "",
+    tel: "",
+    nrc: "",
+    nif: "",
   });
 
   const [tarifsConfig, setTarifsConfig] = useState({
-    commBVF: 300,
-    commTransp: 200,
-    commDO: 500,
+    commBVF: 0,
+    commTransp: 0,
+    commDO: 0,
     defaultPaymentDays: 30,
     welcomeMessage:
       "Bienvenue sur la plateforme NetLog ! Négociez, planifiez et suivez vos frets en Algérie de manière légale et optimisée.",
@@ -135,11 +135,11 @@ export default function AdminDashboard({
   const registeredCamionsCount = moyens.length > 0 ? moyens.length : 14; // live count fallback
   const totalOffersCount = offres.length;
   const completedPrestationsCount = offres.filter(
-    (o) => o.status === OffreStatus.Valide || o.status === OffreStatus.Decharge,
+    (o) => o.status === OffreStatus.Valide,
   ).length;
 
   // Real-time Platform Earnings (Commissions + subscriptions fallback)
-  const redevanceEarning = completedPrestationsCount * tarifsConfig.commBVF;
+  const redevanceEarning = 0;
 
   const totalActiveCommercials = users.filter(
     (u) => u.profil === ProfileType.Commercial,
@@ -346,14 +346,10 @@ export default function AdminDashboard({
           x.sourceDecouverte === com.nom ||
           x.sourceDecouverte?.includes(com.id),
       ).length;
-      const totalComMoney =
-        recruits * 2500 +
-        completedPrestationsCount * tarifsConfig.commTransp +
-        index * 8000 +
-        12000;
+      const totalComMoney = 0;
       return {
         name: `${com.prenom} ${com.nom}`,
-        code: `NETLOG-BVF-${com.id.slice(0, 4).toUpperCase()}`,
+        code: "—",
         wilaya: com.wilaya || "Centre",
         recruits,
         computedCom: totalComMoney,
@@ -364,32 +360,28 @@ export default function AdminDashboard({
   // Invoices outstanding for over 30 days
   const pendingInvoicesOver30Days = factures.filter((f) => {
     if (f.status === FactureStatus.Reglee) return false;
-    const dateVal = new Date(f.dateEmission);
-    const diff = Math.ceil(
-      Math.abs(new Date().getTime() - dateVal.getTime()) /
-        (1000 * 60 * 60 * 24),
-    );
-    return diff > 30 || f.id === "FAC-2026-001"; // default seed
+    const due = (f as any).dateEcheance as string | null | undefined;
+    return Boolean(due) && due! < new Date().toISOString().slice(0, 10);
   });
 
   // --- MONTHLY STATE GENERATION HANDLER ---
   const handleGenerateMonthlyState = () => {
-    const currentMonth = "Juin 2026";
-    // Sum total completed amounts
-    const totalHT = factures.reduce((s, f) => s + (f.montant ?? 0), 0);
-    const totalTTC = Math.round(totalHT * 1.19);
+    const monthLabel = new Date().toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+    const currentMonth = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+    const monthFactures = factures.filter(
+      (f) => String(f.dateEmission ?? "").slice(0, 7) === new Date().toISOString().slice(0, 7),
+    );
+    const totalHT = monthFactures.reduce((s, f) => s + (f.montant ?? 0), 0);
+    const totalTTC = Math.round(
+      monthFactures.reduce((s, f) => s + ((f as any).montantTtc ?? f.montant ?? 0), 0),
+    );
 
-    const countEmises = factures.length;
-    const countPayees = factures.filter(
-      (f) => f.status === FactureStatus.Reglee,
-    ).length;
+    const countEmises = monthFactures.length;
+    const countPayees = monthFactures.filter((f) => f.status === FactureStatus.Reglee).length;
     const countAttente = countEmises - countPayees;
 
     // Computed commissions based on dynamic params
-    const commsDues = sortedCommercials.reduce(
-      (sum, c) => sum + c.computedCom,
-      0,
-    );
+    const commsDues = 0;
 
     setMonthlyStateData({
       month: currentMonth,
@@ -717,7 +709,7 @@ export default function AdminDashboard({
                     {totalActiveCommercials} ag.
                   </span>
                   <span className="text-[9px] text-orange-600 font-semibold underline group-hover:no-underline block">
-                    Réseaux d'apporteurs de BVF →
+                    Réseau d'apporteurs NETLOG →
                   </span>
                 </div>
               </div>
@@ -727,7 +719,7 @@ export default function AdminDashboard({
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4 font-sans">
               <div className="space-y-1">
                 <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block">
-                  💳 Rétributions agents BVF
+                  💳 Rétributions agents NETLOG
                 </span>
                 <span className="block text-2xl font-black text-slate-900 font-mono">
                   —
@@ -796,7 +788,7 @@ export default function AdminDashboard({
                       Transporteurs d'Algérie
                     </option>
                     <option value={ProfileType.Commercial}>
-                      Commerciaux de BVF
+                      Commerciaux NETLOG
                     </option>
                   </select>
                 </div>
@@ -1508,14 +1500,13 @@ export default function AdminDashboard({
                     {/* Financial detailed balance sheet */}
                     <div className="space-y-4">
                       <span className="text-[10px] font-black uppercase text-slate-900 block border-b pb-1 font-mono">
-                        2. VALEURS FINANCIÈRES DES MOUVEMENTS H.T & T.T.C (19%
-                        T.V.A)
+                        2. VALEURS FINANCIÈRES DES MOUVEMENTS H.T & T.T.C (TVA selon le régime de chaque transporteur)
                       </span>
 
                       <div className="space-y-1.5 text-xs font-semibold">
                         <div className="flex justify-between py-1 border-b border-dashed border-slate-200">
                           <span className="text-slate-500">
-                            Chiffre d'Affaire brut global d'affrètement (HT) :
+                            Volume facturé par les transporteurs ce mois (HT) :
                           </span>
                           <span className="font-mono font-bold text-slate-950">
                             {monthlyStateData.totalHT.toLocaleString()} DA
@@ -1523,37 +1514,29 @@ export default function AdminDashboard({
                         </div>
                         <div className="flex justify-between py-1 border-b border-dashed border-slate-200">
                           <span className="text-slate-500 font-bold text-[#1D9E75]">
-                            Gains Redevances NetLog d'intermédiation (HT) :
+                            Redevances NETLOG (non applicable : modèle de revenus à définir) :
                           </span>
                           <span className="font-mono font-black text-[#1D9E75]">
                             {(
-                              completedPrestationsCount * tarifsConfig.commBVF
+                              0
                             ).toLocaleString()}{" "}
                             DA
                           </span>
                         </div>
                         <div className="flex justify-between py-1 border-b border-dashed border-slate-200">
                           <span className="text-slate-500">
-                            Commissions globales d'apport d'affaires dues aux
-                            Commerciaux (TTC) :
+                            Commissions du réseau commercial (modèle non défini) :
                           </span>
                           <span className="font-mono font-bold text-rose-700">
-                            {monthlyStateData.commsCommerciaux.toLocaleString()}{" "}
-                            DA
+                            —
                           </span>
                         </div>
                         <div className="flex justify-between py-1 border-b border-dashed border-slate-200 bg-emerald-50/20 px-1 pt-1.5 rounded">
                           <span className="text-[#085041] font-black">
-                            Masse de fonds libérée aux Transporteurs d'Algérie
-                            (TTC) :
+                            Total TTC facturé par les transporteurs ce mois :
                           </span>
                           <span className="font-mono font-black text-emerald-800">
-                            {Math.round(
-                              (monthlyStateData.totalHT -
-                                completedPrestationsCount *
-                                  tarifsConfig.commBVF) *
-                                1.19,
-                            ).toLocaleString()}{" "}
+                            {Math.round(factures.filter((f) => String(f.dateEmission ?? "").slice(0, 7) === new Date().toISOString().slice(0, 7)).reduce((s, f) => s + ((f as any).montantTtc ?? f.montant ?? 0), 0)).toLocaleString()}{" "}
                             DA
                           </span>
                         </div>
