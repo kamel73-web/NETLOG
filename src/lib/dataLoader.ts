@@ -141,8 +141,13 @@ export async function loadInvoices(): Promise<Facture[]> {
     console.error("loadInvoices:", error.message);
     return [];
   }
-  return (data as any[]).map((inv) => ({
+  return (data as any[])
+    .filter((inv) => inv.status !== "annulee")
+    .map((inv) => ({
     id: String(inv.numero),
+    montantTtc: Number(inv.montant_ttc ?? 0),
+    dateEcheance: inv.date_echeance ?? null,
+    prestation: `${(inv.invoice_lines ?? []).length} mission(s) de transport`,
     offreId: String(inv.invoice_lines?.[0]?.offer_id ?? ""),
     donneurId: inv.donneur_ordre_id,
     transporteurId: inv.transporteur_id,

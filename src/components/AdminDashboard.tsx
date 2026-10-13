@@ -148,6 +148,21 @@ export default function AdminDashboard({
   const totalCaPlatform = factures.reduce((s, f) => s + (f.montant ?? 0), 0);
   const totalCommissionsPaid = 0;
 
+  // Volume facturé (HT) par mois sur les 6 derniers mois, lu dans les factures réelles
+  const MOIS_FR = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+  const monthlySeries = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() - (5 - i));
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    return {
+      m: `${MOIS_FR[d.getMonth()]} ${d.getFullYear()}`,
+      val: factures
+        .filter((f) => String(f.dateEmission ?? "").slice(0, 7) === key)
+        .reduce((s, f) => s + (f.montant ?? 0), 0),
+    };
+  });
+
   // Collect unique locations to search in accounts filters
   const uniqueWilayas = Array.from(
     new Set(users.map((u) => u.wilaya).filter(Boolean)),
@@ -669,13 +684,13 @@ export default function AdminDashboard({
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider block group-hover:text-[#1D9E75] transition-colors">
-                    CA total plateforme
+                    Volume facturé (HT)
                   </span>
                   <span className="text-xl font-black text-[#1D9E75] font-mono">
                     {totalCaPlatform.toLocaleString()} DA
                   </span>
                   <span className="text-[9px] text-emerald-600 font-semibold underline group-hover:no-underline block">
-                    Rapports d'intermédiation détaillés →
+                    Factures émises par les transporteurs →
                   </span>
                 </div>
               </div>
@@ -715,11 +730,10 @@ export default function AdminDashboard({
                   💳 Rétributions agents BVF
                 </span>
                 <span className="block text-2xl font-black text-slate-900 font-mono">
-                  {totalCommissionsPaid.toLocaleString()} DA
+                  —
                 </span>
                 <p className="text-[10px] text-slate-500 font-semibold">
-                  Volume des commissions d'apport d'affaires validées et dues
-                  aux services d'Algérie.
+                  Non disponible : le modèle de commissions du réseau n'est pas encore défini.
                 </p>
               </div>
 
@@ -1165,21 +1179,8 @@ export default function AdminDashboard({
               </span>
 
               <div className="h-32 flex items-end justify-between font-mono text-[9px] text-slate-500 font-extrabold pt-2">
-                {[
-                  { m: "Janvier", val: 56000 },
-                  { m: "Février", val: 64000 },
-                  { m: "Mars", val: 59000 },
-                  { m: "Avril", val: 81000 },
-                  {
-                    m: "Mai",
-                    val: totalCaPlatform > 50000 ? totalCaPlatform : 72000,
-                  },
-                  { m: "Juin (Est.)", val: totalCaPlatform + 12000 },
-                ].map((item, id) => {
-                  const pct = Math.min(
-                    100,
-                    (item.val / Math.max(item.val, 1)) * 100,
-                  );
+                {monthlySeries.map((item, id) => {
+                  const pct = Math.min(100, (item.val / Math.max(...monthlySeries.map((x) => x.val), 1)) * 100);
                   return (
                     <div
                       key={id}
@@ -1375,14 +1376,13 @@ export default function AdminDashboard({
                           </div>
                           <span className="text-[10px] text-slate-500">
                             Prestation :{" "}
-                            {fact.prestation || "Transport national"} • Retard
-                            estimé : <b className="text-[#D85A30]">32 jours</b>
+                            {fact.prestation || "Transport national"} • Retard : <b className="text-[#D85A30]">{Math.max(0, Math.floor((Date.now() - new Date((fact as any).dateEcheance ?? fact.dateEmission).getTime()) / 86400000))} jours</b>
                           </span>
                         </div>
                         <div className="text-right shrink-0">
                           <span className="font-mono text-xs font-black text-rose-650 block">
                             TTC :{" "}
-                            {Math.round(fact.montant * 1.19).toLocaleString()}{" "}
+                            {Math.round((fact as any).montantTtc ?? fact.montant).toLocaleString()}{" "}
                             DA
                           </span>
                           <span className="text-[9px] text-slate-400 block font-normal">
