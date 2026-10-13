@@ -479,6 +479,7 @@ export default function App() {
   );
   const [regTransRaisonSociale, setRegTransRaisonSociale] = useState("");
   const [regTransRC, setRegTransRC] = useState("");
+  const [regTransNIF, setRegTransNIF] = useState("");
   const [regTransAutorisation, setRegTransAutorisation] = useState("");
   const [regTransNbCamions, setRegTransNbCamions] = useState("2-5");
   const [regTransWilayaActivite, setRegTransWilayaActivite] = useState("Alger");
@@ -500,10 +501,12 @@ export default function App() {
   );
   const [recrutWilaya, setRecrutWilaya] = useState("Oran");
   const [regCommSource, setRegCommSource] = useState("");
+  const [regCommNIF, setRegCommNIF] = useState("");
 
   // Champs spécifiques Manutentionnaire
   const [regManRaisonSociale, setRegManRaisonSociale] = useState("");
   const [regManRC, setRegManRC] = useState("");
+  const [regManNIF, setRegManNIF] = useState("");
   const [regManTypesEngins, setRegManTypesEngins] = useState<string[]>([
     "Chariot élévateur",
   ]);
@@ -1171,12 +1174,22 @@ export default function App() {
         );
         return;
       }
+      if (!regTransNIF.trim()) {
+        triggerSystemLog("NIF obligatoire pour les transporteurs", "danger");
+        return;
+      }
       nrc = regTransRC.trim();
+      nif = regTransNIF.trim();
       input.autorisationTransport = regTransAutorisation.trim();
       input.nbCamions = regTransNbCamions;
       input.wilayaActivite = regTransWilayaActivite;
     } else if (regProfil === ProfileType.Commercial) {
+      if (!regCommNIF.trim()) {
+        triggerSystemLog("NIF obligatoire pour les commerciaux", "danger");
+        return;
+      }
       raisonSociale = `Commercial ${regNom} ${regPrenom}`;
+      nif = regCommNIF.trim();
       input.diplome = regCommDiplome;
       input.experienceTransport = regCommExperience;
       input.wilayaIntervention = regCommWilayaInterv;
@@ -1197,7 +1210,12 @@ export default function App() {
         return;
       }
       raisonSociale = regManRaisonSociale.trim();
+      if (!regManNIF.trim()) {
+        triggerSystemLog("NIF obligatoire", "danger");
+        return;
+      }
       nrc = regManRC.trim();
+      nif = regManNIF.trim();
       input.typesEngins = regManTypesEngins.join(", ");
       input.wilayaActivite = regManWilayaActivite;
     } else if (regProfil === ProfileType.Commissionnaire) {
@@ -1216,7 +1234,12 @@ export default function App() {
         return;
       }
       raisonSociale = regManRaisonSociale.trim();
+      if (!regManNIF.trim()) {
+        triggerSystemLog("NIF obligatoire", "danger");
+        return;
+      }
       nrc = regManRC.trim();
+      nif = regManNIF.trim();
       input.wilayaActivite = regManWilayaActivite;
     } else if (regProfil === ProfileType.Stockage) {
       if (!regManRaisonSociale.trim()) {
@@ -1234,12 +1257,18 @@ export default function App() {
         return;
       }
       raisonSociale = regManRaisonSociale.trim();
+      if (!regManNIF.trim()) {
+        triggerSystemLog("NIF obligatoire", "danger");
+        return;
+      }
       nrc = regManRC.trim();
+      nif = regManNIF.trim();
       input.wilayaActivite = regManWilayaActivite;
     }
 
     input.raisonSociale = raisonSociale;
     input.nrc = nrc;
+    input.nif = nif;
 
     const { profile, error } = await submitRegistration(input);
 
@@ -3865,6 +3894,21 @@ export default function App() {
                                 <div>
                                   <label className="block text-[10px] text-slate-500 mb-0.5">
                                     {lang === "ar"
+                                      ? "الرقم التعريفي الجبائي (NIF) *"
+                                      : "Identifiant Fiscal (NIF) *"}
+                                  </label>
+                                  <input
+                                    type="text"
+                                    required
+                                    placeholder="Ex: 001234567890123"
+                                    value={regTransNIF}
+                                    onChange={(e) => setRegTransNIF(e.target.value)}
+                                    className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 font-mono"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] text-slate-500 mb-0.5">
+                                    {lang === "ar"
                                       ? "رقم ترخيص النقل البري للبضائع *"
                                       : "Titre d'autorisation de transport routier *"}
                                   </label>
@@ -4065,6 +4109,19 @@ export default function App() {
                                     className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700"
                                   />
                                 </div>
+                                <div>
+                                  <label className="block text-[10px] text-slate-500 mb-0.5">
+                                    Identifiant Fiscal (NIF) *
+                                  </label>
+                                  <input
+                                    type="text"
+                                    required
+                                    placeholder="Ex: 001234567890123"
+                                    value={regCommNIF}
+                                    onChange={(e) => setRegCommNIF(e.target.value)}
+                                    className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 font-mono"
+                                  />
+                                </div>
                               </div>
                             </div>
                           )}
@@ -4106,6 +4163,19 @@ export default function App() {
                                       setRegManRC(e.target.value)
                                     }
                                     className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] text-slate-500 mb-0.5">
+                                    Identifiant Fiscal (NIF) *
+                                  </label>
+                                  <input
+                                    type="text"
+                                    required
+                                    placeholder="Ex: 001234567890123"
+                                    value={regManNIF}
+                                    onChange={(e) => setRegManNIF(e.target.value)}
+                                    className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs bg-white text-slate-700 font-mono"
                                   />
                                 </div>
                               </div>
