@@ -207,7 +207,7 @@ export default function DonneurDashboard({
 
   // Dépenses = factures reçues (hors annulées), lues en base
   const totalExpenses = myInvoices
-    .filter((f) => f.status !== "annulee")
+    .filter((f) => f.status !== "annulee" && f.date_emission.slice(0, 7) === new Date().toISOString().slice(0, 7))
     .reduce((sum, f) => sum + f.montant_ttc, 0);
   const localFactures: any[] = [];
 
@@ -654,7 +654,7 @@ export default function DonneurDashboard({
         >
           <span className="text-slate-400 text-[10px] font-extrabold uppercase tracking-wider group-hover:text-[#1D9E75] transition-colors">📋 Offres Actives</span>
           <span className="text-2xl font-black text-slate-800 block mt-2">
-            {activeOffersCount || 3}
+            {doOffres.filter((o) => o.status === OffreStatus.Publie).length}
           </span>
           <span className="text-[10px] text-[#1D9E75] font-bold mt-1 underline group-hover:no-underline">Sur la Bourse →</span>
         </div>
@@ -670,7 +670,7 @@ export default function DonneurDashboard({
         >
           <span className="text-slate-400 text-[10px] font-extrabold uppercase tracking-wider group-hover:text-blue-600 transition-colors">📬 Propositions</span>
           <span className="text-2xl font-black text-blue-600 block mt-2">
-            {countNewProps || 7}
+            {propositions.filter((p) => p.status === "En attente" && doOffres.some((o) => o.id === p.offreId && o.status === OffreStatus.Publie)).length}
           </span>
           <span className="text-[10px] text-blue-500 font-bold mt-1 underline group-hover:no-underline">À étudier →</span>
         </div>
@@ -702,7 +702,7 @@ export default function DonneurDashboard({
         >
           <span className="text-slate-400 text-[10px] font-extrabold uppercase tracking-wider group-hover:text-slate-900 transition-colors">✅ Livraisons ce mois</span>
           <span className="text-2xl font-black text-slate-900 block mt-2">
-            {countLivreesCeMois || 8}
+            {missions.filter((m) => m.status === "cloturee" && (m.livraisonConfirmeeAt ?? "").slice(0, 7) === new Date().toISOString().slice(0, 7)).length}
           </span>
           <span className="text-[10px] text-gray-400 font-bold mt-1 underline group-hover:no-underline">Suivi des livraisons →</span>
         </div>
@@ -1099,7 +1099,7 @@ export default function DonneurDashboard({
                 onClick={() => setMissionFilterStatus("livrees")}
                 className={`px-3 py-1.5 rounded-lg border transition ${missionFilterStatus === "livrees" ? "bg-blue-600 border-blue-600 text-white font-black shadow-xs" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"}`}
               >
-                ✅ {lang === "ar" ? "تم التسليم" : "Livrées ce mois"} ({doOffres.filter(o => o.status === OffreStatus.Decharge || o.status === OffreStatus.Valide).length})
+                ✅ {lang === "ar" ? "تم التسليم" : "Livrées"} ({doOffres.filter(o => o.status === OffreStatus.Decharge || o.status === OffreStatus.Valide).length})
               </button>
             </div>
             {missionFilterStatus !== "toutes" && (

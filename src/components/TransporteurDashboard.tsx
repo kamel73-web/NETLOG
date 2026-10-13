@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Truck,
   Layers,
@@ -33,6 +33,7 @@ import {
 import { createVehicle } from "../lib/freightOffers";
 import { loadFreightOffers, loadProfiles } from "../lib/dataLoader";
 import { createDriver } from "../lib/drivers";
+import { loadMyInvoices, loadBillableMissions, invoiceDisplayStatus, type Invoice } from "../lib/billing";
 import TransporteurFactures from "./TransporteurFactures";
 import TransporteurMissionsTerminees from "./TransporteurMissionsTerminees";
 
@@ -274,6 +275,23 @@ export default function TransporteurDashboard({
     string[]
   >([]);
   const [billingClientFilter, setBillingClientFilter] = useState<string>("");
+
+  // Chiffres du tableau de bord lus en base (factures et missions à facturer)
+  const [dashInvoices, setDashInvoices] = useState<Invoice[]>([]);
+  const [toBillCount, setToBillCount] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    Promise.all([loadMyInvoices(), loadBillableMissions()])
+      .then(([inv, bill]) => {
+        if (!alive) return;
+        setDashInvoices(inv);
+        setToBillCount(bill.filter((m) => m.prixHT != null).length);
+      })
+      .catch((err) => console.error("Chiffres du tableau de bord:", err));
+    return () => {
+      alive = false;
+    };
+  }, [subTab]);
 
   // La facturation se fait dans l'onglet Finances (factures enregistrées en base, au nom du transporteur)
   const handleCompileToInvoice = () => {
@@ -628,15 +646,15 @@ export default function TransporteurDashboard({
         >
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-400 text-xs font-bold uppercase tracking-wider block group-hover:text-amber-600 transition-colors">
-              CA ce mois
+              Facturé ce mois
             </span>
             <span className="text-xl">💰</span>
           </div>
           <span className="text-3xl font-black text-amber-600 block">
-            160 000 DA
+            {dashInvoices.filter((i) => i.status !== "annulee" && i.date_emission.slice(0, 7) === new Date().toISOString().slice(0, 7)).reduce((s, i) => s + i.montant_ttc, 0).toLocaleString("fr-FR")} DA
           </span>
           <span className="text-[10px] text-emerald-600 font-mono font-bold underline group-hover:no-underline">
-            Commission 3% déduite →
+            À encaisser : {dashInvoices.filter((i) => i.status === "emise").reduce((s, i) => s + i.montant_ttc, 0).toLocaleString("fr-FR")} DA →
           </span>
         </div>
       </div>
@@ -645,48 +663,39 @@ export default function TransporteurDashboard({
           ALERTES CONTEXTUELLES
           ====================================================================== */}
       <div className="space-y-2 mb-2">
-        <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 flex items-start gap-3">
-          <div className="bg-rose-100 p-1.5 rounded-lg text-rose-600 shrink-0 font-bold text-xs">
-            🔴
+        {toBillCount > 0 && (
+          <div
+            onClick={() => setSubTab("finances")}
+            className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-start gap-3 cursor-pointer"
+          >
+            <div className="bg-amber-100 p-1.5 rounded-lg text-amber-600 shrink-0 font-bold text-xs">🧾</div>
+            <div>
+              <span className="text-xs font-extrabold text-amber-800 uppercase block tracking-wider">À facturer</span>
+              <p className="text-xs text-amber-700 font-semibold">
+                {toBillCount} mission(s) confirmée(s) par le donneur d'ordre en attente de facturation
+              </p>
+            </div>
           </div>
-          <div>
-            <span className="text-xs font-extrabold text-rose-800 uppercase block tracking-wider">
-              Alerte Prioritaire
-            </span>
-            <p className="text-xs text-rose-700 font-semibold">
-              Vous avez 3 nouvelles propositions en attente de réponse
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-start gap-3">
-          <div className="bg-amber-100 p-1.5 rounded-lg text-amber-600 shrink-0 font-bold text-xs">
-            🟡
-          </div>
-          <div>
-            <span className="text-xs font-extrabold text-amber-800 uppercase block tracking-wider">
-              Alerte Disponibilité
-            </span>
-            <p className="text-xs text-amber-700 font-semibold">
-              Votre camion 12345-16 est indiqué comme indisponible depuis 5
-              jours
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-start gap-3">
-          <div className="bg-emerald-100 p-1.5 rounded-lg text-emerald-600 shrink-0 font-bold text-xs">
-            🟢
-          </div>
-          <div>
-            <span className="text-xs font-extrabold text-emerald-800 uppercase block tracking-wider">
-              Succès Récompense
-            </span>
-            <p className="text-xs text-emerald-700 font-semibold">
-              Félicitations ! Vous avez atteint 50 missions réalisées
-            </p>
-          </div>
-        </div>
+        )}
+        {(() => {
+          const late = dashInvoices.filter((i) => invoiceDisplayStatus(i).tone === "late");
+          if (late.length === 0) return null;
+          const total = late.reduce((s, i) => s + i.montant_ttc, 0);
+          return (
+            <div
+              onClick={() => setSubTab("finances")}
+              className="bg-rose-50 border border-rose-100 rounded-2xl p-4 flex items-start gap-3 cursor-pointer"
+            >
+              <div className="bg-rose-100 p-1.5 rounded-lg text-rose-600 shrink-0 font-bold text-xs">🔴</div>
+              <div>
+                <span className="text-xs font-extrabold text-rose-800 uppercase block tracking-wider">Paiement en retard</span>
+                <p className="text-xs text-rose-700 font-semibold">
+                  {late.length} facture(s) en retard de paiement ({total.toLocaleString("fr-FR")} DA TTC)
+                </p>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* ======================================================================
