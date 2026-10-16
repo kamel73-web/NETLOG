@@ -32,7 +32,7 @@ import DevisModule from "./DevisModule";
 import { createFreightOffer, acceptProposal } from "../lib/freightOffers"
 import { getMissionIdByOfferId, confirmDelivery, validateLoading, validateUnload } from "../lib/missions";
 import LdvButton from "./LdvButton";
-import OfferDetailsFields from "./OfferDetailsFields";
+import { PlusDetailsItineraire, PlusDetailsMarchandise } from "./PlusDetails";
 import { EMPTY_DETAILS, hasDetails, savePrivateDetails, validateDetails, type OfferPrivateDetailsInput } from "../lib/ldv";
 import { RESERVE_MAX, sanitizeReserveInput } from "../lib/ldv";
 import type { MissionRow } from "../lib/dataLoader";
@@ -1694,6 +1694,11 @@ export default function DonneurDashboard({
                       </div>
                     )}
                   </div>
+                  {!editingOffreId && (
+                    <div className="pt-1">
+                      <PlusDetailsItineraire value={formDetails} onChange={setFormDetails} lang={lang === "ar" ? "ar" : "fr"} />
+                    </div>
+                  )}
                 </div>
 
                 {/* SECTION 2 - MARCHANDISE */}
@@ -1838,6 +1843,11 @@ export default function DonneurDashboard({
                       </select>
                     </div>
                   </div>
+                  {!editingOffreId && (
+                    <div className="pt-1">
+                      <PlusDetailsMarchandise value={formDetails} onChange={setFormDetails} lang={lang === "ar" ? "ar" : "fr"} />
+                    </div>
+                  )}
                 </div>
 
                 {/* SECTION 3 - TRANSPORT */}
@@ -2047,11 +2057,6 @@ export default function DonneurDashboard({
                   </div>
                 </div>
 
-                {!editingOffreId && (
-                  <div className="px-6 pb-6">
-                    <OfferDetailsFields value={formDetails} onChange={setFormDetails} lang={lang === "ar" ? "ar" : "fr"} />
-                  </div>
-                )}
 
                 {/* Modal actions */}
                 <div className="p-6 border-t border-slate-100 flex gap-3 justify-end bg-slate-50 rounded-b-3xl">

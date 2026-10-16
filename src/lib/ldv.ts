@@ -79,12 +79,16 @@ export interface OfferPrivateDetailsInput {
   poidsTotalKg: string;
   destinataireNom: string;
   destinataireTel: string;
+  chargementContactNom: string;
+  chargementContactTel: string;
   lignes: GoodsLineInput[];
 }
 export const EMPTY_DETAILS: OfferPrivateDetailsInput = {
   poidsTotalKg: "",
   destinataireNom: "",
   destinataireTel: "",
+  chargementContactNom: "",
+  chargementContactTel: "",
   lignes: [],
 };
 
@@ -95,6 +99,8 @@ export function hasDetails(d: OfferPrivateDetailsInput): boolean {
     d.poidsTotalKg.trim() ||
       d.destinataireNom.trim() ||
       d.destinataireTel.trim() ||
+      d.chargementContactNom.trim() ||
+      d.chargementContactTel.trim() ||
       d.lignes.some((l) => l.designation.trim() || l.quantite.trim()),
   );
 }
@@ -108,6 +114,8 @@ export function validateDetails(d: OfferPrivateDetailsInput): string[] {
   }
   if (d.destinataireNom.trim() && d.destinataireNom.trim().length < 2) errs.push("Destinataire : nom trop court.");
   if (d.destinataireTel.trim() && !isValidDzPhone(d.destinataireTel)) errs.push("Destinataire : numéro de téléphone invalide.");
+  if (d.chargementContactNom.trim() && d.chargementContactNom.trim().length < 2) errs.push("Contact de chargement : nom trop court.");
+  if (d.chargementContactTel.trim() && !isValidDzPhone(d.chargementContactTel)) errs.push("Contact de chargement : numéro de téléphone invalide.");
   if (d.lignes.length > GOODS_LINES_MAX) errs.push(`Marchandise : ${GOODS_LINES_MAX} lignes maximum.`);
   d.lignes.forEach((l, i) => {
     if (!l.designation.trim() && !l.quantite.trim()) return;
@@ -130,6 +138,8 @@ export async function savePrivateDetails(offerId: number | string, d: OfferPriva
     p_destinataire_nom: d.destinataireNom.trim() || null,
     p_destinataire_tel: d.destinataireTel.trim() ? normalizeDzPhone(d.destinataireTel) : null,
     p_lignes: lignes,
+    p_contact_nom: d.chargementContactNom.trim() || null,
+    p_contact_tel: d.chargementContactTel.trim() ? normalizeDzPhone(d.chargementContactTel) : null,
   });
   if (error) throw new Error(error.message);
 }
@@ -138,7 +148,7 @@ export async function savePrivateDetails(offerId: number | string, d: OfferPriva
 export async function fetchPrivateDetails(offerId: number | string): Promise<OfferPrivateDetailsInput> {
   const id = Number(offerId);
   const [det, lines] = await Promise.all([
-    supabase.from("offer_private_details").select("poids_total_kg,destinataire_nom,destinataire_tel").eq("offer_id", id).maybeSingle(),
+    supabase.from("offer_private_details").select("poids_total_kg,destinataire_nom,destinataire_tel,contact_chargement_nom,contact_chargement_tel").eq("offer_id", id).maybeSingle(),
     supabase.from("offer_goods_lines").select("designation,unite,quantite,position").eq("offer_id", id).order("position"),
   ]);
   if (det.error) throw new Error(det.error.message);
@@ -147,6 +157,8 @@ export async function fetchPrivateDetails(offerId: number | string): Promise<Off
     poidsTotalKg: det.data?.poids_total_kg != null ? String(det.data.poids_total_kg) : "",
     destinataireNom: det.data?.destinataire_nom ?? "",
     destinataireTel: det.data?.destinataire_tel ?? "",
+    chargementContactNom: det.data?.contact_chargement_nom ?? "",
+    chargementContactTel: det.data?.contact_chargement_tel ?? "",
     lignes: (lines.data ?? []).map((l: any) => ({
       designation: l.designation,
       unite: l.unite as GoodsUnit,
@@ -191,7 +203,15 @@ export interface LdvPayload {
     poids_declare_kg: number | null;
     poids_estime_kg: number | null;
   };
-  chargement: { wilaya: string | null; repere: string | null; lat: number | null; lng: number | null; at: string | null };
+  chargement: {
+    wilaya: string | null;
+    repere: string | null;
+    lat: number | null;
+    lng: number | null;
+    at: string | null;
+    contact_nom?: string | null;
+    contact_tel?: string | null;
+  };
   dechargement: {
     wilaya: string | null;
     repere: string | null;

@@ -183,6 +183,12 @@ export default function LettreDeVoitureA4({ data, qrDataUrl }: { data: LdvPayloa
             <Txt v={data.donneur_ordre.raison_sociale} bold size={12} />
             <div style={{ height: 6 }} />
             <Txt v={placeLine(data.chargement)} size={11} lines={2} />
+            {data.chargement.contact_nom || data.chargement.contact_tel ? (
+              <Txt
+                v={`Contact : ${[data.chargement.contact_nom, formatDzPhone(data.chargement.contact_tel)].filter(Boolean).join(" — ")}`}
+                size={11}
+              />
+            ) : null}
             <div style={{ fontSize: 12, margin: "10px 0 8px" }}>
               Date et heure du chargement : <b>{dateLine(data.chargement.at)}</b>
             </div>

@@ -15,6 +15,7 @@ import {
 } from "./lib/supabase";
 import { toLoginEmail } from "./lib/drivers";
 import ActivationScreen from "./components/ActivationScreen";
+import WalletChip from "./components/WalletChip";
 
 import {
   createFreightOffer,
@@ -2680,6 +2681,7 @@ export default function App() {
           {/* Connected state indicators */}
           {currentUser ? (
             <div className="flex items-center gap-2.5">
+              <WalletChip currentUser={currentUser} triggerSystemLog={triggerSystemLog} />
               {/* Cloche de notifications */}
               <div
                 className="relative cursor-pointer p-1.5 hover:bg-slate-100 rounded-full transition-colors"

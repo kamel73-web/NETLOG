@@ -10,6 +10,8 @@ export interface Plan {
   max_chauffeurs: number | null;
   actif: boolean;
   ordre: number;
+  commission_pct: number | null;
+  commission_fixe: number | null;
 }
 export type PayMode = "virement" | "ccp" | "baridimob" | "cib" | "versement_especes";
 export interface SubPayment {
@@ -81,6 +83,8 @@ const normPlan = (p: any): Plan => ({
   max_chauffeurs: p.max_chauffeurs == null ? null : Number(p.max_chauffeurs),
   actif: Boolean(p.actif),
   ordre: n(p.ordre),
+  commission_pct: p.commission_pct == null ? null : Number(p.commission_pct),
+  commission_fixe: p.commission_fixe == null ? null : Number(p.commission_fixe),
 });
 const normPayment = (p: any): SubPayment => ({
   id: Number(p.id),
@@ -127,6 +131,8 @@ export async function savePlan(p: {
   max_chauffeurs: number | null;
   actif: boolean;
   ordre: number;
+  commission_pct: number | null;
+  commission_fixe: number | null;
 }): Promise<void> {
   const row = {
     code: p.code,
@@ -137,6 +143,8 @@ export async function savePlan(p: {
     max_chauffeurs: p.max_chauffeurs,
     actif: p.actif,
     ordre: p.ordre,
+    commission_pct: p.commission_pct,
+    commission_fixe: p.commission_fixe,
   };
   const { error } = p.id
     ? await supabase.from("subscription_plans").update(row).eq("id", p.id)
@@ -300,5 +308,10 @@ export async function grantFree(p: {
     p_mois: p.mois,
     p_validate: p.validate,
   });
+  fail(error);
+}
+
+export async function adjustWallet(userId: string, amount: number, note: string): Promise<void> {
+  const { error } = await supabase.rpc("admin_wallet_adjust", { p_user: userId, p_amount: amount, p_note: note });
   fail(error);
 }
