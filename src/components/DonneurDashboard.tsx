@@ -31,6 +31,10 @@ import { OffreStatus, ProfileType, MoyenType, Facture, FactureStatus, DevisOffic
 import DevisModule from "./DevisModule";
 import { createFreightOffer, acceptProposal } from "../lib/freightOffers"
 import { getMissionIdByOfferId, confirmDelivery, validateLoading, validateUnload } from "../lib/missions";
+import LdvButton from "./LdvButton";
+import OfferDetailsFields from "./OfferDetailsFields";
+import { EMPTY_DETAILS, hasDetails, savePrivateDetails, validateDetails, type OfferPrivateDetailsInput } from "../lib/ldv";
+import { RESERVE_MAX, sanitizeReserveInput } from "../lib/ldv";
 import type { MissionRow } from "../lib/dataLoader";
 import { loadMissionDetails, type MissionDetails } from "../lib/dataLoader";
 import { loadMyInvoices, invoiceDisplayStatus, type Invoice } from "../lib/billing";
@@ -192,6 +196,7 @@ export default function DonneurDashboard({
   const [valideConformite, setValideConformite] = useState<"conforme" | "reserves" | "litige">("conforme");
   const [valideReservesDesc, setValideReservesDesc] = useState("");
   const [valideReservesType, setValideReservesType] = useState("Retard");
+  const [formDetails, setFormDetails] = useState<OfferPrivateDetailsInput>(EMPTY_DETAILS);
   const [valideRating, setValideRating] = useState(5);
   const [valideComment, setValideComment] = useState("");
 
@@ -246,6 +251,12 @@ export default function DonneurDashboard({
       return;
     }
 
+    const detailsErrors = validateDetails(formDetails);
+    if (detailsErrors.length) {
+      triggerSystemLog(detailsErrors.join(" "), "danger");
+      return;
+    }
+
     const wilayaDepart = wilayaCodeFromLabel(formDepartWilaya);
     const wilayaArrivee = wilayaCodeFromLabel(formArriveeWilaya);
     if (wilayaDepart == null || wilayaArrivee == null) {
@@ -256,7 +267,10 @@ export default function DonneurDashboard({
     const departName = formDepartWilaya.replace(/^\d+\s*-\s*/, "");
     const arriveeName = formArriveeWilaya.replace(/^\d+\s*-\s*/, "");
     const prixPropose = formTarifMode === "fixe" ? Number(formMontantFixe) : 0;
-    const poidsTonnes = Number(formPoids) || 10;
+    // Poids précis (facultatif) : il sert aussi au contrôle de compatibilité des véhicules
+    const poidsPrecisKg = Number(formDetails.poidsTotalKg.trim().replace(",", "."));
+    const poidsTonnes =
+      Number.isFinite(poidsPrecisKg) && poidsPrecisKg > 0 ? poidsPrecisKg / 1000 : Number(formPoids) || 10;
     const commentaire = formRemarques || formInstructionsChargement || undefined;
 
     // Édition : pas d'API update → local uniquement pour l'instant
@@ -295,7 +309,7 @@ export default function DonneurDashboard({
         pointRepereDepart: formDepartDetails,
         pointRepereArrivee: formArriveeDetails,
         description: commentaire,
-        poidsKg: poidsTonnes * 1000,
+        poidsKg: Math.round(poidsTonnes * 1000),
         typeMarchandise: formNature,
         prixPropose,
         paymentMethod: "cash",
@@ -304,6 +318,17 @@ export default function DonneurDashboard({
         nombreVoyages: Number(formNombreVoyages) || 1,
       });
       insertedId = String(inserted.id);
+      if (hasDetails(formDetails)) {
+        try {
+          await savePrivateDetails(insertedId, formDetails);
+        } catch (detErr: any) {
+          triggerSystemLog(
+            `Offre publiée, mais les détails d'expédition n'ont pas été enregistrés : ${detErr?.message ?? "erreur"}`,
+            "warning",
+          );
+        }
+        setFormDetails(EMPTY_DETAILS);
+      }
     } catch (err: any) {
       triggerSystemLog(`Échec de la publication : ${err?.message ?? "erreur inconnue"}`, "danger");
       return;
@@ -497,8 +522,15 @@ export default function DonneurDashboard({
 
     const reserves =
       valideConformite !== "conforme"
-        ? `[${valideReservesType}] ${valideReservesDesc}`
+        ? `[${valideReservesType}] ${valideReservesDesc}`.replace(/\s+/g, " ").trim()
         : undefined;
+    if (reserves && reserves.length > RESERVE_MAX) {
+      triggerSystemLog(
+        `Réserve trop longue : ${reserves.length} caractères (maximum ${RESERVE_MAX}, type compris). Raccourcissez le texte.`,
+        "danger",
+      );
+      return;
+    }
 
     let confirmed: any;
     try {
@@ -1251,21 +1283,7 @@ export default function DonneurDashboard({
 
                   {/* BUTTON OPERATIONS */}
                   <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => {
-                        if (setActiveContractDoc) {
-                          setActiveContractDoc({
-                            type: "LETTRE-VOITURE",
-                            offre: mission,
-                            prop: propositions.find(p => p.offreId === mission.id && p.status === "Accepté")
-                          });
-                        }
-                      }}
-                      className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <FileText className="w-3.5 h-3.5 text-slate-500" />
-                      📄 Lettre de voiture (LDV)
-                    </button>
+                    <LdvButton offerId={mission.id} label="📄 Lettre de voiture (LDV)" className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer" />
 
                     {progressStep === 1 && (
                       <button
@@ -2029,6 +2047,12 @@ export default function DonneurDashboard({
                   </div>
                 </div>
 
+                {!editingOffreId && (
+                  <div className="px-6 pb-6">
+                    <OfferDetailsFields value={formDetails} onChange={setFormDetails} lang={lang === "ar" ? "ar" : "fr"} />
+                  </div>
+                )}
+
                 {/* Modal actions */}
                 <div className="p-6 border-t border-slate-100 flex gap-3 justify-end bg-slate-50 rounded-b-3xl">
                   <button 
@@ -2205,10 +2229,12 @@ export default function DonneurDashboard({
                       rows={2}
                       required
                       value={valideReservesDesc}
-                      onChange={(e) => setValideReservesDesc(e.target.value)}
+                      maxLength={Math.max(0, RESERVE_MAX - `[${valideReservesType}] `.length)}
+                      onChange={(e) => setValideReservesDesc(sanitizeReserveInput(e.target.value))}
                       placeholder="Indiquez précisément l'état de la cargaison et le constat d'huissier de justice..."
                       className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-white"
                     ></textarea>
+                    <p className="text-[9px] text-slate-400 mt-1 text-right">{Math.max(0, RESERVE_MAX - `[${valideReservesType}] `.length - valideReservesDesc.length)} caractères restants</p>
                   </div>
                 </div>
               )}

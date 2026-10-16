@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
 
+import { addMissionReserve } from './ldv';
+
 export async function createMissionFromProposal(params: {
   offerId: number;
   transporteurId: string;
@@ -46,8 +48,9 @@ export async function getMissionIdByOfferId(offerId: number): Promise<number> {
 }
 
 export async function validateLoading(missionId: number, reserves?: string) {
+  // Réserve (160 car. max) enregistrée dans mission_reserves : source unique de la LDV
+  if (reserves?.trim()) await addMissionReserve(missionId, 'chargement', reserves);
   const payload: Record<string, unknown> = { status: 'en_route' };
-  if (reserves?.trim()) payload.reserves_chargement = reserves.trim();
 
   const { data, error } = await supabase
     .from('missions')
@@ -62,8 +65,8 @@ export async function validateLoading(missionId: number, reserves?: string) {
 }
 
 export async function validateUnload(missionId: number, reserves?: string) {
+  if (reserves?.trim()) await addMissionReserve(missionId, 'dechargement', reserves);
   const payload: Record<string, unknown> = { status: 'livree' };
-  if (reserves?.trim()) payload.reserves_livraison = reserves.trim();
 
   const { data, error } = await supabase
     .from('missions')

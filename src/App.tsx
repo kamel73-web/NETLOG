@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from "react";
+import LdvButton from "./components/LdvButton";
 import { submitRegistration, type RegistrationInput } from "./lib/registration";
 import {
   supabase,
@@ -13,6 +14,7 @@ import {
   updateProfileStatus,
 } from "./lib/supabase";
 import { toLoginEmail } from "./lib/drivers";
+import ActivationScreen from "./components/ActivationScreen";
 
 import {
   createFreightOffer,
@@ -728,7 +730,11 @@ export default function App() {
 
           // Session active : uniquement via Supabase Auth
           if (supabaseUser) {
-            setCurrentUser(supabaseUser);
+            if (supabaseUser.status === "suspendu") {
+              void signOut();
+            } else {
+              setCurrentUser(supabaseUser);
+            }
           }
         },
       )
@@ -1006,11 +1012,12 @@ export default function App() {
     // Check account status
     const uStatus = user.status || "valide";
     if (uStatus === "en_attente") {
-      triggerSystemLog(
-        "Votre compte est en cours de validation. Merci de patienter.",
-        "danger",
-      );
-      await signOut();
+      // Compte en attente : accès limité à l'écran d'activation (paiement de l'abonnement)
+      setCurrentUser(user);
+      setShowLoginModal(false);
+      setLoginEmail("");
+      setLoginPassword("");
+      triggerSystemLog("Compte en attente : finalisez votre abonnement pour l'activer.", "info");
       return;
     }
     if (uStatus === "suspendu") {
@@ -2487,6 +2494,57 @@ export default function App() {
             </p>
           </div>
         </div>
+      </div>
+    );
+  }
+
+
+  const refreshCurrentUser = async () => {
+    const row = await getCurrentProfile();
+    if (!row) return;
+    const fresh = adaptSupabaseProfile(row as SupabaseProfileRow);
+    if (fresh.status === "suspendu") {
+      await signOut();
+      setCurrentUser(null);
+      return;
+    }
+    setCurrentUser(fresh);
+    if (fresh.status === "valide") {
+      triggerSystemLog("Votre compte est activé. Bienvenue sur NETLOG !", "success");
+      try {
+        const data = await loadAppData();
+        setUsers(data.profiles);
+        setMoyens(data.vehicles);
+        setOffres(data.offers);
+        setPropositions(data.proposals);
+        setFactures(data.invoices);
+        setMissions(data.missions);
+      } catch (err) {
+        console.error("Chargement après activation:", err);
+      }
+      setCurrentTab(
+        fresh.profil === ProfileType.DonneurOrdre ? "donneur"
+        : fresh.profil === ProfileType.Transporteur ? "transporteur"
+        : fresh.profil === ProfileType.Chauffeur ? "chauffeur"
+        : fresh.profil === ProfileType.Commercial ? "commercial"
+        : fresh.profil === ProfileType.Admin ? "admin"
+        : "accueil",
+      );
+    } else {
+      triggerSystemLog("Votre paiement est en cours de vérification.", "info");
+    }
+  };
+
+  // Compte en attente : seul l'écran d'activation (paiement de l'abonnement) est accessible
+  if (currentUser?.status === "en_attente") {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <ActivationScreen
+          currentUser={currentUser}
+          onRefresh={refreshCurrentUser}
+          onSignOut={handleLogout}
+          triggerSystemLog={triggerSystemLog}
+        />
       </div>
     );
   }
@@ -6983,19 +7041,7 @@ export default function App() {
 
                   {/* Sub action buttons */}
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        // Toggle to visual printable ContractDocument
-                        setActiveContractDoc({
-                          type: "LETTRE-VOITURE",
-                          offre: trackedOffre,
-                        });
-                        // Don't close tracker so they can return to it if needed
-                      }}
-                      className="flex-1 py-2.5 bg-slate-950 hover:bg-slate-800 text-white text-xs font-extrabold uppercase rounded-xl transition cursor-pointer text-center border-none"
-                    >
-                      📄 Afficher la Lettre de voiture actualisée
-                    </button>
+                    <LdvButton offerId={trackedOffre.id} label="📄 Afficher la Lettre de voiture actualisée" className="flex-1 py-2.5 bg-slate-950 hover:bg-slate-800 text-white text-xs font-extrabold uppercase rounded-xl transition cursor-pointer text-center border-none" />
                     <button
                       onClick={() => setTrackedOffreId(null)}
                       className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold uppercase rounded-xl transition cursor-pointer border-none"

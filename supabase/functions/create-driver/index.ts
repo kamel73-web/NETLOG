@@ -60,9 +60,12 @@ Deno.serve(async (req) => {
   if (tooSimple) return json({ error: "Code trop simple (111111, 123456…). Choisissez-en un autre." }, 400);
 
   // 3. Limite de sécurité
-  const { count } = await admin.from("profiles").select("id", { count: "exact", head: true })
-    .eq("transporteur_id", user.id).eq("role", "chauffeur");
-  if ((count ?? 0) >= 50) return json({ error: "Limite de 50 chauffeurs atteinte." }, 400);
+  const { data: quota, error: qErr } = await admin.rpc("driver_quota", { p_carrier: user.id });
+  const q = Array.isArray(quota) ? quota[0] : quota;
+  if (qErr || !q) return json({ error: "Impossible de vérifier la limite de chauffeurs de votre abonnement." }, 500);
+  if (Number(q.actuels) >= Number(q.limite)) {
+    return json({ error: `Limite de chauffeurs atteinte (${q.limite}). Passez à un forfait supérieur pour en ajouter.` }, 400);
+  }
 
   // 4. Création du compte
   const { data: created, error: cErr } = await admin.auth.admin.createUser({

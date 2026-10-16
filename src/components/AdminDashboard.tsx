@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import AdminFinancePanel from "./AdminFinancePanel";
 import {
   ShieldAlert,
   Users,
@@ -490,6 +491,18 @@ export default function AdminDashboard({
           >
             <FileText className="w-4 h-4" />
             <span>🗓️ État Mensuel</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab("parameters")}
+            className={`px-3.5 py-2.5 rounded-xl font-bold text-xs cursor-pointer tracking-wider flex items-center gap-2.5 shrink-0 w-full transition-all text-left ${
+              activeSubTab === "parameters"
+                ? "bg-[#1D9E75] text-white shadow-xs"
+                : "hover:bg-slate-800 hover:text-white"
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            <span>💳 Abonnements et finance</span>
           </button>
 
           </div>
@@ -1380,6 +1393,10 @@ export default function AdminDashboard({
         )}
 
         {/* 5. TAB: ÉTAT MENSUEL & CLÔTURE */}
+        {activeSubTab === "parameters" && (
+          <AdminFinancePanel triggerSystemLog={triggerSystemLog} />
+        )}
+
         {activeSubTab === "etat_mensuel" && (
           <div
             className="space-y-6 animate-fadeIn font-sans"

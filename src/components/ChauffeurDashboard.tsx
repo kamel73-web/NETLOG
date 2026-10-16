@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { RESERVE_MAX, sanitizeReserveInput } from "../lib/ldv";
+import LdvButton from "./LdvButton";
 import {
   MapPin,
   Activity,
@@ -560,8 +562,9 @@ export default function ChauffeurDashboard({
                                 {hasLoadingReserves && (
                                   <textarea
                                     value={loadingReserves}
+                                    maxLength={RESERVE_MAX}
                                     onChange={(e) =>
-                                      setLoadingReserves(e.target.value)
+                                      setLoadingReserves(sanitizeReserveInput(e.target.value))
                                     }
                                     placeholder={
                                       lang === "ar"
@@ -656,8 +659,9 @@ export default function ChauffeurDashboard({
                                 {hasUnloadingReserves && (
                                   <textarea
                                     value={unloadingReserves}
+                                    maxLength={RESERVE_MAX}
                                     onChange={(e) =>
-                                      setUnloadingReserves(e.target.value)
+                                      setUnloadingReserves(sanitizeReserveInput(e.target.value))
                                     }
                                     placeholder={
                                       lang === "ar"
@@ -736,6 +740,8 @@ export default function ChauffeurDashboard({
                           </span>
                         </div>
                       )}
+
+                      <LdvButton offerId={offer.id} label="📄 Lettre de voiture (LDV)" className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer" />
 
                       {/* REPORT PROBLEM BUTTON OR SCREEN */}
                       {offer.status !== OffreStatus.Valide && (

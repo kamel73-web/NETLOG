@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { type CompletedMission, loadCompletedMissions } from "../lib/billing";
+import LdvButton from "./LdvButton";
 
 const money = (n: number) =>
   n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -67,6 +68,7 @@ export default function TransporteurMissionsTerminees({
                   <th className="p-2">Livraison</th>
                   <th className="p-2 text-right">Prix HT</th>
                   <th className="p-2">Facture</th>
+                  <th className="p-2">LDV</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -89,6 +91,9 @@ export default function TransporteurMissionsTerminees({
                       ) : (
                         <span className="text-amber-700 font-bold">À facturer</span>
                       )}
+                    </td>
+                    <td className="p-2">
+                      <LdvButton missionId={Number(m.missionId)} label="📄 LDV" className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-bold cursor-pointer" />
                     </td>
                   </tr>
                 ))}
