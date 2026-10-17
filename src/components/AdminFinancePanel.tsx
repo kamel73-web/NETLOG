@@ -18,9 +18,11 @@ import {
   grantFree,
   adjustWallet,
 } from "../lib/subscriptions";
+import AdminCommerciaux from "./AdminCommerciaux";
+import AdminSpecialCommission from "./AdminSpecialCommission";
 
 type Log = (msg: string, type: "success" | "info" | "warning" | "danger") => void;
-type Tab = "paiements" | "recharges" | "forfaits" | "parametres" | "offert";
+type Tab = "paiements" | "recharges" | "forfaits" | "parametres" | "offert" | "commerciaux" | "speciale";
 
 const ROLES = ["donneur_ordre", "transporteur", "commissionnaire", "manutentionnaire", "stockage"];
 const money = (n: number) => n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -130,6 +132,8 @@ export default function AdminFinancePanel({ triggerSystemLog }: { triggerSystemL
     { key: "forfaits", label: "Forfaits" },
     { key: "parametres", label: "Paramètres" },
     { key: "offert", label: "Abonnement offert" },
+    { key: "commerciaux", label: "Commerciaux" },
+    { key: "speciale", label: "Commission spéciale" },
   ];
 
   const editPlan = (p: Plan) =>
@@ -454,6 +458,10 @@ export default function AdminFinancePanel({ triggerSystemLog }: { triggerSystemL
             })}
         </div>
       )}
+
+      {tab === "commerciaux" && <AdminCommerciaux triggerSystemLog={triggerSystemLog} />}
+
+      {tab === "speciale" && <AdminSpecialCommission triggerSystemLog={triggerSystemLog} />}
 
       {tab === "offert" && (
         <div className="bg-white border border-slate-100 rounded-2xl p-4 space-y-3 text-xs">
