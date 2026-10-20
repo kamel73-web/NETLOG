@@ -15,6 +15,7 @@ import {
 } from "./lib/supabase";
 import { toLoginEmail } from "./lib/drivers";
 import ActivationScreen from "./components/ActivationScreen";
+import CommercialEspace from "./components/CommercialEspace";
 import WalletChip from "./components/WalletChip";
 
 import {
@@ -4936,18 +4937,7 @@ export default function App() {
             {/* ----------------- TAB: ESPACE COMMERCIAL BVF (PROFIL 3) ----------------- */}
             {currentTab === "commercial" &&
               currentUser?.profil === ProfileType.Commercial && (
-                <CommercialDashboard
-                  currentUser={currentUser}
-                  setCurrentUser={setCurrentUser}
-                  lang={lang}
-                  t={t}
-                  saveState={saveState}
-                  offres={offres}
-                  users={users}
-                  propositions={propositions}
-                  factures={factures}
-                  triggerSystemLog={triggerSystemLog}
-                />
+                <CommercialEspace currentUser={currentUser} triggerSystemLog={triggerSystemLog} />
               )}
 
             {/* ----------------- TAB: ESPACE ADMIN NETLOG (PROFIL 4) ----------------- */}

@@ -11,6 +11,8 @@ import {
   attachMember,
 } from "../lib/commissions";
 import { type Account, findAccounts } from "../lib/subscriptions";
+import NetlogShareSummary from "./NetlogShareSummary";
+import { payCommercial } from "../lib/commercial";
 
 type Log = (msg: string, type: "success" | "info" | "warning" | "danger") => void;
 type Draft = Record<string, { pct: string; fixe: string }>;
@@ -139,6 +141,8 @@ export default function AdminCommerciaux({ triggerSystemLog }: { triggerSystemLo
         })}
       </div>
 
+      <NetlogShareSummary rules={rules} />
+
       <div className="bg-white border border-slate-100 rounded-2xl p-4 space-y-3 text-xs">
         <span className="text-xs font-black uppercase text-slate-800">Commerciaux</span>
         {commerciaux.length === 0 && <p className="text-slate-500">Aucun commercial validé.</p>}
@@ -162,6 +166,24 @@ export default function AdminCommerciaux({ triggerSystemLog }: { triggerSystemLo
                 <button onClick={() => openOverrides(c)} className="px-3 py-1.5 border border-slate-200 rounded-lg font-bold cursor-pointer">
                   {openId === c.id ? "Fermer" : "Valeurs individuelles"}
                 </button>
+                {c.aPayer > 0 && (
+                  <button
+                    disabled={busy}
+                    onClick={() => {
+                      const ref = window.prompt(
+                        `Régler ${money(c.aPayer)} DA HT à ${c.nom} (gains enregistrés jusqu'à aujourd'hui). Référence du paiement :`,
+                      );
+                      if (ref === null) return;
+                      void run(
+                        async () => { await payCommercial(c.id, new Date().toISOString().slice(0, 10), ref); },
+                        `Règlement de ${c.nom} enregistré.`,
+                      );
+                    }}
+                    className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg font-bold cursor-pointer disabled:opacity-50"
+                  >
+                    Régler
+                  </button>
+                )}
               </div>
             </div>
             {openId === c.id && (

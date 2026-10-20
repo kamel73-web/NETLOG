@@ -18,11 +18,12 @@ import {
   grantFree,
   adjustWallet,
 } from "../lib/subscriptions";
+import AdminRevenue from "./AdminRevenue";
 import AdminCommerciaux from "./AdminCommerciaux";
 import AdminSpecialCommission from "./AdminSpecialCommission";
 
 type Log = (msg: string, type: "success" | "info" | "warning" | "danger") => void;
-type Tab = "paiements" | "recharges" | "forfaits" | "parametres" | "offert" | "commerciaux" | "speciale";
+type Tab = "paiements" | "recharges" | "forfaits" | "parametres" | "offert" | "commerciaux" | "speciale" | "recettes";
 
 const ROLES = ["donneur_ordre", "transporteur", "commissionnaire", "manutentionnaire", "stockage"];
 const money = (n: number) => n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -132,6 +133,7 @@ export default function AdminFinancePanel({ triggerSystemLog }: { triggerSystemL
     { key: "forfaits", label: "Forfaits" },
     { key: "parametres", label: "Paramètres" },
     { key: "offert", label: "Abonnement offert" },
+    { key: "recettes", label: "Recettes NETLOG" },
     { key: "commerciaux", label: "Commerciaux" },
     { key: "speciale", label: "Commission spéciale" },
   ];
@@ -462,6 +464,8 @@ export default function AdminFinancePanel({ triggerSystemLog }: { triggerSystemL
       {tab === "commerciaux" && <AdminCommerciaux triggerSystemLog={triggerSystemLog} />}
 
       {tab === "speciale" && <AdminSpecialCommission triggerSystemLog={triggerSystemLog} />}
+
+      {tab === "recettes" && <AdminRevenue triggerSystemLog={triggerSystemLog} />}
 
       {tab === "offert" && (
         <div className="bg-white border border-slate-100 rounded-2xl p-4 space-y-3 text-xs">
