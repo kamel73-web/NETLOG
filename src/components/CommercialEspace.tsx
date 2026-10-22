@@ -8,6 +8,8 @@ import {
   loadMyPayouts,
   loadMyReferral,
 } from "../lib/commercial";
+import DeclarePaymentModal from "./DeclarePaymentModal";
+import { loadMyPayments, type SubPayment } from "../lib/subscriptions";
 
 type Log = (msg: string, type: "success" | "info" | "warning" | "danger") => void;
 type Tab = "reseau" | "gains" | "reglements";
@@ -40,6 +42,11 @@ export default function CommercialEspace({ currentUser, triggerSystemLog }: { cu
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [code, setCode] = useState<string | null>(null);
   const [month, setMonth] = useState("");
+  const [payFor, setPayFor] = useState<NetworkMember | null>(null);
+  const [netPays, setNetPays] = useState<SubPayment[]>([]);
+  useEffect(() => {
+    loadMyPayments().then(setNetPays).catch(() => undefined);
+  }, [payFor]);
 
   useEffect(() => {
     let alive = true;
@@ -233,6 +240,7 @@ export default function CommercialEspace({ currentUser, triggerSystemLog }: { cu
                     <th className="p-2">Compte</th>
                     <th className="p-2">Inscrit le</th>
                     <th className="p-2">Abonnement</th>
+                    <th className="p-2">Paiement</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -247,6 +255,15 @@ export default function CommercialEspace({ currentUser, triggerSystemLog }: { cu
                           ? `Actif${m.abonnement_fin ? ` jusqu'au ${dmy(m.abonnement_fin)}` : ""}`
                           : <span className="text-rose-600 font-bold">Inactif</span>}
                       </td>
+                      <td className="p-2">
+                        {netPays.some((p) => p.user_id === m.member_id && p.statut === "en_attente") ? (
+                          <span className="text-amber-700 font-bold">En vérification</span>
+                        ) : (
+                          <button onClick={() => setPayFor(m)} className="px-3 py-1.5 border border-slate-200 rounded-lg font-bold cursor-pointer">
+                            Déclarer un paiement
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -254,6 +271,14 @@ export default function CommercialEspace({ currentUser, triggerSystemLog }: { cu
             </div>
           )}
         </div>
+      )}
+
+      {payFor && (
+        <DeclarePaymentModal
+          member={{ id: payFor.member_id, nom: payFor.nom, role: payFor.role }}
+          onClose={() => setPayFor(null)}
+          triggerSystemLog={(msg, type) => logRef.current(msg, type)}
+        />
       )}
 
       {!loading && tab === "reglements" && (

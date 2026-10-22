@@ -76,6 +76,11 @@ export default function WalletChip({ currentUser, triggerSystemLog }: { currentU
     if (eligible) void refreshSummary();
   }, [eligible, currentUser?.id]);
   useEffect(() => {
+    const h = () => void refreshSummary();
+    window.addEventListener("netlog-wallet-refresh", h);
+    return () => window.removeEventListener("netlog-wallet-refresh", h);
+  }, []);
+  useEffect(() => {
     if (open) {
       void refreshSummary();
       void refreshDetails();

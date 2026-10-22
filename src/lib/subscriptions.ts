@@ -13,7 +13,7 @@ export interface Plan {
   commission_pct: number | null;
   commission_fixe: number | null;
 }
-export type PayMode = "virement" | "ccp" | "baridimob" | "cib" | "versement_especes";
+export type PayMode = "virement" | "ccp" | "baridimob" | "cib" | "versement_especes" | "portefeuille";
 export interface SubPayment {
   id: number;
   user_id: string;
@@ -313,5 +313,53 @@ export async function grantFree(p: {
 
 export async function adjustWallet(userId: string, amount: number, note: string): Promise<void> {
   const { error } = await supabase.rpc("admin_wallet_adjust", { p_user: userId, p_amount: amount, p_note: note });
+  fail(error);
+}
+
+export interface SubSummary {
+  plan_id: number | null;
+  plan_nom: string;
+  statut: string;
+  debut: string | null;
+  fin: string | null;
+  actif: boolean;
+  offerte: boolean;
+  max_chauffeurs: number | null;
+  chauffeurs_actuels: number;
+}
+
+export async function loadMySubscription(): Promise<SubSummary | null> {
+  const { data, error } = await supabase.rpc("my_subscription");
+  fail(error);
+  const r: any = Array.isArray(data) ? data[0] : data;
+  if (!r) return null;
+  const { data: auth } = await supabase.auth.getUser();
+  let planId: number | null = null;
+  if (auth?.user) {
+    const { data: s } = await supabase.from("subscriptions").select("plan_id").eq("user_id", auth.user.id).maybeSingle();
+    planId = (s as any)?.plan_id == null ? null : Number((s as any).plan_id);
+  }
+  return {
+    plan_id: planId,
+    plan_nom: r.plan_nom,
+    statut: r.statut,
+    debut: r.debut ?? null,
+    fin: r.fin ?? null,
+    actif: Boolean(r.actif),
+    offerte: Boolean(r.offerte),
+    max_chauffeurs: r.max_chauffeurs == null ? null : Number(r.max_chauffeurs),
+    chauffeurs_actuels: n(r.chauffeurs_actuels),
+  };
+}
+
+export async function loadWalletForSubscription(): Promise<{ utilisable: number; autorise: boolean }> {
+  const { data, error } = await supabase.rpc("my_wallet_for_subscription");
+  fail(error);
+  const r: any = Array.isArray(data) ? data[0] : data;
+  return { utilisable: n(r?.utilisable), autorise: Boolean(r?.autorise) };
+}
+
+export async function payWithWallet(planId: number, mois: number): Promise<void> {
+  const { error } = await supabase.rpc("pay_subscription_from_wallet", { p_plan_id: planId, p_mois: mois });
   fail(error);
 }

@@ -17,6 +17,7 @@ import { toLoginEmail } from "./lib/drivers";
 import ActivationScreen from "./components/ActivationScreen";
 import CommercialEspace from "./components/CommercialEspace";
 import WalletChip from "./components/WalletChip";
+import SubscriptionChip from "./components/SubscriptionChip";
 
 import {
   createFreightOffer,
@@ -2682,6 +2683,7 @@ export default function App() {
           {/* Connected state indicators */}
           {currentUser ? (
             <div className="flex items-center gap-2.5">
+              <SubscriptionChip currentUser={currentUser} triggerSystemLog={triggerSystemLog} />
               <WalletChip currentUser={currentUser} triggerSystemLog={triggerSystemLog} />
               {/* Cloche de notifications */}
               <div
