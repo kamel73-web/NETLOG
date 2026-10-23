@@ -45,6 +45,7 @@ export async function loadVehicles(): Promise<MoyenTransport[]> {
     longueurMax: 0,
     wilaya: v.wilaya_base ? String(v.wilaya_base) : undefined,
     disponibilite: v.is_available ? "Disponible" : "Occupé",
+    desactive: Boolean(v.suspendu_abonnement),
   }));
 }
 

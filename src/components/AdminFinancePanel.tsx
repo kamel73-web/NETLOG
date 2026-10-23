@@ -141,7 +141,7 @@ export default function AdminFinancePanel({ triggerSystemLog }: { triggerSystemL
   const editPlan = (p: Plan) =>
     setPlanForm({
       id: p.id, code: p.code, nom: p.nom, description: p.description ?? "", roles: p.roles,
-      prix: String(p.prix_mensuel_ht), maxChauf: p.max_chauffeurs == null ? "" : String(p.max_chauffeurs),
+      prix: String(p.prix_mensuel_ht), maxChauf: p.max_camions == null ? "" : String(p.max_camions),
       actif: p.actif, ordre: String(p.ordre),
       commMode: p.commission_pct == null && p.commission_fixe == null ? "defaut"
         : p.commission_pct != null && p.commission_fixe != null ? "mixte"
@@ -172,7 +172,7 @@ export default function AdminFinancePanel({ triggerSystemLog }: { triggerSystemL
         savePlan({
           id: planForm.id, code: planForm.code.trim(), nom: planForm.nom.trim(),
           description: planForm.description.trim() || null, roles: planForm.roles,
-          prix_mensuel_ht: prix, max_chauffeurs: maxC, actif: planForm.actif, ordre: Number(planForm.ordre) || 0,
+          prix_mensuel_ht: prix, max_camions: maxC, actif: planForm.actif, ordre: Number(planForm.ordre) || 0,
           commission_pct: cPct, commission_fixe: cFixe,
         }),
       "Forfait enregistré.",
@@ -352,7 +352,7 @@ export default function AdminFinancePanel({ triggerSystemLog }: { triggerSystemL
               <div><label className={labelCls}>Code</label><input className={inputCls} value={planForm.code} onChange={(e) => setPlanForm({ ...planForm, code: e.target.value })} /></div>
               <div><label className={labelCls}>Nom</label><input className={inputCls} value={planForm.nom} onChange={(e) => setPlanForm({ ...planForm, nom: e.target.value })} /></div>
               <div><label className={labelCls}>Prix mensuel HT (DA)</label><input className={inputCls} inputMode="decimal" value={planForm.prix} onChange={(e) => setPlanForm({ ...planForm, prix: e.target.value })} /></div>
-              <div><label className={labelCls}>Chauffeurs max (vide = illimité)</label><input className={inputCls} inputMode="numeric" value={planForm.maxChauf} onChange={(e) => setPlanForm({ ...planForm, maxChauf: e.target.value.replace(/\D/g, "") })} /></div>
+              <div><label className={labelCls}>Camions max (vide = illimité)</label><input className={inputCls} inputMode="numeric" value={planForm.maxChauf} onChange={(e) => setPlanForm({ ...planForm, maxChauf: e.target.value.replace(/\D/g, "") })} /></div>
               <div><label className={labelCls}>Ordre d'affichage</label><input className={inputCls} inputMode="numeric" value={planForm.ordre} onChange={(e) => setPlanForm({ ...planForm, ordre: e.target.value.replace(/\D/g, "") })} /></div>
               <div><label className={labelCls}>Description</label><input className={inputCls} value={planForm.description} onChange={(e) => setPlanForm({ ...planForm, description: e.target.value })} /></div>
             </div>
@@ -400,14 +400,14 @@ export default function AdminFinancePanel({ triggerSystemLog }: { triggerSystemL
           </div>
           <div className="bg-white border border-slate-100 rounded-2xl p-4 overflow-x-auto">
             <table className="w-full text-xs text-left">
-              <thead><tr className="text-[10px] uppercase text-slate-400"><th className="p-2">Forfait</th><th className="p-2">Comptes</th><th className="p-2 text-right">HT / mois</th><th className="p-2">Chauffeurs</th><th className="p-2">Commission</th><th className="p-2">État</th><th className="p-2"></th></tr></thead>
+              <thead><tr className="text-[10px] uppercase text-slate-400"><th className="p-2">Forfait</th><th className="p-2">Comptes</th><th className="p-2 text-right">HT / mois</th><th className="p-2">Camions</th><th className="p-2">Commission</th><th className="p-2">État</th><th className="p-2"></th></tr></thead>
               <tbody className="divide-y divide-slate-50">
                 {plans.map((p) => (
                   <tr key={p.id}>
                     <td className="p-2 font-bold">{p.nom} <span className="text-slate-400 font-normal">({p.code})</span></td>
                     <td className="p-2">{p.roles.join(", ")}</td>
                     <td className="p-2 text-right font-mono">{money(p.prix_mensuel_ht)}</td>
-                    <td className="p-2">{p.max_chauffeurs == null ? "illimité" : p.max_chauffeurs}</td><td className="p-2">{commissionLabel(p)}</td>
+                    <td className="p-2">{p.max_camions == null ? "illimité" : p.max_camions}</td><td className="p-2">{commissionLabel(p)}</td>
                     <td className="p-2">{p.actif ? "actif" : "inactif"}</td>
                     <td className="p-2 text-right"><button onClick={() => editPlan(p)} className="px-2 py-1 border border-slate-200 rounded-lg font-bold cursor-pointer">Modifier</button></td>
                   </tr>

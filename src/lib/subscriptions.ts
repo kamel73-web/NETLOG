@@ -7,7 +7,7 @@ export interface Plan {
   description: string | null;
   roles: string[];
   prix_mensuel_ht: number;
-  max_chauffeurs: number | null;
+  max_camions: number | null;
   actif: boolean;
   ordre: number;
   commission_pct: number | null;
@@ -80,7 +80,7 @@ const normPlan = (p: any): Plan => ({
   description: p.description ?? null,
   roles: p.roles ?? [],
   prix_mensuel_ht: n(p.prix_mensuel_ht),
-  max_chauffeurs: p.max_chauffeurs == null ? null : Number(p.max_chauffeurs),
+  max_camions: p.max_camions == null ? null : Number(p.max_camions),
   actif: Boolean(p.actif),
   ordre: n(p.ordre),
   commission_pct: p.commission_pct == null ? null : Number(p.commission_pct),
@@ -128,7 +128,7 @@ export async function savePlan(p: {
   description?: string | null;
   roles: string[];
   prix_mensuel_ht: number;
-  max_chauffeurs: number | null;
+  max_camions: number | null;
   actif: boolean;
   ordre: number;
   commission_pct: number | null;
@@ -140,7 +140,7 @@ export async function savePlan(p: {
     description: p.description ?? null,
     roles: p.roles,
     prix_mensuel_ht: p.prix_mensuel_ht,
-    max_chauffeurs: p.max_chauffeurs,
+    max_camions: p.max_camions,
     actif: p.actif,
     ordre: p.ordre,
     commission_pct: p.commission_pct,
@@ -324,8 +324,10 @@ export interface SubSummary {
   fin: string | null;
   actif: boolean;
   offerte: boolean;
-  max_chauffeurs: number | null;
+  max_camions: number | null;
   chauffeurs_actuels: number;
+  camions_actifs: number;
+  camions_total: number;
 }
 
 export async function loadMySubscription(): Promise<SubSummary | null> {
@@ -347,8 +349,10 @@ export async function loadMySubscription(): Promise<SubSummary | null> {
     fin: r.fin ?? null,
     actif: Boolean(r.actif),
     offerte: Boolean(r.offerte),
-    max_chauffeurs: r.max_chauffeurs == null ? null : Number(r.max_chauffeurs),
+    max_camions: r.max_camions == null ? null : Number(r.max_camions),
     chauffeurs_actuels: n(r.chauffeurs_actuels),
+    camions_actifs: n(r.camions_actifs),
+    camions_total: n(r.camions_total),
   };
 }
 

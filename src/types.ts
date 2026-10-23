@@ -170,6 +170,7 @@ export enum MoyenType {
 }
 
 export interface MoyenTransport {
+  desactive?: boolean; // désactivé par le forfait du transporteur
   id: string;
   transporteurId: string;
   type: MoyenType;

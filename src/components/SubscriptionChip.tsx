@@ -182,8 +182,11 @@ export default function SubscriptionChip({ currentUser, triggerSystemLog }: { cu
                   </div>
                   {currentUser?.profil === ProfileType.Transporteur && (
                     <div>
-                      Chauffeurs : <b>{sub.chauffeurs_actuels}</b> sur{" "}
-                      <b>{sub.max_chauffeurs == null ? "illimité" : sub.max_chauffeurs}</b>
+                      Camions actifs : <b>{sub.camions_actifs}</b> sur{" "}
+                      <b>{sub.max_camions == null ? "illimité" : sub.max_camions}</b>
+                      {sub.camions_total > sub.camions_actifs ? (
+                        <span className="text-amber-700 font-bold"> · {sub.camions_total - sub.camions_actifs} désactivé(s)</span>
+                      ) : null}
                     </div>
                   )}
                 </>
@@ -222,6 +225,9 @@ export default function SubscriptionChip({ currentUser, triggerSystemLog }: { cu
                 {changing && (
                   <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-100 rounded-xl p-2">
                     Changer de forfait prend effet immédiatement : la période restante de votre forfait actuel n'est pas reportée.
+                    {plan && plan.max_camions != null && (sub?.camions_total ?? 0) > plan.max_camions
+                      ? ` ⚠️ Ce forfait autorise ${plan.max_camions} camion(s) : ${(sub?.camions_total ?? 0) - plan.max_camions} camion(s) de votre flotte seront désactivés (les plus récents d'abord).`
+                      : ""}
                   </p>
                 )}
 
