@@ -367,3 +367,18 @@ export async function payWithWallet(planId: number, mois: number): Promise<void>
   const { error } = await supabase.rpc("pay_subscription_from_wallet", { p_plan_id: planId, p_mois: mois });
   fail(error);
 }
+
+export interface VehicleQuota {
+  limite: number;
+  actifs: number;
+  total: number;
+  applicable: boolean;
+}
+
+export async function loadVehicleQuota(): Promise<VehicleQuota | null> {
+  const { data, error } = await supabase.rpc("my_vehicle_quota");
+  fail(error);
+  const r: any = Array.isArray(data) ? data[0] : data;
+  if (!r) return null;
+  return { limite: n(r.limite), actifs: n(r.actifs), total: n(r.total), applicable: Boolean(r.applicable) };
+}

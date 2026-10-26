@@ -1511,7 +1511,7 @@ export default function App() {
     if (!currentUser || !selectedOffreForBid) return;
 
     // FLOTTE : le transporteur doit disposer d'au moins un véhicule
-    const myFlotte = moyens.filter((m) => m.transporteurId === currentUser.id);
+    const myFlotte = moyens.filter((m) => m.transporteurId === currentUser.id && !m.desactive);
 
     if (myFlotte.length === 0) {
       setCompatibilityError(
@@ -8110,7 +8110,7 @@ export default function App() {
                     >
                       <option value="">-- Sélectionner un camion --</option>
                       {moyens
-                        .filter((m) => m.transporteurId === currentUser?.id)
+                        .filter((m) => m.transporteurId === currentUser?.id && !m.desactive)
                         .map((m) => (
                           <option key={m.id} value={m.id}>
                             🚚 {m.marque} - [ {m.immatriculation} ] (

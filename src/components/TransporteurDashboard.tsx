@@ -30,7 +30,8 @@ import {
   FactureStatus,
   ReglementMode,
 } from "../types";
-import { createVehicle } from "../lib/freightOffers";
+import { createVehicle, updateVehicle } from "../lib/freightOffers";
+import { loadVehicleQuota, type VehicleQuota } from "../lib/subscriptions";
 import { loadFreightOffers, loadProfiles } from "../lib/dataLoader";
 import { createDriver } from "../lib/drivers";
 import { loadMyInvoices, loadBillableMissions, invoiceDisplayStatus, type Invoice } from "../lib/billing";
@@ -280,6 +281,27 @@ export default function TransporteurDashboard({
   // Chiffres du tableau de bord lus en base (factures et missions à facturer)
   const [dashInvoices, setDashInvoices] = useState<Invoice[]>([]);
   const [toBillCount, setToBillCount] = useState(0);
+
+  // Limite de camions du forfait
+  const [quota, setQuota] = useState<VehicleQuota | null>(null);
+  useEffect(() => {
+    let alive = true;
+    loadVehicleQuota()
+      .then((q) => {
+        if (alive) setQuota(q);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [subTab, moyens.length]);
+  const atLimit = Boolean(quota && quota.applicable && quota.actifs >= quota.limite);
+  const quotaLabel =
+    quota && quota.applicable
+      ? `${quota.actifs} camion(s) actif(s) sur ${quota.limite >= 1000000 ? "illimité" : quota.limite}${
+          quota.total > quota.actifs ? ` · ${quota.total - quota.actifs} désactivé(s)` : ""
+        }`
+      : "";
   useEffect(() => {
     let alive = true;
     Promise.all([loadMyInvoices(), loadBillableMissions()])
@@ -312,10 +334,11 @@ export default function TransporteurDashboard({
   );
 
   // Offers compatibility counts
-  const myCamionsTypes = myCamions.map((c) => c.type);
+  const myActiveCamions = myCamions.filter((m: any) => !m.desactive);
+  const myCamionsTypes = myActiveCamions.map((c) => c.type);
   const compatibleOffres = offres.filter((o) => {
     if (o.status !== OffreStatus.Publie) return false;
-    return myCamions.some(
+    return myActiveCamions.some(
       (m) => m.type === o.moyenExige && m.poidsUtileMax >= o.poids,
     );
   });
@@ -364,6 +387,25 @@ export default function TransporteurDashboard({
     };
 
     if (editingId) {
+      try {
+        await updateVehicle(Number(editingId), {
+          type: String(formMoyenType),
+          immatriculation: formPlate,
+          capaciteKg: Number(formWeight) * 1000,
+          isAvailable: formStatus === "Disponible",
+          marque: formBrand,
+          modele: formModel,
+          longueurM: Number(formLen),
+          largeurM: Number(formWidth),
+          hauteurM: Number(formHeight),
+          equipements: formEquipements,
+          assuranceValideDate: formInsDate,
+          controleTechniqueDate: formTechDate,
+        });
+      } catch (err: any) {
+        triggerSystemLog(`Échec modification camion : ${err?.message ?? "erreur"}`, "danger");
+        return;
+      }
       const updated = moyens.map((m) => {
         if (m.id === editingId) {
           return { ...m, ...newMoyenData };
@@ -379,6 +421,14 @@ export default function TransporteurDashboard({
           immatriculation: formPlate,
           capaciteKg: Number(formWeight) * 1000,
           isAvailable: formStatus === "Disponible",
+          marque: formBrand,
+          modele: formModel,
+          longueurM: Number(formLen),
+          largeurM: Number(formWidth),
+          hauteurM: Number(formHeight),
+          equipements: formEquipements,
+          assuranceValideDate: formInsDate,
+          controleTechniqueDate: formTechDate,
         });
         const addedMoyen = {
           id: String(inserted.id),
@@ -815,9 +865,12 @@ export default function TransporteurDashboard({
               <p className="text-[11px] text-slate-500">
                 Ajoutez, modifiez et configurez vos camions
               </p>
+              {quotaLabel && <p className="text-[11px] font-bold text-amber-700">{quotaLabel}</p>}
             </div>
             {!showForm && (
               <button
+                disabled={atLimit}
+                title={atLimit ? "Limite de camions de votre forfait atteinte" : undefined}
                 onClick={() => {
                   setEditingId(null);
                   setFormModel("");
@@ -825,7 +878,7 @@ export default function TransporteurDashboard({
                   setFormWeight(30);
                   setShowForm(true);
                 }}
-                className="bg-[#1D9E75] text-white hover:bg-[#157B5B] hover:scale-[1.02] active:scale-[0.98] transition-all rounded-xl px-4 py-2 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                className="bg-[#1D9E75] text-white hover:bg-[#157B5B] hover:scale-[1.02] active:scale-[0.98] transition-all rounded-xl px-4 py-2 text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Plus className="w-4 h-4" /> + Ajouter un camion
               </button>
@@ -1281,7 +1334,7 @@ export default function TransporteurDashboard({
                 return (
                   <div
                     key={m.id}
-                    className="bg-white border border-gray-100 rounded-3xl p-5 hover:shadow-lg hover:border-[#1D9E75]/20 transition-all relative overflow-hidden flex flex-col justify-between"
+                    className={`bg-white border border-gray-100 rounded-3xl p-5 hover:shadow-lg hover:border-[#1D9E75]/20 transition-all relative overflow-hidden flex flex-col justify-between ${m.desactive ? "opacity-60 grayscale" : ""}`}
                   >
                     <div>
                       <div className="flex justify-between items-start mb-4">
@@ -1291,7 +1344,7 @@ export default function TransporteurDashboard({
                         <span
                           className={`px-2.5 py-1 text-[10px] font-extrabold uppercase rounded-full border ${statusColor}`}
                         >
-                          ● {m.disponibilite || "Disponible"}
+                          {m.desactive ? "🔒 Désactivé par votre forfait" : `● ${m.disponibilite || "Disponible"}`}
                         </span>
                       </div>
 
@@ -1344,7 +1397,8 @@ export default function TransporteurDashboard({
                       </button>
                       <button
                         onClick={(e) => handleCycleStatus(m.id, e)}
-                        className="px-3 py-1.5 border border-slate-150 rounded-lg text-emerald-600 hover:bg-slate-50 font-bold cursor-pointer"
+                        disabled={m.desactive}
+                        className="px-3 py-1.5 border border-slate-150 rounded-lg text-emerald-600 hover:bg-slate-50 font-bold cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         🔄 Changer statut
                       </button>
@@ -1556,7 +1610,7 @@ export default function TransporteurDashboard({
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {offres.map((offre: any) => {
-                  const isCompatible = myCamions.some(
+                  const isCompatible = myActiveCamions.some(
                     (m) =>
                       m.type === offre.moyenExige &&
                       m.poidsUtileMax >= offre.poids,

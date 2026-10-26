@@ -133,6 +133,14 @@ export async function listOpenOffers(filters?: { wilayaDepart?: number }) {
 }
 
 export interface CreateVehicleInput {
+  marque?: string;
+  modele?: string;
+  longueurM?: number;
+  largeurM?: number;
+  hauteurM?: number;
+  equipements?: Record<string, unknown>;
+  assuranceValideDate?: string;
+  controleTechniqueDate?: string;
   type: string;
   immatriculation: string;
   capaciteKg?: number;
@@ -165,6 +173,14 @@ export async function createVehicle(input: CreateVehicleInput) {
     capacite_kg: input.capaciteKg,
     wilaya_base: input.wilayaBase,
     is_available: input.isAvailable ?? true,
+    marque: input.marque ?? null,
+    modele: input.modele ?? null,
+    longueur_m: input.longueurM ?? null,
+    largeur_m: input.largeurM ?? null,
+    hauteur_m: input.hauteurM ?? null,
+    equipements: input.equipements ?? {},
+    assurance_valide_date: input.assuranceValideDate || null,
+    controle_technique_date: input.controleTechniqueDate || null,
   };
 
   console.log("[NETLOG] INSERT vehicles", payload);
@@ -340,3 +356,26 @@ export async function confirmDelivery(params: {
 
     return data;
   }
+
+export async function updateVehicle(id: number, input: CreateVehicleInput): Promise<void> {
+  const { data, error } = await supabase
+    .from("vehicles")
+    .update({
+      type: input.type,
+      immatriculation: input.immatriculation,
+      capacite_kg: input.capaciteKg,
+      is_available: input.isAvailable ?? true,
+      marque: input.marque ?? null,
+      modele: input.modele ?? null,
+      longueur_m: input.longueurM ?? null,
+      largeur_m: input.largeurM ?? null,
+      hauteur_m: input.hauteurM ?? null,
+      equipements: input.equipements ?? {},
+      assurance_valide_date: input.assuranceValideDate || null,
+      controle_technique_date: input.controleTechniqueDate || null,
+    })
+    .eq("id", id)
+    .select("id");
+  if (error) throw new Error(error.message);
+  if (!data || data.length === 0) throw new Error("Camion introuvable ou modification refusée.");
+}
