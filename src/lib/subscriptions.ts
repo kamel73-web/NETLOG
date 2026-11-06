@@ -12,6 +12,8 @@ export interface Plan {
   ordre: number;
   commission_pct: number | null;
   commission_fixe: number | null;
+  permet_transporteurs_affilies: boolean;
+  max_transporteurs_affilies: number | null;
 }
 export type PayMode = "virement" | "ccp" | "baridimob" | "cib" | "versement_especes" | "portefeuille";
 export interface SubPayment {
@@ -85,6 +87,8 @@ const normPlan = (p: any): Plan => ({
   ordre: n(p.ordre),
   commission_pct: p.commission_pct == null ? null : Number(p.commission_pct),
   commission_fixe: p.commission_fixe == null ? null : Number(p.commission_fixe),
+  permet_transporteurs_affilies: Boolean(p.permet_transporteurs_affilies),
+  max_transporteurs_affilies: p.max_transporteurs_affilies == null ? null : Number(p.max_transporteurs_affilies),
 });
 const normPayment = (p: any): SubPayment => ({
   id: Number(p.id),
@@ -133,6 +137,8 @@ export async function savePlan(p: {
   ordre: number;
   commission_pct: number | null;
   commission_fixe: number | null;
+  permet_transporteurs_affilies: boolean;
+  max_transporteurs_affilies: number | null;
 }): Promise<void> {
   const row = {
     code: p.code,
@@ -145,6 +151,8 @@ export async function savePlan(p: {
     ordre: p.ordre,
     commission_pct: p.commission_pct,
     commission_fixe: p.commission_fixe,
+    permet_transporteurs_affilies: p.permet_transporteurs_affilies,
+    max_transporteurs_affilies: p.permet_transporteurs_affilies ? p.max_transporteurs_affilies : null,
   };
   const { error } = p.id
     ? await supabase.from("subscription_plans").update(row).eq("id", p.id)

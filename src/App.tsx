@@ -18,6 +18,7 @@ import ActivationScreen from "./components/ActivationScreen";
 import CommercialEspace from "./components/CommercialEspace";
 import WalletChip from "./components/WalletChip";
 import SubscriptionChip from "./components/SubscriptionChip";
+import AffiliationChip from "./components/AffiliationChip";
 
 import {
   createFreightOffer,
@@ -1057,7 +1058,7 @@ export default function App() {
     }
 
     // Route to dashboard
-    if (user.profil === ProfileType.DonneurOrdre) {
+    if (user.profil === ProfileType.DonneurOrdre || user.profil === ProfileType.Commissionnaire) {
       setCurrentTab("donneur");
     } else if (user.profil === ProfileType.Transporteur) {
       setCurrentTab("transporteur");
@@ -2526,7 +2527,7 @@ export default function App() {
         console.error("Chargement après activation:", err);
       }
       setCurrentTab(
-        fresh.profil === ProfileType.DonneurOrdre ? "donneur"
+        (fresh.profil === ProfileType.DonneurOrdre || fresh.profil === ProfileType.Commissionnaire) ? "donneur"
         : fresh.profil === ProfileType.Transporteur ? "transporteur"
         : fresh.profil === ProfileType.Chauffeur ? "chauffeur"
         : fresh.profil === ProfileType.Commercial ? "commercial"
@@ -2683,6 +2684,7 @@ export default function App() {
           {/* Connected state indicators */}
           {currentUser ? (
             <div className="flex items-center gap-2.5">
+              <AffiliationChip currentUser={currentUser} triggerSystemLog={triggerSystemLog} />
               <SubscriptionChip currentUser={currentUser} triggerSystemLog={triggerSystemLog} />
               <WalletChip currentUser={currentUser} triggerSystemLog={triggerSystemLog} />
               {/* Cloche de notifications */}
@@ -2727,7 +2729,7 @@ export default function App() {
                   <div className="flex items-center gap-2 border-l pl-2.5">
                     <button
                       onClick={() => {
-                        if (currentUser.profil === ProfileType.DonneurOrdre) {
+                        if (currentUser.profil === ProfileType.DonneurOrdre || currentUser.profil === ProfileType.Commissionnaire) {
                           setCurrentTab("donneur");
                         } else if (
                           currentUser.profil === ProfileType.Transporteur
@@ -4867,8 +4869,7 @@ export default function App() {
             )}
             {/* ESPACE DONNEUR D'ORDRE */}
             {/* ESPACE DONNEUR D'ORDRE */}
-            {currentTab === "donneur" &&
-              currentUser?.profil === ProfileType.DonneurOrdre && (
+            {currentTab === "donneur" && (currentUser?.profil === ProfileType.DonneurOrdre || currentUser?.profil === ProfileType.Commissionnaire) && (
                 <DonneurDashboard
                 missions={missions}
                 setMissions={setMissions}
@@ -8319,7 +8320,7 @@ export default function App() {
             if (!currentUser) {
               setCurrentTab("login_portal");
               triggerSystemLog("Identifiez-vous d'abord !", "info");
-            } else if (currentUser.profil === ProfileType.DonneurOrdre) {
+            } else if (currentUser.profil === ProfileType.DonneurOrdre || currentUser.profil === ProfileType.Commissionnaire) {
               setCurrentTab("donneur");
               triggerSystemLog("Espace Donneur d'Ordre", "info");
             } else if (currentUser.profil === ProfileType.Transporteur) {

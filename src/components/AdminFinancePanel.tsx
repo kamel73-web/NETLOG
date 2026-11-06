@@ -36,10 +36,12 @@ type PlanForm = {
   id?: number; code: string; nom: string; description: string; roles: string[];
   prix: string; maxChauf: string; actif: boolean; ordre: string;
   commMode: "defaut" | "pct" | "fixe" | "mixte"; commPct: string; commFixe: string;
+  affilies: boolean; maxAffilies: string;
 };
 const EMPTY_PLAN: PlanForm = {
   code: "", nom: "", description: "", roles: [], prix: "0", maxChauf: "", actif: true, ordre: "0",
   commMode: "defaut", commPct: "", commFixe: "",
+  affilies: false, maxAffilies: "",
 };
 const SETTING_GROUPS: [string, string][] = [
   ["wallet_", "Portefeuille"],
@@ -148,6 +150,8 @@ export default function AdminFinancePanel({ triggerSystemLog }: { triggerSystemL
         : p.commission_pct != null ? "pct" : "fixe",
       commPct: p.commission_pct == null ? "" : String(p.commission_pct),
       commFixe: p.commission_fixe == null ? "" : String(p.commission_fixe),
+      affilies: p.permet_transporteurs_affilies,
+      maxAffilies: p.max_transporteurs_affilies == null ? "" : String(p.max_transporteurs_affilies),
     });
 
   const submitPlan = async () => {
@@ -157,6 +161,8 @@ export default function AdminFinancePanel({ triggerSystemLog }: { triggerSystemL
     if (!Number.isFinite(prix) || prix < 0) return log("Prix invalide.", "warning");
     if (maxC != null && (!Number.isInteger(maxC) || maxC < 0)) return log("Limite de chauffeurs invalide.", "warning");
     if (planForm.roles.length === 0) return log("Choisissez au moins un type de compte.", "warning");
+    const maxA = planForm.maxAffilies.trim() === "" ? null : Number(planForm.maxAffilies);
+    if (planForm.affilies && maxA != null && (!Number.isInteger(maxA) || maxA < 0)) return log("Nombre de transporteurs affiliés invalide.", "warning");
     let cPct: number | null = null;
     let cFixe: number | null = null;
     if (planForm.commMode === "pct" || planForm.commMode === "mixte") {
@@ -174,6 +180,7 @@ export default function AdminFinancePanel({ triggerSystemLog }: { triggerSystemL
           description: planForm.description.trim() || null, roles: planForm.roles,
           prix_mensuel_ht: prix, max_camions: maxC, actif: planForm.actif, ordre: Number(planForm.ordre) || 0,
           commission_pct: cPct, commission_fixe: cFixe,
+          permet_transporteurs_affilies: planForm.affilies, max_transporteurs_affilies: maxA,
         }),
       "Forfait enregistré.",
     );
@@ -382,6 +389,22 @@ export default function AdminFinancePanel({ triggerSystemLog }: { triggerSystemL
                 </div>
               )}
             </div>
+            {(planForm.roles.includes("donneur_ordre") || planForm.roles.includes("commissionnaire")) && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <input type="checkbox" checked={planForm.affilies}
+                    onChange={(e) => setPlanForm({ ...planForm, affilies: e.target.checked })} />
+                  Transporteurs affiliés et offres réservées
+                </label>
+                {planForm.affilies && (
+                  <div>
+                    <label className={labelCls}>Transporteurs affiliés max (vide = illimité)</label>
+                    <input className={inputCls} inputMode="numeric" value={planForm.maxAffilies}
+                      onChange={(e) => setPlanForm({ ...planForm, maxAffilies: e.target.value.replace(/\D/g, "") })} />
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex flex-wrap gap-3 text-xs">
               {ROLES.map((r) => (
                 <label key={r} className="flex items-center gap-1 cursor-pointer">
@@ -400,19 +423,19 @@ export default function AdminFinancePanel({ triggerSystemLog }: { triggerSystemL
           </div>
           <div className="bg-white border border-slate-100 rounded-2xl p-4 overflow-x-auto">
             <table className="w-full text-xs text-left">
-              <thead><tr className="text-[10px] uppercase text-slate-400"><th className="p-2">Forfait</th><th className="p-2">Comptes</th><th className="p-2 text-right">HT / mois</th><th className="p-2">Camions</th><th className="p-2">Commission</th><th className="p-2">État</th><th className="p-2"></th></tr></thead>
+              <thead><tr className="text-[10px] uppercase text-slate-400"><th className="p-2">Forfait</th><th className="p-2">Comptes</th><th className="p-2 text-right">HT / mois</th><th className="p-2">Camions</th><th className="p-2">Commission</th><th className="p-2">Affiliés</th><th className="p-2">État</th><th className="p-2"></th></tr></thead>
               <tbody className="divide-y divide-slate-50">
                 {plans.map((p) => (
                   <tr key={p.id}>
                     <td className="p-2 font-bold">{p.nom} <span className="text-slate-400 font-normal">({p.code})</span></td>
                     <td className="p-2">{p.roles.join(", ")}</td>
                     <td className="p-2 text-right font-mono">{money(p.prix_mensuel_ht)}</td>
-                    <td className="p-2">{p.max_camions == null ? "illimité" : p.max_camions}</td><td className="p-2">{commissionLabel(p)}</td>
+                    <td className="p-2">{p.max_camions == null ? "illimité" : p.max_camions}</td><td className="p-2">{commissionLabel(p)}</td><td className="p-2">{p.permet_transporteurs_affilies ? (p.max_transporteurs_affilies == null ? "illimité" : p.max_transporteurs_affilies) : "—"}</td>
                     <td className="p-2">{p.actif ? "actif" : "inactif"}</td>
                     <td className="p-2 text-right"><button onClick={() => editPlan(p)} className="px-2 py-1 border border-slate-200 rounded-lg font-bold cursor-pointer">Modifier</button></td>
                   </tr>
                 ))}
-                {plans.length === 0 && <tr><td className="p-2 text-slate-500" colSpan={7}>Aucun forfait.</td></tr>}
+                {plans.length === 0 && <tr><td className="p-2 text-slate-500" colSpan={8}>Aucun forfait.</td></tr>}
               </tbody>
             </table>
           </div>

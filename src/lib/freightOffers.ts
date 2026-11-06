@@ -2,6 +2,7 @@ import { supabase } from "./supabase";
 import { createMissionFromProposal } from "./missions";
 
 export interface CreateFreightOfferInput {
+  visibility?: "public" | "restricted";
   wilayaDepart: number;
   communeDepartId?: number;
   pointRepereDepart?: string;
@@ -70,6 +71,7 @@ export async function createFreightOffer(input: CreateFreightOfferInput) {
     date_enlevement_souhaitee: input.dateEnlevementSouhaitee,
     type_moyen_exige: input.typeMoyenExige,
     nombre_voyages: input.nombreVoyages,
+    visibility: input.visibility ?? "public",
   };
 
   console.log("[NETLOG] INSERT freight_offers", payload);
