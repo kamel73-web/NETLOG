@@ -18,6 +18,7 @@ import ActivationScreen from "./components/ActivationScreen";
 import CommercialEspace from "./components/CommercialEspace";
 import WalletChip from "./components/WalletChip";
 import SubscriptionChip from "./components/SubscriptionChip";
+import FleetChip from "./components/FleetChip";
 import AffiliationChip from "./components/AffiliationChip";
 
 import {
@@ -2685,6 +2686,7 @@ export default function App() {
           {currentUser ? (
             <div className="flex items-center gap-2.5">
               <AffiliationChip currentUser={currentUser} triggerSystemLog={triggerSystemLog} />
+              <FleetChip currentUser={currentUser} triggerSystemLog={triggerSystemLog} />
               <SubscriptionChip currentUser={currentUser} triggerSystemLog={triggerSystemLog} />
               <WalletChip currentUser={currentUser} triggerSystemLog={triggerSystemLog} />
               {/* Cloche de notifications */}

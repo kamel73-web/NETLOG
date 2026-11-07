@@ -40,8 +40,12 @@ Deno.serve(async (req) => {
 
   const admin = createClient(url, service);
   const { data: me } = await admin.from("profiles").select("role,status").eq("id", user.id).single();
-  if (!me || me.role !== "transporteur" || me.status !== "valide") {
-    return json({ error: "Réservé aux transporteurs validés." }, 403);
+  if (!me || me.status !== "valide") {
+    return json({ error: "Compte non validé." }, 403);
+  }
+  const { data: allowed } = await admin.rpc("can_use_own_fleet", { p_uid: user.id });
+  if (!allowed) {
+    return json({ error: "Votre forfait ne comprend pas l'option « flotte propre » (camions et chauffeurs)." }, 403);
   }
 
   // 2. Données saisies
@@ -64,7 +68,7 @@ Deno.serve(async (req) => {
   const q = Array.isArray(quota) ? quota[0] : quota;
   if (qErr || !q) return json({ error: "Impossible de vérifier la limite de chauffeurs de votre abonnement." }, 500);
   if (Number(q.actuels) >= Number(q.limite)) {
-    return json({ error: `Limite de chauffeurs atteinte (${q.limite}). Passez à un forfait supérieur pour en ajouter.` }, 400);
+    return json({ error: `Limite de sécurité de chauffeurs atteinte (${q.limite}). Contactez NETLOG.` }, 400);
   }
 
   // 4. Création du compte

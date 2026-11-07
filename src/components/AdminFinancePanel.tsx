@@ -36,12 +36,12 @@ type PlanForm = {
   id?: number; code: string; nom: string; description: string; roles: string[];
   prix: string; maxChauf: string; actif: boolean; ordre: string;
   commMode: "defaut" | "pct" | "fixe" | "mixte"; commPct: string; commFixe: string;
-  affilies: boolean; maxAffilies: string;
+  affilies: boolean; maxAffilies: string; flotte: boolean;
 };
 const EMPTY_PLAN: PlanForm = {
   code: "", nom: "", description: "", roles: [], prix: "0", maxChauf: "", actif: true, ordre: "0",
   commMode: "defaut", commPct: "", commFixe: "",
-  affilies: false, maxAffilies: "",
+  affilies: false, maxAffilies: "", flotte: false,
 };
 const SETTING_GROUPS: [string, string][] = [
   ["wallet_", "Portefeuille"],
@@ -151,6 +151,7 @@ export default function AdminFinancePanel({ triggerSystemLog }: { triggerSystemL
       commPct: p.commission_pct == null ? "" : String(p.commission_pct),
       commFixe: p.commission_fixe == null ? "" : String(p.commission_fixe),
       affilies: p.permet_transporteurs_affilies,
+      flotte: p.permet_flotte_propre,
       maxAffilies: p.max_transporteurs_affilies == null ? "" : String(p.max_transporteurs_affilies),
     });
 
@@ -180,7 +181,7 @@ export default function AdminFinancePanel({ triggerSystemLog }: { triggerSystemL
           description: planForm.description.trim() || null, roles: planForm.roles,
           prix_mensuel_ht: prix, max_camions: maxC, actif: planForm.actif, ordre: Number(planForm.ordre) || 0,
           commission_pct: cPct, commission_fixe: cFixe,
-          permet_transporteurs_affilies: planForm.affilies, max_transporteurs_affilies: maxA,
+          permet_transporteurs_affilies: planForm.affilies, max_transporteurs_affilies: maxA, permet_flotte_propre: planForm.flotte,
         }),
       "Forfait enregistré.",
     );
@@ -395,6 +396,11 @@ export default function AdminFinancePanel({ triggerSystemLog }: { triggerSystemL
                   <input type="checkbox" checked={planForm.affilies}
                     onChange={(e) => setPlanForm({ ...planForm, affilies: e.target.checked })} />
                   Transporteurs affiliés et offres réservées
+                </label>
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <input type="checkbox" checked={planForm.flotte}
+                    onChange={(e) => setPlanForm({ ...planForm, flotte: e.target.checked })} />
+                  Flotte propre (camions et chauffeurs)
                 </label>
                 {planForm.affilies && (
                   <div>
