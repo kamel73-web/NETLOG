@@ -9,6 +9,7 @@ import type {
   OffreFret,
   PropositionPrix,
   Facture,
+  OfferAudience,
 } from "../types";
 import { MoyenType, OffreStatus, FactureStatus } from "../types";
 
@@ -69,6 +70,7 @@ async function loadFreightOffersRaw(): Promise<OffreFret[]> {
   }
   return (data as any[]).map((o) => ({
     id: String(o.id),
+    audience: (o.audience ?? "public") as OfferAudience,
     donneurId: o.donneur_ordre_id,
     donneurRaisonSociale: "",
     depart: o.wilaya_depart_data?.name ?? String(o.wilaya_depart),

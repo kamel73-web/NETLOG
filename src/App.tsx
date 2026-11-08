@@ -20,6 +20,14 @@ import WalletChip from "./components/WalletChip";
 import SubscriptionChip from "./components/SubscriptionChip";
 import FleetChip from "./components/FleetChip";
 import AffiliationChip from "./components/AffiliationChip";
+import OfferAudienceSelector from "./components/OfferAudienceSelector";
+import { loadMyAffiliates, loadAffiliateQuota, type Affiliate, type AffiliateQuota } from "./lib/affiliates";
+import { loadFleetAccess, type FleetAccess } from "./lib/fleet";
+import {
+  audienceUsesAffiliates,
+  audienceUsesFleet,
+  type OfferAudience,
+} from "./lib/offerAudience";
 
 import {
   createFreightOffer,
@@ -433,6 +441,31 @@ export default function App() {
   );
   const [pubPrix, setPubPrix] = useState<number>(85000);
   const [pubCommentaire, setPubCommentaire] = useState("");
+  const [pubAudience, setPubAudience] = useState<OfferAudience>("public");
+  const [pubAffiliateCarrierIds, setPubAffiliateCarrierIds] = useState<string[]>([]);
+  const [pubAffiliates, setPubAffiliates] = useState<Affiliate[]>([]);
+  const [pubAffiliateQuota, setPubAffiliateQuota] = useState<AffiliateQuota | null>(null);
+  const [pubFleetAccess, setPubFleetAccess] = useState<FleetAccess | null>(null);
+
+  useEffect(() => {
+    if (currentTab !== "publier" || currentUser?.profil !== ProfileType.DonneurOrdre) return;
+    let alive = true;
+    Promise.all([loadMyAffiliates(), loadAffiliateQuota(), loadFleetAccess()])
+      .then(([affiliates, affiliateQuota, fleetAccess]) => {
+        if (!alive) return;
+        const accepted = affiliates.filter((affiliate) => affiliate.statut === "accepte");
+        setPubAffiliates(accepted);
+        setPubAffiliateCarrierIds((selected) =>
+          selected.filter((id) => accepted.some((affiliate) => affiliate.carrier_id === id)),
+        );
+        setPubAffiliateQuota(affiliateQuota);
+        setPubFleetAccess(fleetAccess);
+      })
+      .catch((error) => console.error("Chargement des options de diffusion:", error));
+    return () => {
+      alive = false;
+    };
+  }, [currentTab, currentUser?.id, currentUser?.profil]);
 
   // Filtres Bourse accueil
   const [filterDepart, setFilterDepart] = useState("Tous");
@@ -5465,6 +5498,26 @@ export default function App() {
                     return;
                   }
 
+                  if (audienceUsesFleet(pubAudience) && !pubFleetAccess?.autorise) {
+                    triggerSystemLog("L'option « flotte propre » n'est pas autorisée pour votre compte.", "danger");
+                    return;
+                  }
+                  if (audienceUsesAffiliates(pubAudience)) {
+                    if (!pubAffiliateQuota?.autorise) {
+                      triggerSystemLog("L'option « transporteurs affiliés » n'est pas autorisée pour votre compte.", "danger");
+                      return;
+                    }
+                    if (pubAffiliateCarrierIds.length === 0) {
+                      triggerSystemLog("Choisissez au moins un transporteur affilié accepté.", "info");
+                      return;
+                    }
+                    const acceptedIds = new Set(pubAffiliates.map((affiliate) => affiliate.carrier_id));
+                    if (pubAffiliateCarrierIds.some((id) => !acceptedIds.has(id))) {
+                      triggerSystemLog("La liste des affiliés a changé. Rechargez les destinataires avant de publier.", "danger");
+                      return;
+                    }
+                  }
+
                   const wilayaDepartObj = WILAYAS.find(
                     (w) => w.fr === pubDepart,
                   );
@@ -5490,6 +5543,10 @@ export default function App() {
                       poidsKg: pubPoids ? Number(pubPoids) * 1000 : undefined,
                       typeMarchandise: pubMarchandise || undefined,
                       prixPropose: pubPrix ? Number(pubPrix) : 0,
+                      audience: pubAudience,
+                      affiliateCarrierIds: audienceUsesAffiliates(pubAudience)
+                        ? pubAffiliateCarrierIds
+                        : [],
                       paymentMethod: "cash",
                       dateEnlevementSouhaitee: new Date(
                         Date.now() + 86400000 * 3,
@@ -5545,6 +5602,8 @@ export default function App() {
                     `Offre ${insertedId} publiée sur la bourse (${pubDepart} ➔ ${pubArrivee}).`,
                     "success",
                   );
+                  setPubAudience("public");
+                  setPubAffiliateCarrierIds([]);
                   setCurrentTab("accueil");
                 };
 
@@ -5785,6 +5844,16 @@ export default function App() {
                                     placeholder="Bâchage régulier requis, chauffeur obligatoirement muni de gants et de chaussures de sécurité de chantier..."
                                   />
                                 </div>
+
+                                <OfferAudienceSelector
+                                  audience={pubAudience}
+                                  onAudienceChange={setPubAudience}
+                                  affiliates={pubAffiliates}
+                                  selectedAffiliateIds={pubAffiliateCarrierIds}
+                                  onSelectedAffiliateIdsChange={setPubAffiliateCarrierIds}
+                                  fleetEnabled={pubFleetAccess ? pubFleetAccess.autorise : null}
+                                  affiliatesEnabled={pubAffiliateQuota ? pubAffiliateQuota.autorise : null}
+                                />
 
                                 {/* Certify regulations */}
                                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100/60 text-[10px] text-slate-500 leading-relaxed font-semibold">

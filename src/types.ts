@@ -155,6 +155,12 @@ export enum OffreStatus {
   Annule = "Annulé",
 }
 
+export type OfferAudience =
+  | "public"
+  | "own_fleet"
+  | "affiliates"
+  | "own_fleet_and_affiliates";
+
 export enum MoyenType {
   VUL = "VUL",
   Tracteur = "Tracteur",
@@ -197,6 +203,7 @@ export interface MoyenTransport {
 
 export interface OffreFret {
   id: string;
+  audience?: OfferAudience;
   donneurId: string;
   donneurRaisonSociale: string;
   depart: string; // Ex: Alger, Oran

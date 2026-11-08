@@ -1,8 +1,10 @@
 import { supabase } from "./supabase";
 import { createMissionFromProposal } from "./missions";
+import type { OfferAudience } from "./offerAudience";
 
 export interface CreateFreightOfferInput {
-  visibility?: "public" | "restricted";
+  audience?: OfferAudience;
+  affiliateCarrierIds?: string[];
   wilayaDepart: number;
   communeDepartId?: number;
   pointRepereDepart?: string;
@@ -24,18 +26,10 @@ export interface CreateFreightOfferInput {
 }
 
 export async function createFreightOffer(input: CreateFreightOfferInput) {
-  console.log("[NETLOG] createFreightOffer() appelé", input);
-
   const {
     data: { session },
     error: sessionError,
   } = await supabase.auth.getSession();
-
-  console.log("[NETLOG] Session Supabase", {
-    hasSession: !!session,
-    userId: session?.user?.id ?? null,
-    sessionError: sessionError?.message ?? null,
-  });
 
   if (sessionError) {
     throw new Error(
@@ -51,6 +45,7 @@ export async function createFreightOffer(input: CreateFreightOfferInput) {
     );
   }
 
+  const audience = input.audience ?? "public";
   const payload = {
     donneur_ordre_id: userId,
     wilaya_depart: input.wilayaDepart,
@@ -71,41 +66,21 @@ export async function createFreightOffer(input: CreateFreightOfferInput) {
     date_enlevement_souhaitee: input.dateEnlevementSouhaitee,
     type_moyen_exige: input.typeMoyenExige,
     nombre_voyages: input.nombreVoyages,
-    visibility: input.visibility ?? "public",
+    visibility: audience === "public" ? "public" : "restricted",
   };
 
-  console.log("[NETLOG] INSERT freight_offers", payload);
-
-  const { data, error } = await supabase
-    .from("freight_offers")
-    .insert(payload)
-    .select()
-    .single();
-
-  console.log("[NETLOG] Résultat INSERT freight_offers", {
-    data,
-    error: error
-      ? {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-        }
-      : null,
+  const { data, error } = await supabase.rpc("publish_freight_offer", {
+    p_offer: payload,
+    p_audience: audience,
+    p_carrier_ids: input.affiliateCarrierIds ?? [],
   });
 
   if (error) {
-    throw new Error(
-      `Création offre échouée : ${error.message}${
-        error.details ? ` — ${error.details}` : ""
-      }`,
-    );
+    throw new Error(`Création offre échouée : ${error.message}`);
   }
 
   if (!data) {
-    throw new Error(
-      "Création offre échouée : Supabase n'a retourné aucune donnée.",
-    );
+    throw new Error("Création offre échouée : Supabase n'a retourné aucune donnée.");
   }
 
   return data;

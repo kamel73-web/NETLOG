@@ -96,6 +96,11 @@ export default function ChauffeurDashboard({
   const assignedMissions = offres.filter(
     (o) => o.chauffeurId === currentUser.id && o.status !== OffreStatus.Publie,
   );
+  const ownFleetOffers = offres.filter(
+    (offer) =>
+      (offer.audience === "own_fleet" || offer.audience === "own_fleet_and_affiliates") &&
+      offer.status === OffreStatus.Publie,
+  );
 
   // Handle Driver Availability & Position save
   const handleSaveDriverStatus = (e: React.FormEvent) => {
@@ -374,6 +379,40 @@ export default function ChauffeurDashboard({
                 : "Mise à jour en temps réel"}
             </span>
           </div>
+
+          {ownFleetOffers.length > 0 && (
+            <section className="space-y-3">
+              <div>
+                <h3 className="font-extrabold text-slate-900 dark:text-slate-100 text-sm">
+                  Offres réservées à ma flotte
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Ces offres sont partagées par votre responsable de flotte.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {ownFleetOffers.map((offer) => (
+                  <article
+                    key={offer.id}
+                    className="rounded-2xl border border-emerald-200 bg-emerald-50/70 dark:bg-emerald-950/20 dark:border-emerald-900 p-4"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-[10px] text-slate-500">OFFRE #{offer.id}</span>
+                      <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300">
+                        Réservée à la flotte
+                      </span>
+                    </div>
+                    <p className="mt-2 font-bold text-slate-900 dark:text-slate-100">
+                      {offer.depart} → {offer.arrivee}
+                    </p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300">
+                      {offer.marchandise} · {offer.poids} t · Enlèvement le {offer.dateChargement}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
 
           {assignedMissions.length === 0 ? (
             <div className="bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-850 p-12 rounded-[2rem] text-center max-w-2xl mx-auto">

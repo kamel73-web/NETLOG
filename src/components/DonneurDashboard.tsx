@@ -31,12 +31,17 @@ import { OffreStatus, ProfileType, MoyenType, Facture, FactureStatus, DevisOffic
 import DevisModule from "./DevisModule";
 import { createFreightOffer, acceptProposal } from "../lib/freightOffers"
 import {
-  setOfferVisibility,
   loadMyAffiliates,
   loadAffiliateQuota,
   type Affiliate,
   type AffiliateQuota,
 } from "../lib/affiliates";
+import { loadFleetAccess, type FleetAccess } from "../lib/fleet";
+import {
+  audienceUsesAffiliates,
+  type OfferAudience,
+} from "../lib/offerAudience";
+import OfferAudienceSelector from "./OfferAudienceSelector";
 import { getMissionIdByOfferId, confirmDelivery, validateLoading, validateUnload } from "../lib/missions";
 import LdvButton from "./LdvButton";
 import { PlusDetailsItineraire, PlusDetailsMarchandise } from "./PlusDetails";
@@ -190,21 +195,27 @@ export default function DonneurDashboard({
   const [formBonCommande, setFormBonCommande] = useState("");
   const [formRemarques, setFormRemarques] = useState("");
 
-  // Offre publique ou réservée à des transporteurs affiliés
-  const [formVisibility, setFormVisibility] = useState<"public" | "restricted">("public");
+  // Audience de l'offre et destinataires affiliés éventuels
+  const [formAudience, setFormAudience] = useState<OfferAudience>("public");
   const [formCarrierIds, setFormCarrierIds] = useState<string[]>([]);
   const [myAffiliates, setMyAffiliates] = useState<Affiliate[]>([]);
   const [affQuota, setAffQuota] = useState<AffiliateQuota | null>(null);
+  const [fleetAccess, setFleetAccess] = useState<FleetAccess | null>(null);
   useEffect(() => {
     if (!showCreateModal) return;
     let alive = true;
-    Promise.all([loadAffiliateQuota(), loadMyAffiliates()])
-      .then(([q, a]) => {
+    Promise.all([loadAffiliateQuota(), loadMyAffiliates(), loadFleetAccess()])
+      .then(([q, a, fleet]) => {
         if (!alive) return;
+        const accepted = a.filter((x) => x.statut === "accepte");
         setAffQuota(q);
-        setMyAffiliates(a.filter((x) => x.statut === "accepte"));
+        setMyAffiliates(accepted);
+        setFormCarrierIds((selected) =>
+          selected.filter((id) => accepted.some((affiliate) => affiliate.carrier_id === id)),
+        );
+        setFleetAccess(fleet);
       })
-      .catch(() => undefined);
+      .catch((err) => console.error("Chargement des options de diffusion:", err));
     return () => {
       alive = false;
     };
@@ -328,18 +339,16 @@ export default function DonneurDashboard({
       return;
     }
 
-    if (formVisibility === "restricted" && formCarrierIds.length === 0) {
-
-      triggerSystemLog("Choisissez au moins un transporteur affilié, ou publiez l'offre pour tous.", "warning");
-
+    if (audienceUsesAffiliates(formAudience) && formCarrierIds.length === 0) {
+      triggerSystemLog("Choisissez au moins un transporteur affilié accepté.", "warning");
       return;
-
     }
 
     let insertedId: string;
     try {
       const inserted = await createFreightOffer({
-        visibility: formVisibility,
+        audience: formAudience,
+        affiliateCarrierIds: audienceUsesAffiliates(formAudience) ? formCarrierIds : [],
         wilayaDepart,
         wilayaArrivee,
         pointRepereDepart: formDepartDetails,
@@ -354,16 +363,6 @@ export default function DonneurDashboard({
         nombreVoyages: Number(formNombreVoyages) || 1,
       });
       insertedId = String(inserted.id);
-      if (formVisibility === "restricted") {
-        try {
-          await setOfferVisibility(Number(insertedId), "restricted", formCarrierIds);
-        } catch (visErr: any) {
-          triggerSystemLog(
-            `Offre créée mais non diffusée : ${visErr?.message ?? "erreur"}. Elle reste invisible des transporteurs : annulez-la puis recréez-la.`,
-            "warning",
-          );
-        }
-      }
       if (hasDetails(formDetails)) {
         try {
           await savePrivateDetails(insertedId, formDetails);
@@ -421,7 +420,7 @@ export default function DonneurDashboard({
 
     saveState(undefined, undefined, [newOffre, ...offres]);
     setPublishedRef(insertedId);
-    setFormVisibility("public");
+    setFormAudience("public");
     setFormCarrierIds([]);
     setSuccessPublishMsg(`✅ Offre publiée ! Référence : ${insertedId}. Visible en base.`);
     triggerSystemLog(lang === "ar" ? "تم نشر العرض بنجاح على البورصة" : "Offre publiée en base.", "success");
@@ -2107,52 +2106,16 @@ export default function DonneurDashboard({
 
 
                 <div className="px-6 pb-4">
-            <div className="border border-slate-200 rounded-2xl p-4 space-y-3 text-xs">
-              <span className="text-[11px] font-black uppercase text-slate-800 block">Diffusion de l'offre</span>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="offre-visibilite" checked={formVisibility === "public"}
-                  onChange={() => setFormVisibility("public")} />
-                Publique : visible par tous les transporteurs
-              </label>
-              <label className={`flex items-center gap-2 ${affQuota?.autorise ? "cursor-pointer" : "opacity-50"}`}>
-                <input type="radio" name="offre-visibilite" disabled={!affQuota?.autorise}
-                  checked={formVisibility === "restricted"} onChange={() => setFormVisibility("restricted")} />
-                Réservée à mes transporteurs affiliés
-              </label>
-              {affQuota && !affQuota.autorise && (
-                <p className="text-amber-800 bg-amber-50 border border-amber-100 rounded-xl p-2">
-                  Votre forfait ne comprend pas l'option « transporteurs affiliés ».
-                </p>
-              )}
-              {formVisibility === "restricted" && (
-                <div className="space-y-1">
-                  {myAffiliates.length === 0 ? (
-                    <p className="text-slate-500">
-                      Aucun transporteur affilié accepté. Invitez des transporteurs avec le bouton « 🤝 Affiliés » en haut de la page.
-                    </p>
-                  ) : (
-                    <>
-                      <button type="button" className="text-[#1D9E75] font-bold cursor-pointer"
-                        onClick={() => setFormCarrierIds(
-                          formCarrierIds.length === myAffiliates.length ? [] : myAffiliates.map((a) => a.carrier_id),
-                        )}>
-                        {formCarrierIds.length === myAffiliates.length ? "Tout désélectionner" : "Tous mes affiliés"}
-                      </button>
-                      {myAffiliates.map((a) => (
-                        <label key={a.carrier_id} className="flex items-center gap-2 cursor-pointer">
-                          <input type="checkbox" checked={formCarrierIds.includes(a.carrier_id)}
-                            onChange={(e) => setFormCarrierIds(
-                              e.target.checked ? [...formCarrierIds, a.carrier_id] : formCarrierIds.filter((x) => x !== a.carrier_id),
-                            )} />
-                          {a.nom}{a.wilaya ? ` · ${a.wilaya}` : ""}
-                        </label>
-                      ))}
-                    </>
-                  )}
+                  <OfferAudienceSelector
+                    audience={formAudience}
+                    onAudienceChange={setFormAudience}
+                    affiliates={myAffiliates}
+                    selectedAffiliateIds={formCarrierIds}
+                    onSelectedAffiliateIdsChange={setFormCarrierIds}
+                    fleetEnabled={fleetAccess ? fleetAccess.autorise : null}
+                    affiliatesEnabled={affQuota ? affQuota.autorise : null}
+                  />
                 </div>
-              )}
-            </div>
-          </div>
           {/* Modal actions */}
                 <div className="p-6 border-t border-slate-100 flex gap-3 justify-end bg-slate-50 rounded-b-3xl">
                   <button 
