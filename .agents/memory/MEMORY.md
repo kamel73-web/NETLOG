@@ -1,0 +1,1 @@
+- [npm firewall recovery](npm-firewall-recovery.md) — When a lockfile pins a blocked vulnerable transitive package, update its parent and lock to a patched semver-compatible version; do not bypass the firewall.
