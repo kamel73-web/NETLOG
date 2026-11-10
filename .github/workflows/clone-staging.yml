@@ -32,6 +32,7 @@ jobs:
           pg_dump "$PROD_DB_URL" --schema-only --schema=public --no-owner -f schema.sql
           sed -i '/^CREATE SCHEMA public;$/d' schema.sql
           sed -i '/netlog_schema_reader/d' schema.sql
+          sed -i '/^ALTER DEFAULT PRIVILEGES/d' schema.sql
           pg_dump "$PROD_DB_URL" --data-only --no-owner --table=public.subscription_plans --table=public.subscription_plans_id_seq -f plans.sql
 
       - name: Appliquer sur le staging
