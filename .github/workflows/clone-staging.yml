@@ -27,10 +27,11 @@ jobs:
           [ "$NP" -ge 30 ] || { echo "ERREUR : PROD_DB_URL ne pointe pas vers la production"; exit 1; }
           [ "$NS" -eq 0 ] || { echo "ERREUR : le staging n'est pas vide"; exit 1; }
 
-      - name: Exporter la structure de la production (lecture seule)
+           - name: Exporter la structure de la production (lecture seule)
         run: |
           pg_dump "$PROD_DB_URL" --schema-only --schema=public --no-owner -f schema.sql
           sed -i '/^CREATE SCHEMA public;$/d' schema.sql
+          sed -i '/netlog_schema_reader/d' schema.sql
           pg_dump "$PROD_DB_URL" --data-only --no-owner --table=public.subscription_plans --table=public.subscription_plans_id_seq -f plans.sql
 
       - name: Appliquer sur le staging
