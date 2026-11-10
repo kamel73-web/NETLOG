@@ -22,12 +22,12 @@ jobs:
         run: |
           NP=$(psql "$PROD_DB_URL" -Atc "select count(*) from information_schema.tables where table_schema='public'")
           NS=$(psql "$STAGING_DB_URL" -Atc "select count(*) from information_schema.tables where table_schema='public'")
-          echo "Tables PROD_DB_URL    : $NP (attendu 35)"
+          echo "Tables PROD_DB_URL    : $NP (attendu 36)"
           echo "Tables STAGING_DB_URL : $NS (attendu 0)"
           [ "$NP" -ge 30 ] || { echo "ERREUR : PROD_DB_URL ne pointe pas vers la production"; exit 1; }
           [ "$NS" -eq 0 ] || { echo "ERREUR : le staging n'est pas vide"; exit 1; }
 
-           - name: Exporter la structure de la production (lecture seule)
+      - name: Exporter la structure de la production (lecture seule)
         run: |
           pg_dump "$PROD_DB_URL" --schema-only --schema=public --no-owner -f schema.sql
           sed -i '/^CREATE SCHEMA public;$/d' schema.sql
