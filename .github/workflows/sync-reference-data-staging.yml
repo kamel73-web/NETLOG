@@ -1,0 +1,61 @@
+name: Synchroniser les données de référence prod vers staging
+# À placer dans .github/workflows/sync-reference-data-staging.yml
+# Copie UNIQUEMENT des tables de référence (aucune donnée personnelle) de la production vers le staging.
+# Lecture seule côté production. Écrase les tables de référence du staging.
+on:
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      PROD_DB_URL: ${{ secrets.PROD_DB_URL }}
+      STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+      PROD_REF: zpvgthasqbkdgpbpcies
+      STAGING_REF: sopngykgowtnfkaxuohw
+    steps:
+      - name: Installer le client PostgreSQL 17
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          . /etc/os-release
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Garde-fou (aucune inversion prod/staging possible)
+        run: |
+          case "$PROD_DB_URL" in *"$PROD_REF"*) ;; *) echo "ERREUR : PROD_DB_URL ne contient pas l'identifiant de la production"; exit 1;; esac
+          case "$STAGING_DB_URL" in *"$STAGING_REF"*) ;; *) echo "ERREUR : STAGING_DB_URL ne contient pas l'identifiant du staging"; exit 1;; esac
+          case "$STAGING_DB_URL" in *"$PROD_REF"*) echo "ERREUR : STAGING_DB_URL pointe vers la production"; exit 1;; esac
+          echo "Garde-fou OK"
+
+      - name: Exporter les tables de référence de la production (lecture seule)
+        run: |
+          pg_dump "$PROD_DB_URL" --data-only --no-owner \
+            --table=public.wilayas \
+            --table=public.communes --table=public.communes_id_seq \
+            --table=public.subscription_plans --table=public.subscription_plans_id_seq \
+            --table=public.platform_settings \
+            --table=public.commercial_rates \
+            --table=public.commercial_share_rules \
+            -f reference.sql
+          wc -l reference.sql
+
+      - name: Vider puis recharger les tables de référence du staging
+        run: |
+          psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 --single-transaction <<'SQL'
+          truncate table public.communes, public.wilayas, public.subscription_plans,
+                         public.platform_settings, public.commercial_rates, public.commercial_share_rules
+          restart identity cascade;
+          SQL
+          psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 --single-transaction -f reference.sql
+
+      - name: Vérification
+        run: |
+          for T in wilayas communes subscription_plans platform_settings commercial_rates commercial_share_rules; do
+            P=$(psql "$PROD_DB_URL" -Atc "select count(*) from public.$T")
+            S=$(psql "$STAGING_DB_URL" -Atc "select count(*) from public.$T")
+            echo "$T : prod=$P staging=$S"
+            [ "$P" = "$S" ] || { echo "ERREUR : écart sur $T"; exit 1; }
+          done
