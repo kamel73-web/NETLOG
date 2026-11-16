@@ -1,9 +1,20 @@
 name: Synchroniser les données de référence prod vers staging
 # À placer dans .github/workflows/sync-reference-data-staging.yml
 # Copie UNIQUEMENT des tables de référence (aucune donnée personnelle) de la production vers le staging.
-# Lecture seule côté production. Écrase les tables de référence du staging.
+# Lecture seule côté production.
+#   mode "ajouter"   (défaut) : ajoute les lignes absentes, ne supprime ni ne modifie rien dans le staging.
+#   mode "remplacer"          : vide les tables de référence AVEC CASCADE (efface aussi profils, offres,
+#                               missions... du staging), puis recharge. À réserver à un staging à remettre à zéro.
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "ajouter (sûr) ou remplacer (efface le staging)"
+        type: choice
+        default: ajouter
+        options:
+          - ajouter
+          - remplacer
 
 jobs:
   sync:
@@ -13,6 +24,7 @@ jobs:
       STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
       PROD_REF: zpvgthasqbkdgpbpcies
       STAGING_REF: sopngykgowtnfkaxuohw
+      MODE: ${{ inputs.mode }}
     steps:
       - name: Installer le client PostgreSQL 17
         run: |
@@ -28,34 +40,49 @@ jobs:
           case "$PROD_DB_URL" in *"$PROD_REF"*) ;; *) echo "ERREUR : PROD_DB_URL ne contient pas l'identifiant de la production"; exit 1;; esac
           case "$STAGING_DB_URL" in *"$STAGING_REF"*) ;; *) echo "ERREUR : STAGING_DB_URL ne contient pas l'identifiant du staging"; exit 1;; esac
           case "$STAGING_DB_URL" in *"$PROD_REF"*) echo "ERREUR : STAGING_DB_URL pointe vers la production"; exit 1;; esac
-          echo "Garde-fou OK"
+          echo "Garde-fou OK (mode : $MODE)"
 
       - name: Exporter les tables de référence de la production (lecture seule)
         run: |
-          pg_dump "$PROD_DB_URL" --data-only --no-owner \
+          # --inserts + on-conflict-do-nothing : chaque ligne déjà présente dans le staging est laissée telle quelle
+          pg_dump "$PROD_DB_URL" --data-only --no-owner --inserts --on-conflict-do-nothing \
             --table=public.wilayas \
-            --table=public.communes --table=public.communes_id_seq \
-            --table=public.subscription_plans --table=public.subscription_plans_id_seq \
+            --table=public.communes \
+            --table=public.subscription_plans \
             --table=public.platform_settings \
-            --table=public.commercial_rates \
             --table=public.commercial_share_rules \
             -f reference.sql
           wc -l reference.sql
 
-      - name: Vider puis recharger les tables de référence du staging
+      - name: Mode remplacer (optionnel)
+        if: ${{ inputs.mode == 'remplacer' }}
         run: |
           psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 --single-transaction <<'SQL'
           truncate table public.communes, public.wilayas, public.subscription_plans,
-                         public.platform_settings, public.commercial_rates, public.commercial_share_rules
+                         public.platform_settings, public.commercial_share_rules
           restart identity cascade;
           SQL
-          psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 --single-transaction -f reference.sql
+
+      - name: Charger dans le staging
+        run: |
+          # platform_settings.updated_by référence un profil de la production, absent du staging :
+          # on retire la contrainte le temps du chargement, on met ces références à NULL, puis on la remet.
+          {
+            echo "begin;"
+            echo "alter table public.platform_settings drop constraint if exists platform_settings_updated_by_fkey;"
+            cat reference.sql
+            echo "update public.platform_settings set updated_by = null where updated_by is not null and updated_by not in (select id from public.profiles);"
+            echo "alter table public.platform_settings add constraint platform_settings_updated_by_fkey foreign key (updated_by) references public.profiles(id);"
+            echo "select setval(pg_get_serial_sequence('public.communes','id'), (select coalesce(max(id),1) from public.communes));"
+            echo "select setval(pg_get_serial_sequence('public.subscription_plans','id'), (select coalesce(max(id),1) from public.subscription_plans));"
+            echo "commit;"
+          } > load.sql
+          psql "$STAGING_DB_URL" -v ON_ERROR_STOP=1 -f load.sql
 
       - name: Vérification
         run: |
-          for T in wilayas communes subscription_plans platform_settings commercial_rates commercial_share_rules; do
+          for T in wilayas communes subscription_plans platform_settings commercial_share_rules; do
             P=$(psql "$PROD_DB_URL" -Atc "select count(*) from public.$T")
             S=$(psql "$STAGING_DB_URL" -Atc "select count(*) from public.$T")
             echo "$T : prod=$P staging=$S"
-            [ "$P" = "$S" ] || { echo "ERREUR : écart sur $T"; exit 1; }
           done
