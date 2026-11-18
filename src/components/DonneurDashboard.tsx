@@ -569,7 +569,9 @@ export default function DonneurDashboard({
 
     const reserves =
       valideConformite !== "conforme"
-        ? `[${valideReservesType}] ${valideReservesDesc}`.replace(/\s+/g, " ").trim()
+        ? `${valideConformite === "litige" ? "LITIGE " : ""}[${valideReservesType}] ${
+            valideReservesDesc.trim() || "(détail non précisé)"
+          }`.replace(/\s+/g, " ").trim()
         : undefined;
     if (reserves && reserves.length > RESERVE_MAX) {
       triggerSystemLog(

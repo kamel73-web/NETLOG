@@ -640,6 +640,12 @@ export default function App() {
   const [compatibilityError, setCompatibilityError] = useState<string | null>(
     null,
   );
+  useEffect(() => {
+    if (!compatibilityError) return;
+    document
+      .getElementById("bid-compat-error")
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [compatibilityError]);
 
   // Visualisateur de contrats
   const [activeContractDoc, setActiveContractDoc] = useState<{
@@ -976,16 +982,18 @@ export default function App() {
     );
   };
 
+  const systemLogTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const triggerSystemLog = (
     text: string,
     type: "success" | "danger" | "info",
   ) => {
     setSystemLog({ text, type });
-    const toastType = type === "danger" ? "error" : type;
-    showToast(text, toastType);
-    setTimeout(() => {
-      setSystemLog(null);
-    }, 5000);
+    // Un seul timer : un nouveau message ne doit pas être effacé par l'ancien. Les erreurs restent plus longtemps.
+    if (systemLogTimer.current) clearTimeout(systemLogTimer.current);
+    systemLogTimer.current = setTimeout(
+      () => setSystemLog(null),
+      type === "danger" ? 10000 : 5000,
+    );
   };
 
   // Enregistrer ou se connecter
@@ -1694,12 +1702,13 @@ export default function App() {
     } catch (error) {
       console.error("[NETLOG] Erreur soumission proposition :", error);
 
-      triggerSystemLog(
+      const bidErrorMessage =
         error instanceof Error
           ? error.message
-          : "Échec de l'enregistrement de votre proposition.",
-        "danger",
-      );
+          : "Échec de l'enregistrement de votre proposition.";
+      // Affichée dans la fenêtre de proposition (visible) et dans le bandeau global
+      setCompatibilityError(bidErrorMessage);
+      triggerSystemLog(bidErrorMessage, "danger");
     }
   };
 
@@ -2600,7 +2609,10 @@ export default function App() {
       )}
 
       {/* FLOATING TOASTS NOTIFICATION PANEL */}
-      <div className="fixed bottom-20 right-4 left-4 sm:left-auto sm:w-96 z-50 flex flex-col gap-2.5 pointer-events-none">
+      <div
+        style={{ zIndex: 10000 }}
+        className="fixed bottom-20 right-4 left-4 sm:left-auto sm:w-96 z-50 flex flex-col gap-2.5 pointer-events-none"
+      >
         {toasts.map((t) => {
           let styleObj = {
             backgroundColor: "#059669",
@@ -3026,7 +3038,18 @@ export default function App() {
 
       {/* SYSTEM LOG ALERTS POPUP */}
       {systemLog && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+        <div
+          role="alert"
+          style={{
+            position: "fixed",
+            top: 12,
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "calc(100% - 24px)",
+            maxWidth: 640,
+            zIndex: 10000,
+          }}
+        >
           {(() => {
             let styleObj = {
               backgroundColor: "#059669",
@@ -8132,7 +8155,10 @@ export default function App() {
               </div>
 
               {compatibilityError && (
-                <div className="p-3 bg-rose-50 text-rose-850 rounded-lg text-[11px] font-bold border-l-4 border-rose-500 flex items-start gap-1.5">
+                <div
+                  id="bid-compat-error"
+                  role="alert"
+                  className="p-3 bg-rose-50 text-rose-850 rounded-lg text-[11px] font-bold border-l-4 border-rose-500 flex items-start gap-1.5">
                   <ShieldAlert className="w-4 h-4 shrink-0" />
                   <span>{compatibilityError}</span>
                 </div>

@@ -614,6 +614,13 @@ export default function ChauffeurDashboard({
                                     rows={2}
                                   />
                                 )}
+                                {hasLoadingReserves && !loadingReserves.trim() && (
+                                  <p className="text-[10px] font-bold text-amber-700">
+                                    {lang === "ar"
+                                      ? "اكتب تفاصيل التحفظ أو ألغِ التحديد للمتابعة."
+                                      : "Précisez la réserve ou décochez la case pour continuer."}
+                                  </p>
+                                )}
                               </div>
 
                               <div className="flex gap-2">
@@ -710,6 +717,13 @@ export default function ChauffeurDashboard({
                                     className="w-full px-3 py-2 bg-white text-slate-900 border border-slate-300 rounded-xl focus:border-indigo-500 focus:outline-none text-xs"
                                     rows={2}
                                   />
+                                )}
+                                {hasUnloadingReserves && !unloadingReserves.trim() && (
+                                  <p className="text-[10px] font-bold text-amber-700">
+                                    {lang === "ar"
+                                      ? "اكتب تفاصيل التحفظ أو ألغِ التحديد للمتابعة."
+                                      : "Précisez la réserve ou décochez la case pour continuer."}
+                                  </p>
                                 )}
                               </div>
 
