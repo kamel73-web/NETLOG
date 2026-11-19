@@ -1848,42 +1848,53 @@ export default function TransporteurDashboard({
             </div>
           </div>
 
-          {/* CONFIRMATION POPUP MODAL */}
+          {/* CONFIRMATION D'ÉTAPE : vraie fenêtre, toujours visible quelle que soit la position dans la page */}
           {missionConfirming && (
-            <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 mb-4 space-y-3 shadow-md animate-pulse-slow">
-              <div className="flex justify-between items-start">
-                <div className="font-extrabold text-amber-950 text-xs uppercase tracking-wide flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4 text-amber-600" /> Étape de
-                  sécurité requise
+            <div
+              className="fixed inset-0 flex items-center justify-center p-4 bg-slate-950/60"
+              style={{ zIndex: 9000 }}
+              role="dialog"
+              aria-modal="true"
+              onClick={() => setMissionConfirming(null)}
+            >
+              <div
+                className="w-full max-w-md bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 space-y-3 shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="font-extrabold text-amber-950 text-xs uppercase tracking-wide flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4 text-amber-600" /> Étape de
+                    sécurité requise
+                  </div>
+                  <button
+                    onClick={() => setMissionConfirming(null)}
+                    className="text-slate-400 hover:text-slate-600 text-[11px] font-bold"
+                  >
+                    Fermer [X]
+                  </button>
                 </div>
-                <button
-                  onClick={() => setMissionConfirming(null)}
-                  className="text-slate-400 hover:text-slate-600 text-[11px] font-bold"
-                >
-                  Fermer [X]
-                </button>
-              </div>
-              <p className="text-xs font-semibold text-amber-800">
-                Êtes-vous sûr de vouloir confirmer cette action :{" "}
-                <span className="underline font-bold font-mono">
-                  "{missionConfirming.label}"
-                </span>{" "}
-                ? Cette modification sera directement transmise au Donneur
-                d'Ordre.
-              </p>
-              <div className="flex gap-2 justify-end">
-                <button
-                  onClick={() => setMissionConfirming(null)}
-                  className="px-4 py-1.5 border border-amber-200 hover:bg-white text-slate-700 font-bold text-xs rounded-lg"
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={executeStatusTransition}
-                  className="px-5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-lg"
-                >
-                  Oui, confirmer
-                </button>
+                <p className="text-xs font-semibold text-amber-800">
+                  Êtes-vous sûr de vouloir confirmer cette action :{" "}
+                  <span className="underline font-bold font-mono">
+                    "{missionConfirming.label}"
+                  </span>{" "}
+                  ? Cette modification sera directement transmise au Donneur
+                  d'Ordre.
+                </p>
+                <div className="flex gap-2 justify-end">
+                  <button
+                    onClick={() => setMissionConfirming(null)}
+                    className="px-4 py-1.5 border border-amber-200 hover:bg-white text-slate-700 font-bold text-xs rounded-lg"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={executeStatusTransition}
+                    className="px-5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-lg"
+                  >
+                    Oui, confirmer
+                  </button>
+                </div>
               </div>
             </div>
           )}
